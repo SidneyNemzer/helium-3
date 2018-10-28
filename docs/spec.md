@@ -6,29 +6,21 @@ TODO
 
 ## Overview
 
-Up to four players can participate in a match. Each player takes turns moving up to two of their five bots. Players can set up moves before their turn. The winner is the player who has mined the most Helium 3 at the end of the game.
+Up to four players can participate in a match. Each player takes turns moving up to two of their five X-TRACT robots. Players can set up moves before their turn. The winner is the player who has mined the most Helium 3 at the end of the game, and still has at least one X-TRACT robot alive.
 
-## Mining Robots
+## X-TRACT Robots
 
-Each player starts with five mining robots. Robots start in the "inactive" state, which makes them immune to damage. Players may move up to two robots on their turn.
+Each player starts with five X-TRACT robots. The robots start in the "inactive" state, which makes them immune to damage. Players may move up to two robots on their turn.
 
-### Actions
+After an action has been performed, robots enter the "active" state, which allows them to be destroyed.
 
-Robots start in the "inactive" state. After an action has been performed, they enter the "active" state, which allows them to be destroyed.
+These basic actions can be performed at any time:
 
-A few basic actions can be performed at any time. Some actions are contextual.
+1. Arm Missile
+2. Arm Laser
+3. Kamikaze
+4. Shield
+5. Mine
+6. Move
 
-| Name | Requires State | Effect |
-|------|----------------|---------------------|
-| Arm Missile | (None) | Missile Armed |
-| Arm Laser | (None) | Laser Armed |
-| Kamikaze | (None) | Destroys self and neighbors |
-| Shield | (None) | See Shield |
-| Mine | (None) | Mines Helium 3 and rewards cash |
-| Move | (None) | Moves |
-| Fire Missile | Missile Armed | See Weapons |
-| Fire Laser | Laser Armed | See Weapons |
-
-#### Weapons
-
-#### Shield
+Each X-TRACT robot can preform one of the following actions per turn:
