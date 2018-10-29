@@ -1,8 +1,11 @@
 # Helium 3
 
-## Table of Contents
+### Table of Contents
 
-TODO
+- [Matches](#matches)
+- [X-TRACT Robots](#x-tract-robots)
+  - [Mining](#mining)
+  - [Shield](#shield)
 
 
 ## Matches
@@ -34,12 +37,12 @@ An X-TRACT robot can preform one of the following actions per turn:
 "Move" obviously allows X-TRACT robots to move around the map. Some other actions allow the robots to move, but not as far as a dedicated move.
 
 
-## Mining
+### Mining
 
 X-TRACT robots can mine Helium 3 from the moon's surface. Mining a square removes up to $500 of Helium 3 from the square under the robot and $250 of Helium 3 from each neighboring square.
 
 
-## Shield
+### Shield
 
 Players can only see shields on their own robots.
 
