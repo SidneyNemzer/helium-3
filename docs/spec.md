@@ -14,6 +14,23 @@ Four players compete in a ten minute battle. The battle takes place on the moon 
 
 $40,000 of Helium 3 is randomly distributed over the moon's surface before the game starts. Helium 3 tends to concentrate in clumps.
 
+The match starts with a player in each corner of the map with their X-TRACT Robots in an "L" shape:
+
+```
+  x        x
+  x        x 
+xxx        xxx
+
+
+
+
+xxx        xxx
+  x        x
+  x        x  
+```
+
+Not to scale. X = X-TRACT Robot.
+
 
 ## X-TRACT Robots
 
@@ -48,4 +65,4 @@ Players can only see shields on their own robots.
 
 Robots with an active shield are immune to all damage, but taking any damage or performing any action disarms the shield. Hitting a shielded robot with a laser stops the laser.
 
-Shields can also be used to deflect lasers; when shielding a robot, the player can optionally choose a direction to deflect lasers. Any lasers hitting the shield deflect in the chosen direction. Just like firing a laser, deflection happens at 45 degree angles (including back at the source of the laser). A laser can be deflected by multiple robots.
+Shields can also be used to deflect lasers; when shielding a robot, the player can optionally choose a direction to deflect lasers. Any lasers hitting the shield deflect in the chosen direction. Just like firing a laser, deflection happens at 45 degree angles (including back at the source of the laser). A laser can be deflected by multiple times by different robots.
