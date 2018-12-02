@@ -17,8 +17,8 @@ $40,000 of Helium 3 is randomly distributed over the moon's surface before the g
 The match starts with a player in each corner of the map with their X-TRACT Robots in an "L" shape:
 
 ```
+1 x        x 2
   x        x
-  x        x 
 xxx        xxx
 
 
@@ -26,10 +26,10 @@ xxx        xxx
 
 xxx        xxx
   x        x
-  x        x  
+4 x        x 3
 ```
 
-Not to scale. X = X-TRACT Robot.
+Not to scale. X = X-TRACT Robot. number = player number.
 
 
 ## X-TRACT Robots
