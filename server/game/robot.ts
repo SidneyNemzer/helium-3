@@ -148,7 +148,7 @@ export class Robot {
 
   toJSON() {
     return {
-      location: this.location,
+      location: this.location.toJSON(),
       tool: this.tool,
       action: this.action,
       helium3: this.helium3,
