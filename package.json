@@ -36,13 +36,15 @@
     "uuid": "^3.3.2"
   },
   "ava": {
-    "files": [ "server/tests/**/*.ts" ],
+    "files": [
+      "server/tests/**/*.ts"
+    ],
     "compileEnhancements": false,
-		"extensions": [
-			"ts"
-		],
-		"require": [
-			"ts-node/register"
-		]
+    "extensions": [
+      "ts"
+    ],
+    "require": [
+      "ts-node/register"
+    ]
   }
 }
