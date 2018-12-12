@@ -33,4 +33,15 @@ export class Point {
   within(width: number, height: number) {
     return this.x >= 0 && this.y >= 0 && this.x < width && this.y < height
   }
+
+  /**
+   * Returns true if this point has the same x and y as the given point
+   */
+  equals(point: Point): boolean {
+    return this.x === point.x && this.y === point.y
+  }
+
+  toJSON() {
+    return { x: this.x, y: this.y }
+  }
 }
