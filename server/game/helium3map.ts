@@ -18,7 +18,7 @@ export class Helium3Map {
     ])
   }
 
-  minePoint(point: Point): number {
+  minePoint = (point: Point): number => {
     const squareAmount = this.map.get(point) || 0
     const mined = Math.min(MAX_MINE_PER_SQUARE, squareAmount)
     this.map.set(point, squareAmount - mined)
@@ -31,27 +31,27 @@ export class Helium3Map {
    * @param  point [description]
    * @return       [description]
    */
-  mine(point: Point): number {
+  mine = (point: Point): number => {
     return point.around(true).reduce((minedTotal: number, point: Point) => {
       return minedTotal + this.minePoint(point)
     }, 0)
   }
 
-  add(point: Point, amount: number) {
+  add = (point: Point, amount: number) => {
     this.map.set(point, (this.map.get(point) || 0) + amount)
   }
 
   /**
    * Distributes H3 onto the map, for example after a robot is destroyed
    */
-  drop(point: Point, amount: number): void {
+  drop = (point: Point, amount: number): void => {
     point
       .around(true)
       .filter(point => point.within(20, 20))
       .forEach((point, _, { length }) => this.add(point, amount / length))
   }
 
-  toJSON() {
+  toJSON = () => {
     return Array
       .from(this.map)
       .reduce(

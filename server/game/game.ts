@@ -42,7 +42,7 @@ export class Game extends EventEmitter {
     this.countdown = null
   }
 
-  beginCountdown(type: CountdownType, callback: () => void) {
+  beginCountdown = (type: CountdownType, callback: () => void) => {
     this.emit('countdown', type)
     this.countdown = {
       type,
@@ -50,19 +50,19 @@ export class Game extends EventEmitter {
     }
   }
 
-  startCountdown() {
+  startCountdown = () => {
     this.beginCountdown(CountdownType.START, this.nextMoveCountdown)
   }
 
-  nextMoveCountdown() {
+  nextMoveCountdown = () => {
     this.beginCountdown(CountdownType.NEXT_MOVE, this.moveRobots)
   }
 
-  endMoveCountdown() {
+  endMoveCountdown = () => {
     this.beginCountdown(CountdownType.END_MOVE, this.nextMoveCountdown)
   }
 
-  moveRobots() {
+  moveRobots = () => {
     this.players[this.turn].move()
     if (this.turn === 3) {
       this.turn = 0
@@ -72,11 +72,11 @@ export class Game extends EventEmitter {
     this.endMoveCountdown()
   }
 
-  eachRobot(fn: (robot: Robot) => any) {
+  eachRobot = (fn: (robot: Robot) => any) => {
     this.players.forEach(player => player.robots.forEach(fn))
   }
 
-  findRobot(fn: (robot: Robot) => boolean): Robot | undefined {
+  findRobot = (fn: (robot: Robot) => boolean): Robot | undefined => {
     let robot = undefined
     this.players.find(player => {
       robot = player.robots.find(fn)
@@ -85,13 +85,13 @@ export class Game extends EventEmitter {
     return robot
   }
 
-  robotAt(point: Point): Robot | undefined {
+  robotAt = (point: Point): Robot | undefined => {
     return this.findRobot(robot =>
       robot.location.x === point.x && robot.location.y === point.y
     )
   }
 
-  hit(point: Point): 'destroy' | 'hit' | 'empty' {
+  hit = (point: Point): 'destroy' | 'hit' | 'empty' => {
     const robot = this.robotAt(point)
     if (robot) {
       if (robot.hit()) {
@@ -111,7 +111,7 @@ export class Game extends EventEmitter {
    * Translates a 45 degree angle to a direction for the x axis. Subtract 90
    * degress to get results for the y axis.
    */
-  angleIncrement(angle: number): number {
+  angleIncrement = (angle: number): number => {
     switch (angle) {
       case 0: return 1
       case 45: return 1
@@ -129,7 +129,7 @@ export class Game extends EventEmitter {
    * Returns a point on a line which begins at `start` and is at `angle`
    * Note: `angle` must be 0 or a multiple of 45
    */
-  locationInLine(start: Point, angle: number, index: number): Point {
+  locationInLine = (start: Point, angle: number, index: number): Point => {
     return start.translate(
       index * this.angleIncrement(angle),
       index * this.angleIncrement(angle - 90)
@@ -140,7 +140,7 @@ export class Game extends EventEmitter {
    * Damage robots that are on the line created at start and aimed at `angle`
    * Note: `angle` must be 0 or a multiple of 45
    */
-  hitInLine(start: Point, angle: number): void {
+  hitInLine = (start: Point, angle: number): void => {
     const hitInLineHelp = (index: number): void => {
       const point = this.locationInLine(start, angle, index)
       // Stop if a robot absorbs the damage
@@ -155,7 +155,7 @@ export class Game extends EventEmitter {
     return hitInLineHelp(1)
   }
 
-  toJSON() {
+  toJSON = () => {
     return {
       turn: this.turn,
       players: this.players.map(player => player.toJSON()),

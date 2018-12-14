@@ -102,19 +102,19 @@ export class GameController {
     this.sockets.forEach(this.attachSocketListeners)
   }
 
-  emit(type: string, ...args: any[]) {
+  emit = (type: string, ...args: any[]) => {
     this.io.to(this.gameId).emit(type, ...args)
   }
 
-  onCountdown(type: CountdownType) {
+  onCountdown = (type: CountdownType) => {
     this.emit('countdown', type)
   }
 
-  attachSocketListeners(socket: IndexedSocket) {
+  attachSocketListeners = (socket: IndexedSocket) => {
     socket.on('queue-move', data => this.onQueueMove(socket, data))
   }
 
-  onQueueMove(socket: IndexedSocket, data: any) {
+  onQueueMove = (socket: IndexedSocket, data: any) => {
     // TODO We're checking the shape but not valid moves
     QueueActionValidator
       .decode(data)

@@ -52,7 +52,7 @@ export class Robot {
    * Returns the current target of the robot, or null if the robot has no target,
    * or the target is not a single point
    */
-  target(): Point | null {
+  target = (): Point | null => {
     if (
       this.action
       && this.action.type !== ActionType.KAMAKAZIE
@@ -63,7 +63,7 @@ export class Robot {
     return null
   }
 
-  move() {
+  move = () => {
     const { action } = this
     if (!action) {
       return
@@ -134,7 +134,7 @@ export class Robot {
   /**
    * Damages the robot, possibly destroying it
    */
-  hit(): boolean {
+  hit = (): boolean => {
     if (this.tool === Tool.SHIELD) {
       this.tool = null
       return false
@@ -146,7 +146,7 @@ export class Robot {
     return true
   }
 
-  toJSON() {
+  toJSON = () => {
     return {
       location: this.location.toJSON(),
       tool: this.tool,

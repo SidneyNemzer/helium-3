@@ -6,7 +6,7 @@ export class Point {
     this.y = y
   }
 
-  translate(tx: number, ty: number): Point {
+  translate = (tx: number, ty: number): Point => {
     return new Point(
       this.x + tx,
       this.y + ty
@@ -17,7 +17,7 @@ export class Point {
    * Returns an array of the points around this point
    * @param  includeCenter When true, the center point is included in the returned array
    */
-  around(includeCenter: boolean): Point[] {
+  around = (includeCenter: boolean): Point[] => {
     return [
       this.translate(-1, -1),
       this.translate(-1, 0),
@@ -30,18 +30,18 @@ export class Point {
     ].concat(includeCenter ? [ this ] : [])
   }
 
-  within(width: number, height: number) {
+  within = (width: number, height: number) => {
     return this.x >= 0 && this.y >= 0 && this.x < width && this.y < height
   }
 
   /**
    * Returns true if this point has the same x and y as the given point
    */
-  equals(point: Point): boolean {
+  equals = (point: Point): boolean => {
     return this.x === point.x && this.y === point.y
   }
 
-  toJSON() {
+  toJSON = () => {
     return { x: this.x, y: this.y }
   }
 }

@@ -15,11 +15,11 @@ export class Player {
     this.helium3 = 0
   }
 
-  move() {
+  move = () => {
     return this.robots.map(robot => robot.move())
   }
 
-  toJSON() {
+  toJSON = () => {
     return {
       robots: this.robots.map(robot => robot.toJSON()),
       helium3: this.helium3

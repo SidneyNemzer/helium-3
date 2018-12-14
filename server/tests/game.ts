@@ -26,7 +26,7 @@ test('moveRobots', t => {
 
   t.is(game.turn, 1)
   t.is(robot.action, null)
-  t.deepEqual(robot.location, new Point(10, 10))
+  t.true(robot.location.equals(new Point(10, 10)))
   t.is(robot.tool, Tool.LASER)
 })
 
