@@ -1,32 +1,27 @@
 const fs = require('fs')
 const path = require('path')
 const HtmlWebpackPlugin = require('html-webpack-plugin')
-const CopyWebpackPlugin = require('copy-webpack-plugin')
 
 const ROOT = __dirname
+const SOURCE = 'client'
 const DEV_SERVER_DOMAIN = 'http://localhost:8080/'
 
 module.exports = (env, args) => {
-  const IS_DEV = args.mode === 'development' || args.$0.includes('webpack-dev-server')
   const entries = fs
-    .readdirSync(path.resolve(ROOT, './src/Page'))
+    .readdirSync(path.resolve(ROOT, SOURCE, 'Page'))
     .filter(name => name.endsWith('.entry.js'))
 
-  console.log('Pages:')
+  console.log('Building Pages:')
   entries.forEach(name => {
-    console.log(DEV_SERVER_DOMAIN + name.replace('.entry.js', '.html'), `(${name})`)
+    console.log(name, DEV_SERVER_DOMAIN + name.replace('.entry.js', '.html'))
   })
   console.log('')
 
   return {
     mode: args.mode || 'development',
 
-    devServer: {
-      contentBase: path.resolve(ROOT, './src/public')
-    },
-
     entry: entries.reduce((map, name) => {
-      map[name] = path.resolve(ROOT, './src/Page/', name)
+      map[name] = path.resolve(ROOT, SOURCE, 'Page', name)
       return map
     }, {}),
 
@@ -50,8 +45,6 @@ module.exports = (env, args) => {
         inject: true,
         chunks: [ name ]
       })
-    ).concat([
-      new CopyWebpackPlugin([ 'public' ])
-    ])
+    )
   }
 }
