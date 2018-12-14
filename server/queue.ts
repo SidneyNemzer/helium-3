@@ -1,6 +1,6 @@
 import uuid from 'uuid/v1'
 import { Socket, Server } from 'socket.io'
-import { GameController } from './game/controller'
+import { GameController } from './game-controller'
 
 const queue: Socket[] = []
 

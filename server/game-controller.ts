@@ -1,6 +1,6 @@
 import { Server, Socket } from 'socket.io'
-import { Game, CountdownType, PlayerIndex } from './game'
-import { Action } from './robot'
+import { Game, CountdownType, PlayerIndex } from './game/game'
+import { Action } from './game/robot'
 import * as t from 'io-ts'
 
 const PointValidator = t.type({
