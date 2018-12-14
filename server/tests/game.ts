@@ -1,7 +1,3 @@
-/*
-Just testing module mocking
- */
-
 import test from 'ava'
 import { Game } from '../game/game'
 import { ActionType, Tool } from '../game/robot'
