@@ -261,6 +261,8 @@ view model =
                         []
                 ]
             )
+        , Svg.Grid.grid
+        , Array.map Robot.view
         , View.Grid.grid
             20
             [ style "display" "block"
@@ -271,7 +273,7 @@ view model =
                 [ [ ( "defs", defs [] [ View.Robot.def ] ) ]
                 , robots |> keyed "robot"
                 , decorations |> keyed "decoration"
-                , (case model.selected of
+                , case model.selected of
                     Just ( playerEnum, robotEnum, Just action ) ->
                         let
                             position =
@@ -325,8 +327,6 @@ view model =
 
                     Nothing ->
                         []
-                  )
-                    |> keyed "selectedableGrid"
                 ]
             )
         , div
