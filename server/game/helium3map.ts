@@ -52,14 +52,6 @@ export class Helium3Map {
   }
 
   toJSON = () => {
-    return Array
-      .from(this.map)
-      .reduce(
-        (json, [ point, amount ]) => {
-          json[`${point.x},${point.y}`] = amount
-          return json
-        },
-        <{ [key: string]: number}> {}
-      )
+    return Array.from(this.map).map(([ point, amount ]) => [ point.toJSON(), amount ])
   }
 }
