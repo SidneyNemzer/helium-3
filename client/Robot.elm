@@ -1,18 +1,21 @@
 module Robot exposing
     ( Robot
     , Tool(..)
-    , decoder
     , missileRange
     , moveAndArmWeaponRange
     , moveAndMineRange
     , moveAndShieldRange
     , moveRange
+    , robotsDecoder
     , view
     )
 
+import Array exposing (Array)
 import Json.Decode as Decode exposing (Decoder)
+import Json.Decode.Extra as Decode
+import List.Extra
 import Maybe.Extra
-import Player exposing (Player)
+import Player exposing (Player(..))
 import Point exposing (Point)
 import Svg exposing (Svg)
 import Svg.Grid
@@ -104,8 +107,47 @@ toolDecoder =
         )
 
 
-decoder : Player -> Float -> Decoder Robot
-decoder owner rotation =
+robotsDecoder : List Float -> Decoder (Array Robot)
+robotsDecoder rotations =
+    Decode.field "players"
+        ([ Player1, Player2, Player3, Player4 ]
+            |> List.indexedMap
+                (\index player ->
+                    let
+                        robot1Index =
+                            modBy 4 index
+
+                        robot5Index =
+                            robot1Index + 5
+
+                        robotRotations =
+                            Array.fromList rotations
+                                |> Array.slice robot1Index robot5Index
+                                |> Array.toList
+                    in
+                    playerDecoder player robotRotations
+                )
+            |> Decode.sequence
+            |> Decode.map (List.concat >> Array.fromList)
+        )
+
+
+playerDecoder : Player -> List Float -> Decoder (List Robot)
+playerDecoder owner rotations =
+    case rotations of
+        [ _, _, _, _, _ ] ->
+            Decode.field "robots"
+                (List.repeat 5 (robotDecoder owner)
+                    |> List.Extra.andMap rotations
+                    |> Decode.sequence
+                )
+
+        _ ->
+            Decode.fail "Bad rotations size"
+
+
+robotDecoder : Player -> Float -> Decoder Robot
+robotDecoder owner rotation =
     Decode.map6 Robot
         (Decode.field "location" Point.decoder)
         (Decode.succeed rotation)
@@ -126,20 +168,19 @@ decoder owner rotation =
 --             robot
 
 
-view : msg -> Robot -> List (Svg msg)
+view : msg -> Robot -> ( Svg msg, Svg msg )
 view onClick robot =
     let
         { x, y } =
             Svg.Grid.cellTopLeft robot.location
     in
-    Maybe.Extra.values
-        [ Just <|
-            Svg.Robot.use
-                { x = x
-                , y = y
-                , rotation = robot.rotation
-                , color = Player.color robot.owner
-                , onClick = onClick
-                }
-        , Maybe.map (Svg.Grid.dottedLine robot.location) robot.target
-        ]
+    ( Svg.Robot.use
+        { x = x
+        , y = y
+        , rotation = robot.rotation
+        , color = Player.color robot.owner
+        , onClick = onClick
+        }
+    , Maybe.map (Svg.Grid.dottedLine robot.location) robot.target
+        |> Maybe.withDefault (Svg.text "")
+    )

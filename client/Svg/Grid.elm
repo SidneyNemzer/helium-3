@@ -3,6 +3,7 @@ module Svg.Grid exposing
     , cellTopLeft
     , dottedLine
     , grid
+    , gridSideSvg
     , overlay
     , overlayCell
     )
@@ -36,6 +37,13 @@ lineWidth =
 gridSide : Int
 gridSide =
     20
+
+
+{-| Length of a side in SVG units
+-}
+gridSideSvg : Int
+gridSideSvg =
+    cellSide * gridSide + lineWidth
 
 
 {-| Returns position of the top left corner of the given cell. Useful for
@@ -105,30 +113,37 @@ grid =
             lineIndexes
 
 
-overlayCell : msg -> Point -> Svg msg
+overlayCell : Maybe msg -> Point -> Svg msg
 overlayCell onClick cell =
     let
         coords =
             cellTopLeft cell
     in
     rect
-        [ x (String.fromInt (coords.x + 4))
-        , y (String.fromInt (coords.y + 4))
-        , height (String.fromInt (cellSide - 8))
-        , width (String.fromInt (cellSide - 8))
-        , stroke "#487CFF"
-        , strokeWidth "6"
-        , fill "transparent"
-        , style "cursor: pointer;"
-        , Svg.Events.onClick onClick
-        ]
+        ([ x (String.fromInt (coords.x + 4))
+         , y (String.fromInt (coords.y + 4))
+         , height (String.fromInt (cellSide - 8))
+         , width (String.fromInt (cellSide - 8))
+         , stroke "#487CFF"
+         , strokeWidth "6"
+         , fill "transparent"
+         , style "cursor: pointer;"
+         ]
+            ++ (case onClick of
+                    Just msg ->
+                        [ Svg.Events.onClick msg ]
+
+                    Nothing ->
+                        []
+               )
+        )
         []
 
 
 overlay : (Point -> msg) -> Point -> Int -> List (Svg msg)
 overlay onClick centerCell radius =
     Point.around centerCell radius
-        |> List.map (\point -> overlayCell (onClick point) point)
+        |> List.map (\point -> overlayCell (Just (onClick point)) point)
 
 
 dottedLine : Point -> Point -> Svg msg

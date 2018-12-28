@@ -11,7 +11,7 @@ The server waits for four players to join the lobby, then starts a new game.
 
 # Game
 
-During a game, clients may queue actions for their robots at any time. The server executes the actions on the players turn. The server periodically sends state updates, which the client should use to sync with it's local state, potentially animating changes (such as robots moving).
+During a game, clients may queue actions for their robots at any time. The server executes the actions on the player's turn. The server periodically sends state updates, which the client should use to sync with it's local state, potentially animating changes (such as robots moving).
 
 ```
 type Point = { x: number, y: number }
@@ -28,11 +28,10 @@ type QueueAction
   | { robot: RobotIndex, type: 'MOVE', target: Point }
   | { robot: RobotIndex, type: 'MINE', target: Point }
 
-type CountdownType {
-  START = 'START',
-  END_MOVE = 'END_MOVE',
-  NEXT_MOVE = 'NEXT_MOVE'
-}
+type Countdown
+  = { type: 'START', time: number }
+  | { type: 'END_MOVE', time: number }
+  | { type: 'NEXT_MOVE', time: number }
 ```
 
 | Direction | Type | Data | Notes |

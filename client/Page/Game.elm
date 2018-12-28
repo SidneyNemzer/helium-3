@@ -8,11 +8,13 @@ import Html exposing (Html, div, h1, li, span, text, ul)
 import Html.Attributes exposing (style)
 import Html.Events
 import List.Extra
+import Model exposing (Model)
 import Player exposing (Player(..), Players)
 import Point
 import Process
 import Robot exposing (Robot)
 import Svg exposing (Svg, defs, g)
+import Svg.Attributes as SA
 import Svg.Grid
 import Svg.Robot
 import Task
@@ -27,22 +29,6 @@ main =
         , subscriptions = subscriptions
         , view = view
         }
-
-
-type Countdown
-    = Start Posix
-    | NextMove Posix
-    | EndMove Posix
-
-
-type alias Model =
-    { turn : Player
-    , countdown : Maybe Countdown
-    , players : Players
-    , robots : Array Robot
-    , helium3 : Helium3Grid
-    , selectedRobot : Maybe Int
-    }
 
 
 init : () -> ( Model, Cmd Msg )
@@ -183,48 +169,6 @@ subscriptions model =
 -- VIEW
 
 
-viewPlayers : Model -> ( List (Svg Msg), List (Svg Msg) )
-viewPlayers model =
-    List.unzip
-        [ Player.view model.player1 Color.green (SelectRobot Player1)
-        , Player.view model.player2 Color.purple (SelectRobot Player2)
-        , Player.view model.player3 Color.cyan (SelectRobot Player3)
-        , Player.view model.player4 Color.red (SelectRobot Player4)
-        ]
-        |> Tuple.mapBoth List.concat List.concat
-
-
-keyed : String -> List (Svg msg) -> List ( String, Svg msg )
-keyed id =
-    List.indexedMap Tuple.pair
-        >> List.map (Tuple.mapFirst (String.fromInt >> (++) id))
-
-
-viewState : State -> Html msg
-viewState state =
-    case state of
-        Setup player ->
-            span []
-                [ text "It's "
-                , span
-                    [ style "color" (playerColor player)
-                    , style "font-weight" "bold"
-                    ]
-                    [ text (playerName player) ]
-                , text "'s turn"
-                ]
-
-        Moving player ->
-            span []
-                [ span
-                    [ style "color" (playerColor player)
-                    , style "font-weight" "bold"
-                    ]
-                    [ text (playerName player) ]
-                , text " is moving..."
-                ]
-
-
 viewActions : Robot -> Html msg
 viewActions robot =
     div []
@@ -239,11 +183,42 @@ viewActions robot =
         ]
 
 
+viewRobotIndexed : Int -> Robot -> ( Svg Msg, Svg Msg )
+viewRobotIndexed index robot =
+    Robot.view (RobotClicked index) robot
+
+viewGamePhase : Model -> Html msg
+viewGamePhase model =
+    case model.countdown of
+        Just (Start posix) ->
+            div []
+                [ text "Game starts in "
+                , text "time"
+                ]
+
+        Just (NextMove posix) ->
+
+        Just (EndMove posix) ->
+
+        Nothing ->
+
+
+
+viewSelectedRobot : Array Robot -> Int -> Svg msg
+viewSelectedRobot robots index =
+    Array.get index robots
+        |> Maybe.map (.location >> Svg.Grid.overlayCell Nothing)
+
 view : Model -> Browser.Document Msg
 view model =
     let
         ( robots, decorations ) =
-            viewPlayers model
+            Array.indexedMap viewRobotIndexed model.robots
+                |> Array.toList
+                |> List.unzip
+
+        gridSideSvg =
+            String.fromInt Svg.Grid.gridSideSvg
     in
     { title = "Helium 3"
     , body =
@@ -251,99 +226,154 @@ view model =
             [ style "text-align" "center"
             , style "width" "calc((100vw - 100vh) / 2)"
             ]
-            (List.concat
-                [ [ viewState model.state ]
-                , case model.selected of
-                    Just ( player, robot ) ->
-                        [ viewActions (getPlayerRobot model player robot) ]
+            [ viewGamePhase model
+            , case model.selectedRobot of
+                Just index ->
+                    viewActions model.robots index
 
-                    Nothing ->
-                        []
-                ]
-            )
-        , Svg.Grid.grid
-        , Array.map Robot.view
-        , View.Grid.grid
-            20
-            [ style "display" "block"
+                Nothing ->
+                    text ""
+            ]
+        , Svg.svg
+            [ SA.stroke "black"
+            , SA.viewBox ("0 0 " ++ gridSideSvg ++ " " ++ gridSideSvg)
+            , style "display" "block"
             , style "height" "100%"
             , style "flex-grow" "2"
             ]
             (List.concat
-                [ [ ( "defs", defs [] [ View.Robot.def ] ) ]
-                , robots |> keyed "robot"
-                , decorations |> keyed "decoration"
-                , case model.selected of
-                    Just ( playerEnum, robotEnum, Just action ) ->
-                        let
-                            position =
-                                (getPlayerRobot model playerEnum robotEnum).position
-                        in
-                        case action of
-                            Robot.FireMissile_ ->
-                                View.Grid.selectedableGrid
-                                    (FireMissile playerEnum robotEnum)
-                                    position
-                                    Robot.missileRange
+                [ [ Svg.Grid.grid ]
+                , robots
+                , decorations
+                , case model.selectedRobot of
+                    Just index ->
+                        [ viewSelectedRobot model.robots index ]
 
-                            Robot.FireLaser_ ->
-                                View.Grid.selectedableGrid
-                                    (FireLaser playerEnum robotEnum)
-                                    position
-                                    1
-
-                            Robot.ArmMissile_ ->
-                                View.Grid.selectedableGrid
-                                    (ArmMissile playerEnum robotEnum)
-                                    position
-                                    Robot.moveAndArmWeaponRange
-
-                            Robot.ArmLaser_ ->
-                                View.Grid.selectedableGrid
-                                    (ArmLaser playerEnum robotEnum)
-                                    position
-                                    Robot.moveAndArmWeaponRange
-
-                            Robot.Shield_ ->
-                                View.Grid.selectedableGrid
-                                    (Shield playerEnum robotEnum)
-                                    position
-                                    Robot.moveAndShieldRange
-
-                            Robot.Mine_ ->
-                                View.Grid.selectedableGrid
-                                    (Mine playerEnum robotEnum)
-                                    position
-                                    Robot.moveAndMineRange
-
-                            Robot.Kamikaze_ ->
-                                []
-
-                            Robot.Move_ ->
-                                View.Grid.selectedableGrid
-                                    (Move playerEnum robotEnum)
-                                    position
-                                    1
 
                     Nothing ->
                         []
                 ]
             )
-        , div
-            [ style "width" "calc((100vw - 100vh) / 2)"
-            ]
-            []
+        , div [ style "width" "calc((100vw - 100vh) / 2)" ] []
         , Html.node "style"
             []
             [ text
                 """html, body {
-                    height: 100%;
-                    margin: 0;
-                   }
-                   body {
-                    display: flex;
-                   }
-                """
+                        height: 100%;
+                        margin: 0;
+                       }
+                       body {
+                        display: flex;
+                       }
+                    """
             ]
         ]
     }
+
+
+
+-- view : Model -> Browser.Document Msg
+-- view model =
+--     let
+--         ( robots, decorations ) =
+--             viewPlayers model
+--     in
+--     { title = "Helium 3"
+--     , body =
+--         [ div
+--             [ style "text-align" "center"
+--             , style "width" "calc((100vw - 100vh) / 2)"
+--             ]
+--             (List.concat
+--                 [ [ viewState model.state ]
+--                 , case model.selected of
+--                     Just ( player, robot ) ->
+--                         [ viewActions (getPlayerRobot model player robot) ]
+--
+--                     Nothing ->
+--                         []
+--                 ]
+--             )
+--         , Svg.Grid.grid
+--         , Array.map Robot.view
+--         , View.Grid.grid
+--             20
+--             [ style "display" "block"
+--             , style "height" "100%"
+--             , style "flex-grow" "2"
+--             ]
+--             (List.concat
+--                 [ [ ( "defs", defs [] [ View.Robot.def ] ) ]
+--                 , robots |> keyed "robot"
+--                 , decorations |> keyed "decoration"
+--                 , case model.selected of
+--                     Just ( playerEnum, robotEnum, Just action ) ->
+--                         let
+--                             position =
+--                                 (getPlayerRobot model playerEnum robotEnum).position
+--                         in
+--                         case action of
+--                             Robot.FireMissile_ ->
+--                                 View.Grid.selectedableGrid
+--                                     (FireMissile playerEnum robotEnum)
+--                                     position
+--                                     Robot.missileRange
+--
+--                             Robot.FireLaser_ ->
+--                                 View.Grid.selectedableGrid
+--                                     (FireLaser playerEnum robotEnum)
+--                                     position
+--                                     1
+--
+--                             Robot.ArmMissile_ ->
+--                                 View.Grid.selectedableGrid
+--                                     (ArmMissile playerEnum robotEnum)
+--                                     position
+--                                     Robot.moveAndArmWeaponRange
+--
+--                             Robot.ArmLaser_ ->
+--                                 View.Grid.selectedableGrid
+--                                     (ArmLaser playerEnum robotEnum)
+--                                     position
+--                                     Robot.moveAndArmWeaponRange
+--
+--                             Robot.Shield_ ->
+--                                 View.Grid.selectedableGrid
+--                                     (Shield playerEnum robotEnum)
+--                                     position
+--                                     Robot.moveAndShieldRange
+--
+--                             Robot.Mine_ ->
+--                                 View.Grid.selectedableGrid
+--                                     (Mine playerEnum robotEnum)
+--                                     position
+--                                     Robot.moveAndMineRange
+--
+--                             Robot.Kamikaze_ ->
+--                                 []
+--
+--                             Robot.Move_ ->
+--                                 View.Grid.selectedableGrid
+--                                     (Move playerEnum robotEnum)
+--                                     position
+--                                     1
+--
+--                     Nothing ->
+--                         []
+--                 ]
+--             )
+--         , div [ style "width" "calc((100vw - 100vh) / 2)" ] []
+--         , Html.node "style"
+--             []
+--             [ text
+--                 """html, body {
+--                     height: 100%;
+--                     margin: 0;
+--                    }
+--                    body {
+--                     display: flex;
+--                    }
+--                 """
+--             ]
+--         ]
+--     }
