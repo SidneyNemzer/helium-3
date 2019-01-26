@@ -1,42 +1,53 @@
-This file documents the messages sent between the client and server during a game.
+This file documents the messages sent between the Helium 3 client and server.
 
 # Lobby
 
-The server waits for four players to join the lobby, then starts a new game.
+When a client connects to the server, it is placed in the lobby. The server waits for four players to join the lobby, then starts a new game.
 
-| Direction | Type | Data | Notes |
-| :-------- | :--- | ---- | ----- |
-| to client | `player-count` | integer from 1 to 4 | |
-| to client | `game-join` | `{ gameId: string, playerIndex: number }` | |
+| Sender | Message |
+| ------ | ---- |
+| Server | `{ type: 'player-count', count: 1 \| 2 \| 3 }` |
+| Server | `{ type: 'game-join', id: <string>, position: PlayerIndex }` |
 
 # Game
 
-During a game, clients may queue actions for their robots at any time. The server executes the actions on the player's turn. The server periodically sends state updates, which the client should use to sync with it's local state, potentially animating changes (such as robots moving).
+While in a game:
 
-```
-type Point = { x: number, y: number }
+* The server will broadcast events such as player turns or countdowns
+* Clients may queue actions any time after the game starts, except during player moves
+
+## Types
+
+```ts
+// Points must be on the board, which is 20x20, 0-indexed
+type Point = { x: int, y: int }
 
 type RobotIndex = 0 | 1 | 2 | 3 | 4
 
-type QueueAction
-  = { robot: RobotIndex, type: 'FIRE_MISSILE', target: Point }
-  | { robot: RobotIndex, type: 'ARM_MISSILE', target: Point }
-  | { robot: RobotIndex, type: 'FIRE_LASER', target: number }
-  | { robot: RobotIndex, type: 'ARM_LASER', target: Point }
-  | { robot: RobotIndex, type: 'SHIELD', target: Point }
-  | { robot: RobotIndex, type: 'KAMAKAZIE' }
-  | { robot: RobotIndex, type: 'MOVE', target: Point }
-  | { robot: RobotIndex, type: 'MINE', target: Point }
+type PlayerIndex = 0 | 1 | 2 | 3
 
-type Countdown
-  = { type: 'START', time: number }
-  | { type: 'END_MOVE', time: number }
-  | { type: 'NEXT_MOVE', time: number }
+type Action
+  = { type: 'FIRE_MISSILE', robot: RobotIndex, target: Point }
+  | { type: 'ARM_MISSILE', robot: RobotIndex, target: Point }
+  | { type: 'FIRE_LASER', robot: RobotIndex, target: number }
+  | { type: 'ARM_LASER', robot: RobotIndex, target: Point }
+  | { type: 'SHIELD', robot: RobotIndex, target: Point }
+  | { type: 'KAMAKAZIE', robot: RobotIndex }
+  | { type: 'MOVE', robot: RobotIndex, target: Point }
+  | { type: 'MINE', robot: RobotIndex, target: Point }
 ```
 
-| Direction | Type | Data | Notes |
-| :-------- | :--- | ---- | ----- |
-| to server | `queue-move` | `QueueAction` | |
-| to client | `state-update` | `Game` | |
-| to client | `countdown` | `Countdown` | |
-| to client | `validation-error` | string | Indicates a protocol violation |
+| Sender | Message | Notes |
+| ------ | ------- | ----- |
+| Server | `{ type: 'game-start', end: <timestamp> }` |  |
+| Client | `{ type: 'queue-action', robot: RobotIndex, action: 'FIRE_MISSILE', target: Point }` | |
+| Client | `{ type: 'queue-action', robot: RobotIndex, action: 'ARM_MISSILE', target: Point }` | |
+| Client | `{ type: 'queue-action', robot: RobotIndex, action: 'FIRE_LASER', target: number }` | |
+| Client | `{ type: 'queue-action', robot: RobotIndex, action: 'ARM_LASER', target: Point }` | |
+| Client | `{ type: 'queue-action', robot: RobotIndex, action: 'SHIELD', target: Point }` | |
+| Client | `{ type: 'queue-action', robot: RobotIndex, action: 'KAMAKAZIE' }` | |
+| Client | `{ type: 'queue-action', robot: RobotIndex, action: 'MOVE', target: Point }` | |
+| Client | `{ type: 'queue-action', robot: RobotIndex, action: 'MINE', target: Point }` | |
+| Server | `{ type: 'turn-countdown', player: PlayerIndex }` | The indicated player will move after the countdown. |
+| Server | `{ type: 'move', player: PlayerIndex, actions: Action[] }` | There may be 0, 1, or 2 moves. |
+| Server | `{ type: 'bad-message', reason: string }` | Sent in response to, for example, invalid JSON or an illegal move. |
