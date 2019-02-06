@@ -1,15 +1,12 @@
-module Helium3Grid exposing (Helium3Grid, decoder)
+module Helium3Grid exposing (decoder, random)
 
 import Json.Decode as Decode exposing (Decoder)
 import Matrix exposing (Matrix)
 import Point
+import Random exposing (Generator)
 
 
-type Helium3Grid
-    = Helium3Grid (Matrix Int)
-
-
-decoder : Decoder Helium3Grid
+decoder : Decoder (Matrix Int)
 decoder =
     Decode.list
         (Decode.map2 Tuple.pair
@@ -19,8 +16,20 @@ decoder =
         |> Decode.map
             (List.foldl
                 (\( point, amount ) grid ->
-                    Matrix.set point.x point.y amount grid
+                    Debug.todo "Must be updated; maybe we should transmit a 3 tuple instead of an object"
+                 -- Matrix.set point.x point.y amount grid
                 )
                 Matrix.empty
             )
-        |> Decode.map Helium3Grid
+
+
+generator : Generator (Matrix Int)
+generator =
+    Random.list 20 (Random.list 20 (Random.int 0 2000))
+        |> Random.map
+            (Matrix.fromList >> Maybe.withDefault Matrix.empty)
+
+
+random : Random.Seed -> Matrix Int
+random seed =
+    Random.step generator seed |> Tuple.first

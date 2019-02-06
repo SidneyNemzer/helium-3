@@ -1,18 +1,38 @@
-module Svg.Robot exposing (def, use)
+module Svg.Robot exposing (def, outline, use)
 
+import Html.Attributes
+import Point exposing (Point)
 import Svg exposing (Svg, defs, g, linearGradient, radialGradient, rect, stop)
 import Svg.Attributes exposing (..)
 import Svg.Events
 import Svg.Grid
 
 
-type alias Config msg =
-    { x : Int
-    , y : Int
-    , rotation : Float
-    , color : String
-    , onClick : msg
-    }
+outline : { a | location : Point, rotation : Float } -> Svg msg
+outline robot =
+    let
+        ( x_, y_ ) =
+            Point.topLeft robot.location
+
+        ( cX, cY ) =
+            Point.center robot.location
+    in
+    rect
+        [ x (String.fromInt (x_ - 20))
+        , y (String.fromInt (y_ - 10))
+        , height (String.fromInt (Svg.Grid.cellSide + 20))
+        , width (String.fromInt (Svg.Grid.cellSide + 40))
+        , stroke "#487CFF"
+        , strokeWidth "6"
+        , fill "transparent"
+        , Html.Attributes.style
+            "transform-origin"
+            (String.fromInt cX ++ "px " ++ String.fromInt cY ++ "px")
+        , Html.Attributes.style
+            "transform"
+            ("rotate(" ++ String.fromFloat robot.rotation ++ "deg)")
+        ]
+        []
 
 
 {-| Renders a robot
@@ -20,26 +40,17 @@ type alias Config msg =
 _make sure the robot has been defined first with `def`_
 
 -}
-use : Config msg -> Svg msg
-use config =
+use : List (Svg.Attribute msg) -> String -> msg -> Svg msg
+use attributes colorArg onClick =
     Svg.use
-        [ x (String.fromInt (config.x - 20))
-        , y (String.fromInt (config.y - 20))
-        , width (String.fromInt (Svg.Grid.cellSide + 40))
-        , height (String.fromInt (Svg.Grid.cellSide + 40))
-        , transform <|
-            "rotate("
-                ++ String.fromFloat config.rotation
-                ++ ", "
-                ++ String.fromInt (config.x + Svg.Grid.cellSide // 2)
-                ++ ", "
-                ++ String.fromInt (config.y + Svg.Grid.cellSide // 2)
-                ++ ")"
-        , xlinkHref "#robot"
-        , color config.color
-        , style "transition: x 1s, y 1s, transform 1s"
-        , Svg.Events.onClick config.onClick
-        ]
+        ([ width (String.fromInt (Svg.Grid.cellSide + 40))
+         , height (String.fromInt (Svg.Grid.cellSide + 40))
+         , xlinkHref "#robot"
+         , color colorArg
+         , Svg.Events.onClick onClick
+         ]
+            ++ attributes
+        )
         []
 
 

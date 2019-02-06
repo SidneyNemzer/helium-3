@@ -1,17 +1,20 @@
 module Game exposing (main)
 
+import Animation
 import Array exposing (Array)
 import Browser
 import Color
-import Helium3Grid exposing (Helium3Grid)
+import Helium3Grid
 import Html exposing (Html, div, h1, li, span, text, ul)
 import Html.Attributes exposing (style)
 import Html.Events
 import List.Extra
+import Matrix
 import Model exposing (Model)
 import Player exposing (Player(..), Players)
 import Point
 import Process
+import Random
 import Robot exposing (Robot)
 import Svg exposing (Svg, defs, g)
 import Svg.Attributes as SA
@@ -34,16 +37,36 @@ main =
 init : () -> ( Model, Cmd Msg )
 init () =
     ( { turn = Player1
-      , countdown = Nothing
-      , players =
-            { player1 = 0
-            , player2 = 0
-            , player3 = 0
-            , player4 = 0
-            }
-      , robots = Array.empty -- FIXME
-      , helium3 = Helium3Grid
-      , selectedRobot = Nothing
+      , turnCountdown = Nothing
+      , scorePlayer1 = 0
+      , scorePlayer2 = 0
+      , scorePlayer3 = 0
+      , scorePlayer4 = 0
+      , robots =
+            [ Robot.init (Point.fromGridXY 2 0) 0 Player1
+            , Robot.init (Point.fromGridXY 2 1) 0 Player1
+            , Robot.init (Point.fromGridXY 2 2) 45 Player1
+            , Robot.init (Point.fromGridXY 0 2) 90 Player1
+            , Robot.init (Point.fromGridXY 1 2) 90 Player1
+            , Robot.init (Point.fromGridXY 17 0) 180 Player2
+            , Robot.init (Point.fromGridXY 17 1) 180 Player2
+            , Robot.init (Point.fromGridXY 17 2) 134 Player2
+            , Robot.init (Point.fromGridXY 18 2) 90 Player2
+            , Robot.init (Point.fromGridXY 19 2) 90 Player2
+            , Robot.init (Point.fromGridXY 17 19) 180 Player3
+            , Robot.init (Point.fromGridXY 17 18) 180 Player3
+            , Robot.init (Point.fromGridXY 17 17) 225 Player3
+            , Robot.init (Point.fromGridXY 18 17) 270 Player3
+            , Robot.init (Point.fromGridXY 19 17) 270 Player3
+            , Robot.init (Point.fromGridXY 0 17) 270 Player4
+            , Robot.init (Point.fromGridXY 1 17) 270 Player4
+            , Robot.init (Point.fromGridXY 2 17) 315 Player4
+            , Robot.init (Point.fromGridXY 2 18) 0 Player4
+            , Robot.init (Point.fromGridXY 2 19) 0 Player4
+            ]
+                |> Array.fromList
+      , helium3 = Helium3Grid.random (Random.initialSeed 0)
+      , selectedRobot = Just 0
       }
     , Cmd.none
     )
@@ -54,7 +77,47 @@ init () =
 
 
 type Msg
-    = Temp
+    = Animate Animation.Msg
+    | Move
+    | Temp
+
+
+arrayUpdate : (a -> a) -> Int -> Array a -> Array a
+arrayUpdate fn index array =
+    Array.get index array
+        |> Maybe.map (fn >> (\a -> Array.set index a array))
+        |> Maybe.withDefault array
+
+
+update : Msg -> Model -> ( Model, Cmd Msg )
+update msg model =
+    case msg of
+        Temp ->
+            ( model, Cmd.none )
+
+        Move ->
+            ( { model
+                | robots =
+                    case model.selectedRobot of
+                        Just index ->
+                            arrayUpdate
+                                (Robot.moveTo (Point.fromGridXY 19 1))
+                                index
+                                model.robots
+
+                        Nothing ->
+                            model.robots
+                , selectedRobot = Nothing
+              }
+            , Cmd.none
+            )
+
+        Animate time ->
+            ( { model
+                | robots = Array.map (Robot.updateAnimation time) model.robots
+              }
+            , Cmd.none
+            )
 
 
 
@@ -162,52 +225,86 @@ type Msg
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.none
+    model.robots
+        |> Array.map .animation
+        |> Array.toList
+        |> Animation.subscription Animate
 
 
 
 -- VIEW
-
-
-viewActions : Robot -> Html msg
-viewActions robot =
-    div []
-        [ h1 [] [ text "Choose an action" ]
-        , ul [ style "list-style" "none", style "padding" "0" ] <|
-            List.map
-                (\action ->
-                    li [ style "cursor" "pointer" ] [ text action ]
-                )
-            <|
-                Robot.actions robot
-        ]
+-- viewActions : Robot -> Html msg
+-- viewActions robot =
+--     div []
+--         [ h1 [] [ text "Choose an action" ]
+--         , ul [ style "list-style" "none", style "padding" "0" ] <|
+--             List.map
+--                 (\action ->
+--                     li [ style "cursor" "pointer" ] [ text action ]
+--                 )
+--             <|
+--                 Robot.actions robot
+--         ]
 
 
 viewRobotIndexed : Int -> Robot -> ( Svg Msg, Svg Msg )
 viewRobotIndexed index robot =
-    Robot.view (RobotClicked index) robot
-
-viewGamePhase : Model -> Html msg
-viewGamePhase model =
-    case model.countdown of
-        Just (Start posix) ->
-            div []
-                [ text "Game starts in "
-                , text "time"
-                ]
-
-        Just (NextMove posix) ->
-
-        Just (EndMove posix) ->
-
-        Nothing ->
+    --Robot.view (RobotClicked index) robot
+    Robot.view Temp robot
 
 
+viewFutureSeconds : { current : Posix, future : Posix } -> String
+viewFutureSeconds { current, future } =
+    let
+        secondsUntilStart =
+            (Time.posixToMillis future
+                - Time.posixToMillis current
+            )
+                // 1000
 
-viewSelectedRobot : Array Robot -> Int -> Svg msg
+        label =
+            if secondsUntilStart == 1 then
+                " second"
+
+            else
+                " seconds"
+    in
+    if secondsUntilStart > 0 then
+        String.fromInt secondsUntilStart ++ label
+
+    else
+        "a moment"
+
+
+
+-- viewGamePhase : Model -> Html msg
+-- viewGamePhase model =
+--     case model.countdown of
+--         Just (Start start) ->
+--             div []
+--                 [ text "Game starts in "
+--                 , text <|
+--                     viewFutureSeconds { current = model.time, future = start }
+--                 ]
+--
+--         Just (NextMove nextMove) ->
+--             div []
+--                 [ text "Turn ends in "
+--                 , text <|
+--                     viewFutureSeconds { current = model.time, future = nextMove }
+--                 ]
+--
+--         Just (EndMove _) ->
+--             text ""
+--
+--         Nothing ->
+--             text ""
+
+
+viewSelectedRobot : Array Robot -> Int -> Maybe (Svg msg)
 viewSelectedRobot robots index =
-    Array.get index robots
-        |> Maybe.map (.location >> Svg.Grid.overlayCell Nothing)
+    Array.get index robots |> Maybe.map Svg.Robot.outline
+
 
 view : Model -> Browser.Document Msg
 view model =
@@ -226,13 +323,16 @@ view model =
             [ style "text-align" "center"
             , style "width" "calc((100vw - 100vh) / 2)"
             ]
-            [ viewGamePhase model
-            , case model.selectedRobot of
+            [ --viewGamePhase model
+              --,
+              case model.selectedRobot of
                 Just index ->
-                    viewActions model.robots index
+                    text "actions"
 
+                --viewActions model.robots index
                 Nothing ->
                     text ""
+            , Html.button [ Html.Events.onClick Move ] [ text "Move" ]
             ]
         , Svg.svg
             [ SA.stroke "black"
@@ -242,16 +342,15 @@ view model =
             , style "flex-grow" "2"
             ]
             (List.concat
-                [ [ Svg.Grid.grid ]
+                [ [ defs [] [ Svg.Robot.def ]
+                  , Svg.Grid.grid
+                  ]
                 , robots
                 , decorations
-                , case model.selectedRobot of
-                    Just index ->
-                        [ viewSelectedRobot model.robots index ]
-
-
-                    Nothing ->
-                        []
+                , model.selectedRobot
+                    |> Maybe.andThen (viewSelectedRobot model.robots)
+                    |> Maybe.map List.singleton
+                    |> Maybe.withDefault []
                 ]
             )
         , div [ style "width" "calc((100vw - 100vh) / 2)" ] []

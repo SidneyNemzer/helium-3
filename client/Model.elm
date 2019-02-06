@@ -1,23 +1,19 @@
-module Model exposing (Countdown, Model)
+module Model exposing (Model)
 
 import Array exposing (Array)
-import Helium3Grid exposing (Helium3Grid)
-import Player exposing (Player, Players)
+import Matrix exposing (Matrix)
+import Player exposing (Player)
 import Robot exposing (Robot)
-import Time exposing (Posix)
-
-
-type Countdown
-    = Start Posix
-    | NextMove Posix
-    | EndMove Posix
 
 
 type alias Model =
     { turn : Player
-    , countdown : Maybe Countdown
-    , players : Players
+    , turnCountdown : Maybe Float
+    , scorePlayer1 : Int
+    , scorePlayer2 : Int
+    , scorePlayer3 : Int
+    , scorePlayer4 : Int
     , robots : Array Robot
-    , helium3 : Helium3Grid
+    , helium3 : Matrix Int
     , selectedRobot : Maybe Int
     }

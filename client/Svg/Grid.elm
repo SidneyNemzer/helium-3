@@ -1,6 +1,5 @@
 module Svg.Grid exposing
     ( cellSide
-    , cellTopLeft
     , dottedLine
     , grid
     , gridSideSvg
@@ -44,21 +43,6 @@ gridSide =
 gridSideSvg : Int
 gridSideSvg =
     cellSide * gridSide + lineWidth
-
-
-{-| Returns position of the top left corner of the given cell. Useful for
-positioning inside the grid.
--}
-cellTopLeft : Point -> Point
-cellTopLeft =
-    Point.mapBoth ((*) cellSide)
-
-
-{-| Returns position of the center of the given cell
--}
-cellCenter : Point -> Point
-cellCenter =
-    Point.mapBoth ((*) cellSide >> (+) (cellSide // 2))
 
 
 line : Int -> Int -> Int -> Int -> Svg msg
@@ -116,12 +100,12 @@ grid =
 overlayCell : Maybe msg -> Point -> Svg msg
 overlayCell onClick cell =
     let
-        coords =
-            cellTopLeft cell
+        ( x_, y_ ) =
+            Point.topLeft cell
     in
     rect
-        ([ x (String.fromInt (coords.x + 4))
-         , y (String.fromInt (coords.y + 4))
+        ([ x (String.fromInt (x_ + 4))
+         , y (String.fromInt (y_ + 4))
          , height (String.fromInt (cellSide - 8))
          , width (String.fromInt (cellSide - 8))
          , stroke "#487CFF"
@@ -149,17 +133,17 @@ overlay onClick centerCell radius =
 dottedLine : Point -> Point -> Svg msg
 dottedLine start end =
     let
-        startCoords =
-            cellCenter start
+        ( startX, startY ) =
+            Point.center start
 
-        endCoords =
-            cellCenter end
+        ( endX, endY ) =
+            Point.center end
     in
     Svg.line
-        [ x1 (String.fromInt startCoords.x)
-        , y1 (String.fromInt startCoords.y)
-        , x2 (String.fromInt endCoords.x)
-        , y2 (String.fromInt endCoords.y)
+        [ x1 (String.fromInt startX)
+        , y1 (String.fromInt startY)
+        , x2 (String.fromInt endX)
+        , y2 (String.fromInt endY)
         , strokeWidth (String.fromInt (lineWidth * 2))
         , strokeDasharray "30 10"
         , stroke Color.blue
