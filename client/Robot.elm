@@ -8,7 +8,6 @@ module Robot exposing
     , moveAndShieldRange
     , moveRange
     , moveTo
-    , robotsDecoder
     , updateAnimation
     , view
     )
@@ -118,66 +117,6 @@ toolDecoder =
                             Decode.fail ("Unknown tool: " ++ tool)
                 )
         )
-
-
-robotsDecoder : List Float -> Decoder (Array Robot)
-robotsDecoder rotations =
-    Decode.field "players"
-        ([ Player1, Player2, Player3, Player4 ]
-            |> List.indexedMap
-                (\index player ->
-                    let
-                        robot1Index =
-                            modBy 4 index
-
-                        robot5Index =
-                            robot1Index + 5
-
-                        robotRotations =
-                            Array.fromList rotations
-                                |> Array.slice robot1Index robot5Index
-                                |> Array.toList
-                    in
-                    playerDecoder player robotRotations
-                )
-            |> Decode.sequence
-            |> Decode.map (List.concat >> Array.fromList)
-        )
-
-
-playerDecoder : Player -> List Float -> Decoder (List Robot)
-playerDecoder owner rotations =
-    case rotations of
-        [ _, _, _, _, _ ] ->
-            Decode.field "robots"
-                (List.repeat 5 (robotDecoder owner)
-                    |> List.Extra.andMap rotations
-                    |> Decode.sequence
-                )
-
-        _ ->
-            Decode.fail "Bad rotations size"
-
-
-robotDecoder : Player -> Float -> Decoder Robot
-robotDecoder owner rotation =
-    Decode.map4
-        (\location target tool destroyed ->
-            { location = location
-            , rotation = rotation
-            , target = target
-            , tool = tool
-            , destroyed = destroyed
-            , owner = owner
-            , animation =
-                Animation.style
-                    []
-            }
-        )
-        (Decode.field "location" Point.decoder)
-        (Decode.field "action" targetDecoder)
-        (Decode.field "tool" toolDecoder)
-        (Decode.field "destroyed" Decode.bool)
 
 
 init : Point -> Float -> Player -> Robot
