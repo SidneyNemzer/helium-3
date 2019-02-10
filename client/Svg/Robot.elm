@@ -13,15 +13,26 @@ import Svg.Grid
 _make sure the robot has been defined first with `def`_
 
 -}
-use : List (Svg.Attribute msg) -> String -> msg -> Svg msg
-use attributes colorArg onClick =
+use : List (Svg.Attribute msg) -> String -> Maybe msg -> Svg msg
+use attributes colorArg maybeOnClick =
+    let
+        onClick =
+            case maybeOnClick of
+                Just msg ->
+                    [ Svg.Events.onClick msg
+                    , Html.Attributes.style "cursor" "pointer"
+                    ]
+
+                Nothing ->
+                    []
+    in
     Svg.use
         ([ width (String.fromInt (Svg.Grid.cellSide + 40))
          , height (String.fromInt (Svg.Grid.cellSide + 40))
          , xlinkHref "#robot"
          , color colorArg
-         , Svg.Events.onClick onClick
          ]
+            ++ onClick
             ++ attributes
         )
         []

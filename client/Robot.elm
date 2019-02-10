@@ -178,7 +178,6 @@ updateAnimation time robot =
     { robot | animation = Animation.update time robot.animation }
 
 
-view : msg -> Robot -> ( Svg msg, Svg msg )
 moveTarget : Robot -> Maybe Point
 moveTarget robot =
     case robot.action of
@@ -210,6 +209,7 @@ moveTarget robot =
             Nothing
 
 
+view : Maybe msg -> Robot -> ( Svg msg, Svg msg )
 view onClick robot =
     ( Svg.Robot.use
         (Animation.render robot.animation)
