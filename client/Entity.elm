@@ -1,8 +1,14 @@
-module Entity exposing (Entity, toAnimationProperties, toAnimationStyle)
+module Entity exposing
+    ( Entity
+    , toAnimationProperties
+    , toAnimationStyle
+    , toAttributes
+    )
 
 import Animation as A
+import Html.Attributes as HA
 import Point exposing (Point)
-import Svg exposing (Svg)
+import Svg exposing (Attribute, Svg)
 import Svg.Attributes as SA
 
 
@@ -48,6 +54,8 @@ toAnimationStyle entity =
 
 toAnimationProperties : Entity -> Properties
 toAnimationProperties entity =
+toAttributes : Entity -> List (Attribute msg)
+toAttributes entity =
     let
         -- Calculate the x,y that will center the entity in the cell
         ( x, y ) =
@@ -68,6 +76,17 @@ toAnimationProperties entity =
             (A.px (toFloat cY))
             (A.px 0)
     }
+    [ SA.x (String.fromInt x)
+    , SA.y (String.fromInt y)
+    , SA.transform <|
+        "rotate("
+            ++ String.fromFloat entity.rotation
+            ++ " "
+            ++ String.fromInt cX
+            ++ " "
+            ++ String.fromInt cY
+            ++ ")"
+    ]
 
 
 

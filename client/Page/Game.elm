@@ -19,6 +19,7 @@ import Robot exposing (Robot)
 import Svg exposing (Svg, defs, g)
 import Svg.Attributes as SA
 import Svg.Grid
+import Svg.Outline
 import Svg.Robot
 import Task
 import Time exposing (Posix)
@@ -303,7 +304,7 @@ viewFutureSeconds { current, future } =
 
 viewSelectedRobot : Array Robot -> Int -> Maybe (Svg msg)
 viewSelectedRobot robots index =
-    Array.get index robots |> Maybe.map Svg.Robot.outline
+    Array.get index robots |> Maybe.map Svg.Outline.view
 
 
 view : Model -> Browser.Document Msg

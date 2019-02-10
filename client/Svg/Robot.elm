@@ -1,4 +1,4 @@
-module Svg.Robot exposing (def, outline, use)
+module Svg.Robot exposing (def, use)
 
 import Html.Attributes
 import Point exposing (Point)
@@ -6,33 +6,6 @@ import Svg exposing (Svg, defs, g, linearGradient, radialGradient, rect, stop)
 import Svg.Attributes exposing (..)
 import Svg.Events
 import Svg.Grid
-
-
-outline : { a | location : Point, rotation : Float } -> Svg msg
-outline robot =
-    let
-        ( x_, y_ ) =
-            Point.topLeft robot.location
-
-        ( cX, cY ) =
-            Point.center robot.location
-    in
-    rect
-        [ x (String.fromInt (x_ - 20))
-        , y (String.fromInt (y_ - 10))
-        , height (String.fromInt (Svg.Grid.cellSide + 20))
-        , width (String.fromInt (Svg.Grid.cellSide + 40))
-        , stroke "#487CFF"
-        , strokeWidth "6"
-        , fill "transparent"
-        , Html.Attributes.style
-            "transform-origin"
-            (String.fromInt cX ++ "px " ++ String.fromInt cY ++ "px")
-        , Html.Attributes.style
-            "transform"
-            ("rotate(" ++ String.fromFloat robot.rotation ++ "deg)")
-        ]
-        []
 
 
 {-| Renders a robot
