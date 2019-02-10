@@ -28,28 +28,27 @@ import Svg.Robot
 import Time
 
 
-
--- type Action
---     = FireMissile
---     | FireLaser
---     | ArmMissile
---     | ArmLaser
---     | Shield
---     | Mine
---     | Kamikaze
---     | Move
+type Action
+    = FireMissile Point
+    | FireLaser Float
+    | ArmMissile Point
+    | ArmLaser Point
+    | Shield Point
+    | Mine Point
+    | Kamikaze
+    | Move Point
 
 
 type Tool
-    = Shield
-    | Laser
-    | Missile
+    = ToolShield
+    | ToolLaser
+    | ToolMissile
 
 
 type alias Robot =
     { location : Point
     , rotation : Float
-    , target : Maybe Point
+    , action : Maybe Action
     , tool : Maybe Tool
     , destroyed : Bool
     , owner : Player
@@ -105,13 +104,13 @@ toolDecoder =
                 (\tool ->
                     case tool of
                         "MISSILE" ->
-                            Decode.succeed Missile
+                            Decode.succeed ToolMissile
 
                         "LASER" ->
-                            Decode.succeed Laser
+                            Decode.succeed ToolLaser
 
                         "SHIELD" ->
-                            Decode.succeed Shield
+                            Decode.succeed ToolShield
 
                         _ ->
                             Decode.fail ("Unknown tool: " ++ tool)
@@ -123,7 +122,7 @@ init : Point -> Float -> Player -> Robot
 init point rotation owner =
     { location = point
     , rotation = rotation
-    , target = Nothing
+    , action = Nothing
     , tool = Nothing
     , destroyed = False
     , owner = owner
@@ -190,11 +189,43 @@ updateAnimation time robot =
 
 
 view : msg -> Robot -> ( Svg msg, Svg msg )
+moveTarget : Robot -> Maybe Point
+moveTarget robot =
+    case robot.action of
+        Just (FireMissile _) ->
+            Nothing
+
+        Just (FireLaser _) ->
+            Nothing
+
+        Just (ArmMissile point) ->
+            Just point
+
+        Just (ArmLaser point) ->
+            Just point
+
+        Just (Shield point) ->
+            Just point
+
+        Just (Mine point) ->
+            Just point
+
+        Just Kamikaze ->
+            Nothing
+
+        Just (Move point) ->
+            Just point
+
+        Nothing ->
+            Nothing
+
+
 view onClick robot =
     ( Svg.Robot.use
         (Animation.render robot.animation)
         (Player.color robot.owner)
         onClick
-    , Maybe.map (Svg.Grid.dottedLine robot.location) robot.target
+    , moveTarget robot
+        |> Maybe.map (Svg.Grid.dottedLine robot.location)
         |> Maybe.withDefault (Svg.text "")
     )
