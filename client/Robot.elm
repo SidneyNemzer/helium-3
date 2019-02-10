@@ -136,15 +136,6 @@ init point rotation owner =
     }
 
 
-toEntity : Robot -> Entity
-toEntity robot =
-    { location = robot.location
-    , width = width
-    , height = height
-    , rotation = robot.rotation
-    }
-
-
 easingWithDuration : Float -> Animation.Interpolation
 easingWithDuration duration =
     Animation.easing
@@ -154,32 +145,31 @@ easingWithDuration duration =
 
 
 moveTo : Point -> Robot -> Robot
-moveTo target oldRobot =
+moveTo target robot =
     let
         rotation =
-            Point.angle target oldRobot.location
-
-        movedRobot =
-            { oldRobot
-                | rotation = rotation
-                , location = target
-            }
+            Point.angle target robot.location
 
         { x, y, rotate, transformOrigin } =
-            Entity.toAnimationProperties (toEntity movedRobot)
+            Entity.toAnimationProperties
+                { location = target
+                , rotation = rotation
+                , width = width
+                , height = height
+                }
     in
-    { movedRobot
-        | animation =
+    { robot
+        | location = target
+        , rotation = rotation
+        , animation =
             Animation.interrupt
-                [ Animation.toWith
-                    (easingWithDuration 1000)
-                    [ rotate ]
+                [ Animation.toWith (easingWithDuration 1000) [ rotate ]
                 , Animation.wait (Time.millisToPosix 500)
                 , Animation.toWith
                     (easingWithDuration 2000)
                     [ x, y, transformOrigin ]
                 ]
-                movedRobot.animation
+                robot.animation
     }
 
 
