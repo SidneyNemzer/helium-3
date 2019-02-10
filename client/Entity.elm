@@ -31,31 +31,14 @@ type alias Properties =
 toAnimationStyle : Entity -> A.State
 toAnimationStyle entity =
     let
-        -- Calculate the x,y that will center the entity in the cell
-        ( x, y ) =
-            Point.offset
-                ((Point.cellSide - entity.width) // 2)
-                ((Point.cellSide - entity.height) // 2)
-                entity.location
-
-        ( cX, cY ) =
-            Point.center entity.location
+        { x, y, rotate, transformOrigin } =
+            toAnimationProperties entity
     in
-    A.style
-        [ A.x (toFloat x)
-        , A.y (toFloat y)
-        , A.rotate (A.deg entity.rotation)
-        , A.transformOrigin
-            (A.px (toFloat cX))
-            (A.px (toFloat cY))
-            (A.px 0)
-        ]
+    A.style [ x, y, rotate, transformOrigin ]
 
 
 toAnimationProperties : Entity -> Properties
 toAnimationProperties entity =
-toAttributes : Entity -> List (Attribute msg)
-toAttributes entity =
     let
         -- Calculate the x,y that will center the entity in the cell
         ( x, y ) =
@@ -76,6 +59,21 @@ toAttributes entity =
             (A.px (toFloat cY))
             (A.px 0)
     }
+
+
+toAttributes : Entity -> List (Attribute msg)
+toAttributes entity =
+    let
+        -- Calculate the x,y that will center the entity in the cell
+        ( x, y ) =
+            Point.offset
+                ((Point.cellSide - entity.width) // 2)
+                ((Point.cellSide - entity.height) // 2)
+                entity.location
+
+        ( cX, cY ) =
+            Point.center entity.location
+    in
     [ SA.x (String.fromInt x)
     , SA.y (String.fromInt y)
     , SA.transform <|
