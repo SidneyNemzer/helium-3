@@ -4,6 +4,7 @@ import Animation
 import Array exposing (Array)
 import Browser
 import Color
+import CountdownRing
 import Helium3Grid
 import Html exposing (Html, div, h1, li, span, text, ul)
 import Html.Attributes exposing (style)
@@ -39,6 +40,7 @@ init : () -> ( Model, Cmd Msg )
 init () =
     ( { turn = Player1
       , turnCountdown = Nothing
+      , countdownRing = CountdownRing.init
       , scorePlayer1 = 0
       , scorePlayer2 = 0
       , scorePlayer3 = 0
@@ -116,6 +118,7 @@ update msg model =
         Animate time ->
             ( { model
                 | robots = Array.map (Robot.updateAnimation time) model.robots
+                , countdownRing = CountdownRing.update time model.countdownRing
               }
             , Cmd.none
             )
@@ -226,10 +229,13 @@ update msg model =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    model.robots
-        |> Array.map .animation
-        |> Array.toList
-        |> Animation.subscription Animate
+    Sub.batch
+        [ model.robots
+            |> Array.map .animation
+            |> Array.toList
+            |> Animation.subscription Animate
+        , CountdownRing.subscription Animate model.countdownRing
+        ]
 
 
 
@@ -336,23 +342,34 @@ view model =
             , Html.button [ Html.Events.onClick Move ] [ text "Move" ]
             ]
         , Svg.svg
-            [ SA.stroke "black"
-            , SA.viewBox ("0 0 " ++ gridSideSvg ++ " " ++ gridSideSvg)
+            [ SA.viewBox
+                ("0 0 "
+                    ++ String.fromInt (Svg.Grid.gridSideSvg + CountdownRing.side * 2)
+                    ++ " "
+                    ++ String.fromInt (Svg.Grid.gridSideSvg + CountdownRing.side * 2)
+                )
             , style "display" "block"
             , style "height" "100%"
             , style "flex-grow" "2"
             ]
-            (List.concat
-                [ [ defs [] [ Svg.Robot.def ]
-                  , Svg.Grid.grid
-                  ]
-                , robots
-                , decorations
-                , model.selectedRobot
-                    |> Maybe.andThen (viewSelectedRobot model.robots)
-                    |> Maybe.map List.singleton
-                    |> Maybe.withDefault []
-                ]
+            (CountdownRing.view Color.green model.countdownRing
+                ++ [ Svg.svg
+                        [ SA.x (String.fromInt CountdownRing.side)
+                        , SA.y (String.fromInt CountdownRing.side)
+                        ]
+                        (List.concat
+                            [ [ defs [] [ Svg.Robot.def ]
+                              , Svg.Grid.grid
+                              ]
+                            , robots
+                            , decorations
+                            , model.selectedRobot
+                                |> Maybe.andThen (viewSelectedRobot model.robots)
+                                |> Maybe.map List.singleton
+                                |> Maybe.withDefault []
+                            ]
+                        )
+                   ]
             )
         , div [ style "width" "calc((100vw - 100vh) / 2)" ] []
         , Html.node "style"
