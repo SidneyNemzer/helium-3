@@ -41,6 +41,8 @@ init () =
     ( { turn = Player1
       , turnCountdown = Nothing
       , countdownRing = CountdownRing.init
+
+      -- , countdownRing = CountdownRing.startFromTopLeft CountdownRing.init
       , scorePlayer1 = 0
       , scorePlayer2 = 0
       , scorePlayer3 = 0
@@ -81,8 +83,7 @@ init () =
 
 type Msg
     = Animate Animation.Msg
-    | Move
-    | Temp
+    | Select Int
 
 
 arrayUpdate : (a -> a) -> Int -> Array a -> Array a
@@ -95,26 +96,6 @@ arrayUpdate fn index array =
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        Temp ->
-            ( model, Cmd.none )
-
-        Move ->
-            ( { model
-                | robots =
-                    case model.selectedRobot of
-                        Just index ->
-                            arrayUpdate
-                                (Robot.moveTo (Point.fromGridXY 19 1))
-                                index
-                                model.robots
-
-                        Nothing ->
-                            model.robots
-                , selectedRobot = Nothing
-              }
-            , Cmd.none
-            )
-
         Animate time ->
             ( { model
                 | robots = Array.map (Robot.updateAnimation time) model.robots
@@ -123,8 +104,28 @@ update msg model =
             , Cmd.none
             )
 
+        Select index ->
+            ( { model | selectedRobot = Just index }, Cmd.none )
 
 
+
+-- Move ->
+--     ( { model
+--         | robots =
+--             case model.selectedRobot of
+--                 Just index ->
+--                     arrayUpdate
+--                         (Robot.moveTo (Point.fromGridXY 19 1))
+--                         index
+--                         model.robots
+--
+--                 Nothing ->
+--                     model.robots
+--         , selectedRobot = Nothing
+--       }
+--     , Cmd.none
+--     )
+--
 -- type Msg
 --     = QueueMove PlayerEnum RobotEnum Position.Cell
 --     | RotateRobots
@@ -256,8 +257,11 @@ subscriptions model =
 
 viewRobotIndexed : Int -> Robot -> ( Svg Msg, Svg Msg )
 viewRobotIndexed index robot =
-    --Robot.view (RobotClicked index) robot
-    Robot.view Temp robot
+    if robot.owner == Player1 then
+        Robot.view (Just (Select index)) robot
+
+    else
+        Robot.view Nothing robot
 
 
 viewFutureSeconds : { current : Posix, future : Posix } -> String
@@ -339,7 +343,8 @@ view model =
                 --viewActions model.robots index
                 Nothing ->
                     text ""
-            , Html.button [ Html.Events.onClick Move ] [ text "Move" ]
+
+            -- , Html.button [ Html.Events.onClick Move ] [ text "Move" ]
             ]
         , Svg.svg
             [ SA.viewBox
