@@ -363,7 +363,7 @@ view model =
                         , SA.y (String.fromInt CountdownRing.side)
                         ]
                         (List.concat
-                            [ [ defs [] [ Svg.Robot.def ]
+                            [ [ defs [] [ Svg.Robot.def, Svg.Robot.defMissile ]
                               , Svg.Grid.grid
                               ]
                             , robots
