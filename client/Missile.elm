@@ -1,6 +1,6 @@
-module Missle exposing (def)
+module Missile exposing (def, view)
 
-import Position
+import Point exposing (Point)
 import Svg
     exposing
         ( Svg
@@ -17,29 +17,27 @@ import Svg
         , svg
         , use
         )
-import Svg.Attributes exposing (..)
-import View.Grid
+import Svg.Attributes as SA exposing (..)
 
 
-view : Position.Cell -> Float -> Svg msg
-view cell rotation =
+view : Point -> Float -> Svg msg
+view location rotation =
     let
-        position =
-            View.Grid.cellCorner cell
-                |> Position.xySvg
+        ( x, y ) =
+            Point.topLeft location
     in
     Svg.use
-        [ x (String.fromInt (position.x - 20))
-        , y (String.fromInt (position.y - 20))
-        , width (String.fromInt (View.Grid.cellWidth + 40))
-        , height (String.fromInt (View.Grid.cellWidth + 40))
+        [ SA.x (String.fromInt (x - 20))
+        , SA.y (String.fromInt (y - 20))
+        , width (String.fromInt (Point.cellSide + 40))
+        , height (String.fromInt (Point.cellSide + 40))
         , transform <|
             "rotate("
                 ++ String.fromFloat rotation
                 ++ ", "
-                ++ String.fromInt (position.x + View.Grid.cellWidth // 2)
+                ++ String.fromInt (x + Point.cellSide // 2)
                 ++ ", "
-                ++ String.fromInt (position.y + View.Grid.cellWidth // 2)
+                ++ String.fromInt (y + Point.cellSide // 2)
                 ++ ")"
         , xlinkHref "#missile"
         ]

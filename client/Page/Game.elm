@@ -11,6 +11,7 @@ import Html.Attributes exposing (style)
 import Html.Events
 import List.Extra
 import Matrix
+import Missile
 import Model exposing (Model)
 import Player exposing (Player(..), Players)
 import Point
@@ -363,7 +364,11 @@ view model =
                         , SA.y (String.fromInt CountdownRing.side)
                         ]
                         (List.concat
-                            [ [ defs [] [ Svg.Robot.def, Svg.Robot.defMissile ]
+                            [ [ defs []
+                                    [ Svg.Robot.def
+                                    , Svg.Robot.defMissile
+                                    , Missile.def
+                                    ]
                               , Svg.Grid.grid
                               ]
                             , robots
@@ -372,6 +377,10 @@ view model =
                                 |> Maybe.andThen (viewSelectedRobot model.robots)
                                 |> Maybe.map List.singleton
                                 |> Maybe.withDefault []
+                            , [ Missile.view
+                                    (Point.fromGridXY 5 5)
+                                    180
+                              ]
                             ]
                         )
                    ]
