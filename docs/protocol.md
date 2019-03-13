@@ -12,13 +12,13 @@ type PlayerIndex = 0 | 1 | 2 | 3
 
 type Timestamp = number
 
-type Action
-  = { type: 'FIRE_MISSILE', robot: RobotIndex, target: Point }
+type ServerAction
+  = { type: 'FIRE_MISSILE', robot: RobotIndex, target: Point, shield: Bool }
   | { type: 'ARM_MISSILE', robot: RobotIndex, target: Point }
-  | { type: 'FIRE_LASER', robot: RobotIndex, target: number }
+  | { type: 'FIRE_LASER', robot: RobotIndex, target: number, stoppedBy: false | RobotIndex }
   | { type: 'ARM_LASER', robot: RobotIndex, target: Point }
   | { type: 'SHIELD', robot: RobotIndex, target: Point }
-  | { type: 'KAMAKAZIE', robot: RobotIndex }
+  | { type: 'KAMAKAZIE', robot: RobotIndex, shield: RobotIndex[] }
   | { type: 'MOVE', robot: RobotIndex, target: Point }
   | { type: 'MINE', robot: RobotIndex, target: Point };
 ```
@@ -52,7 +52,7 @@ While in a game:
 | Client | `{ type: 'queue-action', robot: RobotIndex, action: 'MOVE', target: Point }` | |
 | Client | `{ type: 'queue-action', robot: RobotIndex, action: 'MINE', target: Point }` | |
 | Server | `{ type: 'action-countdown', player: PlayerIndex }` | The indicated player will move after the countdown. Clients must wait for the `action` message for the actions. |
-| Server | `{ type: 'action', player: PlayerIndex, actions: Action[] }` | There may be 0, 1, or 2 moves. |
+| Server | `{ type: 'action', player: PlayerIndex, actions: ServerAction[] }` | There may be 0, 1, or 2 moves. |
 
 # Errors
 
