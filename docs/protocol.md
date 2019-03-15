@@ -18,7 +18,7 @@ type ServerAction
   | { type: 'FIRE_LASER', robot: RobotIndex, target: number, stoppedBy: false | RobotIndex }
   | { type: 'ARM_LASER', robot: RobotIndex, target: Point }
   | { type: 'SHIELD', robot: RobotIndex, target: Point }
-  | { type: 'KAMAKAZIE', robot: RobotIndex, shield: RobotIndex[] }
+  | { type: 'KAMAKAZIE', robot: RobotIndex, destroyed: RobotIndex[] }
   | { type: 'MOVE', robot: RobotIndex, target: Point }
   | { type: 'MINE', robot: RobotIndex, target: Point };
 ```
