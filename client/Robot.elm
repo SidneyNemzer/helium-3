@@ -20,6 +20,7 @@ import Json.Decode as Decode exposing (Decoder)
 import Json.Decode.Extra as Decode
 import List.Extra
 import Maybe.Extra
+import Missile
 import Player exposing (Player(..))
 import Point exposing (Point)
 import Svg exposing (Svg)
@@ -211,10 +212,19 @@ moveTarget robot =
 
 view : Maybe msg -> Robot -> ( Svg msg, Svg msg )
 view onClick robot =
-    ( Svg.Robot.use
-        (Animation.render robot.animation)
-        (Player.color robot.owner)
-        onClick
+    let
+        attributes =
+            Animation.render robot.animation
+    in
+    ( Svg.g [] <|
+        List.concat
+            [ [ Svg.Robot.use attributes (Player.color robot.owner) onClick ]
+            , if robot.tool == Just ToolMissile then
+                [ Missile.view attributes ]
+
+              else
+                []
+            ]
     , moveTarget robot
         |> Maybe.map (Svg.Grid.dottedLine robot.location)
         |> Maybe.withDefault (Svg.text "")

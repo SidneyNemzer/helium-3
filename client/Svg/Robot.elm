@@ -45,7 +45,7 @@ use attributes colorArg maybeOnClick =
     Svg.use
         ([ width (String.fromInt (Svg.Grid.cellSide + 40))
          , height (String.fromInt (Svg.Grid.cellSide + 40))
-         , xlinkHref "#robot_missile"
+         , xlinkHref "#robot"
          , color colorArg
          ]
             ++ onClick

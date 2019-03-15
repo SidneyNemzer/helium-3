@@ -50,6 +50,7 @@ init () =
       , scorePlayer4 = 0
       , robots =
             [ Robot.init (Point.fromGridXY 2 0) 0 Player1
+                |> (\robot -> { robot | tool = Just Robot.ToolMissile })
             , Robot.init (Point.fromGridXY 2 1) 0 Player1
             , Robot.init (Point.fromGridXY 2 2) 45 Player1
             , Robot.init (Point.fromGridXY 0 2) 90 Player1
@@ -71,6 +72,9 @@ init () =
             , Robot.init (Point.fromGridXY 2 19) 0 Player4
             ]
                 |> Array.fromList
+                |> arrayUpdate
+                    (\robot -> Robot.moveTo (Point.fromGridXY 5 5) robot)
+                    0
       , helium3 = Helium3Grid.random (Random.initialSeed 0)
       , selectedRobot = Just 0
       }
@@ -377,10 +381,6 @@ view model =
                                 |> Maybe.andThen (viewSelectedRobot model.robots)
                                 |> Maybe.map List.singleton
                                 |> Maybe.withDefault []
-                            , [ Missile.view
-                                    (Point.fromGridXY 5 5)
-                                    180
-                              ]
                             ]
                         )
                    ]

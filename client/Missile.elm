@@ -20,27 +20,15 @@ import Svg
 import Svg.Attributes as SA exposing (..)
 
 
-view : Point -> Float -> Svg msg
-view location rotation =
-    let
-        ( x, y ) =
-            Point.topLeft location
-    in
+view : List (Svg.Attribute msg) -> Svg msg
+view attributes =
     Svg.use
-        [ SA.x (String.fromInt (x - 20))
-        , SA.y (String.fromInt (y - 20))
-        , width (String.fromInt (Point.cellSide + 40))
-        , height (String.fromInt (Point.cellSide + 40))
-        , transform <|
-            "rotate("
-                ++ String.fromFloat rotation
-                ++ ", "
-                ++ String.fromInt (x + Point.cellSide // 2)
-                ++ ", "
-                ++ String.fromInt (y + Point.cellSide // 2)
-                ++ ")"
-        , xlinkHref "#missile"
-        ]
+        ([ width (String.fromInt (Point.cellSide + 20))
+         , height (String.fromInt (Point.cellSide + 20))
+         , xlinkHref "#missile"
+         ]
+            ++ attributes
+        )
         []
 
 
