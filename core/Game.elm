@@ -227,14 +227,68 @@ performRobotMove ( index, robot ) ( model, actions ) =
             ( model, actions )
 
 
+shootWeapon :
+    ( Int, Robot )
+    -> ( Model, List Robot.ServerAction )
+    -> ( Model, List Robot.ServerAction )
+shootWeapon ( index, robot ) ( model, actions ) =
+    case robot.action of
+        Just (Robot.FireMissile target) ->
             let
-                ( newModel, actions ) =
+                isTarget ( _, testRobot ) =
+                    testRobot.location == target
+
+                maybeHitRobot =
                     Array.toIndexedList model.robots
-                        |> List.foldl performRobotMove ( model, [] )
+                        |> List.filter isTarget
+                        |> List.head
+                        |> Maybe.map (Tuple.mapSecond Robot.hit)
+
+                robotsWithAttackingRobot =
+                    Array.set
+                        index
+                        { robot | tool = Nothing, action = Nothing }
+                        model.robots
             in
-            ( newModel
-            , Cmd.none
-            )
+            case maybeHitRobot of
+                Just ( hitRobotIndex, ( hitRobot, hadShield ) ) ->
+                    ( { model
+                        | robots =
+                            Array.set
+                                hitRobotIndex
+                                hitRobot
+                                robotsWithAttackingRobot
+                      }
+                    , Robot.ServerFireMissile target hadShield :: actions
+                    )
+
+                Nothing ->
+                    ( { model | robots = robotsWithAttackingRobot }, actions )
+
+        Just (Robot.FireLaser angle) ->
+
+
+        Just (Robot.ArmMissile cell) ->
+            ( model, actions )
+
+        Just (Robot.ArmLaser cell) ->
+            ( model, actions )
+
+        Just (Robot.Shield cell) ->
+            ( model, actions )
+
+        Just (Robot.Mine cell) ->
+            ( model, actions )
+
+        Just Robot.Kamikaze ->
+            ( model, actions )
+
+        --TODO
+        Just (Robot.Move cell) ->
+            ( model, actions )
+
+        Nothing ->
+            ( model, actions )
 
 
 performTurn : Model -> ( Model, List Robot.ServerAction )
