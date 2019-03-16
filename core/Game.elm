@@ -1,9 +1,10 @@
-module Game exposing (Model, Msg, init, main, subscriptions, update)
+module Game exposing (Model, init)
 
 import Array exposing (Array)
 import Dict exposing (Dict)
 import Game.Cell as Cell exposing (Cell)
 import Game.Constants as Constants
+import Game.Grid as Grid
 import Game.Player as Player exposing (Player, PlayerIndex(..))
 import Game.Robot as Robot exposing (Robot)
 import Matrix exposing (Matrix)
@@ -13,25 +14,12 @@ import Random
 import Task
 
 
-main =
-    Platform.worker
-        { init = init
-        , update = update
-        , subscriptions = subscriptions
-        }
 
-
-type Countdown
-    = UntilMove Int
-    | UntilMoveEnd Int
 
 
 type alias Model =
     { -- Who will move next
-      nextMove : PlayerIndex
-
-    -- What is the next event and when will it happen
-    , countdown : Countdown
+      turn : PlayerIndex
 
     -- When the game ends
     , gameTime : Int
@@ -48,57 +36,42 @@ type alias Model =
     }
 
 
-type Msg
-    = Turn
-
-
-sleep : Msg -> Float -> Cmd Msg
-sleep msg time =
-    Process.sleep time |> Task.perform (\() -> msg)
-
-
-init : () -> ( Model, Cmd Msg )
+init : () -> Model
 init () =
-    let
-        firstMoveTime =
-            Constants.secondsBeforeStart
-                + Constants.secondsTurnCountdown
-                * 1000
-    in
-    ( { nextMove = Player1
-      , countdown = UntilMove firstMoveTime
-      , gameTime = Constants.secondsGameTime * 1000
-      , robots =
-            [ Robot.init (Cell.fromXY 2 0) Player1
-            , Robot.init (Cell.fromXY 2 1) Player1
-            , Robot.init (Cell.fromXY 2 2) Player1
-            , Robot.init (Cell.fromXY 0 2) Player1
-            , Robot.init (Cell.fromXY 1 2) Player1
-            , Robot.init (Cell.fromXY 17 0) Player2
-            , Robot.init (Cell.fromXY 17 1) Player2
-            , Robot.init (Cell.fromXY 17 2) Player2
-            , Robot.init (Cell.fromXY 18 2) Player2
-            , Robot.init (Cell.fromXY 19 2) Player2
-            , Robot.init (Cell.fromXY 17 19) Player3
-            , Robot.init (Cell.fromXY 17 18) Player3
-            , Robot.init (Cell.fromXY 17 17) Player3
-            , Robot.init (Cell.fromXY 18 17) Player3
-            , Robot.init (Cell.fromXY 19 17) Player3
-            , Robot.init (Cell.fromXY 0 17) Player4
-            , Robot.init (Cell.fromXY 1 17) Player4
-            , Robot.init (Cell.fromXY 2 17) Player4
-            , Robot.init (Cell.fromXY 2 18) Player4
-            , Robot.init (Cell.fromXY 2 19) Player4
-            ]
-                |> Array.fromList
-      , player1 = { money = 0, playing = True }
-      , player2 = { money = 0, playing = True }
-      , player3 = { money = 0, playing = True }
-      , player4 = { money = 0, playing = True }
-      , helium3 = Matrix.empty
-      }
-    , sleep Turn (toFloat firstMoveTime)
-    )
+    { turn = Player1
+    , gameTime = Constants.secondsGameTime * 1000
+    , robots =
+        [ Robot.init (Cell.fromXY 2 0) Player1
+        , Robot.init (Cell.fromXY 2 1) Player1
+        , Robot.init (Cell.fromXY 2 2) Player1
+        , Robot.init (Cell.fromXY 0 2) Player1
+        , Robot.init (Cell.fromXY 1 2) Player1
+        , Robot.init (Cell.fromXY 17 0) Player2
+        , Robot.init (Cell.fromXY 17 1) Player2
+        , Robot.init (Cell.fromXY 17 2) Player2
+        , Robot.init (Cell.fromXY 18 2) Player2
+        , Robot.init (Cell.fromXY 19 2) Player2
+        , Robot.init (Cell.fromXY 17 19) Player3
+        , Robot.init (Cell.fromXY 17 18) Player3
+        , Robot.init (Cell.fromXY 17 17) Player3
+        , Robot.init (Cell.fromXY 18 17) Player3
+        , Robot.init (Cell.fromXY 19 17) Player3
+        , Robot.init (Cell.fromXY 0 17) Player4
+        , Robot.init (Cell.fromXY 1 17) Player4
+        , Robot.init (Cell.fromXY 2 17) Player4
+        , Robot.init (Cell.fromXY 2 18) Player4
+        , Robot.init (Cell.fromXY 2 19) Player4
+        ]
+            |> Array.fromList
+    , player1 = { money = 0, playing = True }
+    , player2 = { money = 0, playing = True }
+    , player3 = { money = 0, playing = True }
+    , player4 = { money = 0, playing = True }
+    , helium3 =
+        Random.initialSeed 0
+            |> Random.step Grid.generator
+            |> Tuple.first
+    }
 
 
 mineHelium3 : Matrix Int -> Cell -> ( Matrix Int, Int )
@@ -156,8 +129,8 @@ addMoney playerIndex money model =
 
 performRobotMove :
     ( Int, Robot )
-    -> ( Model, List Robot.Action )
-    -> ( Model, List Robot.Action )
+    -> ( Model, List Robot.ServerAction )
+    -> ( Model, List Robot.ServerAction )
 performRobotMove ( index, robot ) ( model, actions ) =
     case robot.action of
         Just (Robot.FireMissile _) ->
@@ -178,7 +151,7 @@ performRobotMove ( index, robot ) ( model, actions ) =
                         }
                         model.robots
               }
-            , Robot.ArmMissile cell :: actions
+            , Robot.ServerArmMissile cell :: actions
             )
 
         Just (Robot.ArmLaser cell) ->
@@ -193,7 +166,7 @@ performRobotMove ( index, robot ) ( model, actions ) =
                         }
                         model.robots
               }
-            , Robot.ArmLaser cell :: actions
+            , Robot.ServerArmLaser cell :: actions
             )
 
         Just (Robot.Shield cell) ->
@@ -208,7 +181,7 @@ performRobotMove ( index, robot ) ( model, actions ) =
                         }
                         model.robots
               }
-            , Robot.Shield cell :: actions
+            , Robot.ServerShield cell :: actions
             )
 
         Just (Robot.Mine cell) ->
@@ -229,7 +202,7 @@ performRobotMove ( index, robot ) ( model, actions ) =
                 , helium3 = helium3
               }
                 |> addMoney robot.owner minedHelium3
-            , Robot.Mine cell :: actions
+            , Robot.ServerMine cell :: actions
             )
 
         Just Robot.Kamikaze ->
@@ -247,17 +220,13 @@ performRobotMove ( index, robot ) ( model, actions ) =
                         }
                         model.robots
               }
-            , Robot.Move cell :: actions
+            , Robot.ServerMove cell :: actions
             )
 
         Nothing ->
             ( model, actions )
 
 
-update : Msg -> Model -> ( Model, Cmd Msg )
-update msg model =
-    case msg of
-        Turn ->
             let
                 ( newModel, actions ) =
                     Array.toIndexedList model.robots
@@ -268,6 +237,7 @@ update msg model =
             )
 
 
-subscriptions : Model -> Sub Msg
-subscriptions model =
-    Sub.none
+performTurn : Model -> ( Model, List Robot.ServerAction )
+performTurn model =
+    Array.toIndexedList model.robots
+        |> List.foldl performRobotMove ( model, [] )
