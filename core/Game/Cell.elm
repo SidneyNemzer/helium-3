@@ -9,11 +9,13 @@ module Game.Cell exposing
     , fromXY
     , generator
     , move
+    , onBoard
     , ring3
     , ring5
     , toXY
     )
 
+import Game.Constants as Constants
 import Json.Encode as Encode
 import Random
 
@@ -104,6 +106,13 @@ ring5 (Cell x y) =
     ]
 
 
+{-| Is the given cell inside the board area?
+-}
+onBoard : Cell -> Bool
+onBoard (Cell x y) =
+    x >= 0 && x <= Constants.gridSide && y >= 0 && y <= Constants.gridSide
+
+
 directionFromTuple : ( Int, Int ) -> Direction
 directionFromTuple ( x, y ) =
     Direction x y
@@ -119,6 +128,6 @@ direction (Cell x1 y1) (Cell x2 y2) =
     Direction (x2 - x1) (y2 - y1)
 
 
-move : Cell -> Direction -> Cell
-move (Cell x y) (Direction mX mY) =
+move : Direction -> Cell -> Cell
+move (Direction mX mY) (Cell x y) =
     Cell (x + mX) (y + mY)

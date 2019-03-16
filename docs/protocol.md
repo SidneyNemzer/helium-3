@@ -17,7 +17,7 @@ type Timestamp = number
 type ServerAction
   = { type: 'FIRE_MISSILE', robot: RobotIndex, target: Point, shield: Bool }
   | { type: 'ARM_MISSILE', robot: RobotIndex, target: Point }
-  | { type: 'FIRE_LASER', robot: RobotIndex, target: Direction, stoppedBy: false | RobotIndex }
+  | { type: 'FIRE_LASER', robot: RobotIndex, target: Direction, stoppedBy: RobotIndex? }
   | { type: 'ARM_LASER', robot: RobotIndex, target: Point }
   | { type: 'SHIELD', robot: RobotIndex, target: Point }
   | { type: 'KAMAKAZIE', robot: RobotIndex, destroyed: RobotIndex[] }

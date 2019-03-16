@@ -2,7 +2,7 @@ module Game exposing (Model, init)
 
 import Array exposing (Array)
 import Dict exposing (Dict)
-import Game.Cell as Cell exposing (Cell)
+import Game.Cell as Cell exposing (Cell, Direction)
 import Game.Constants as Constants
 import Game.Grid as Grid
 import Game.Player as Player exposing (Player, PlayerIndex(..))
@@ -12,9 +12,6 @@ import Platform
 import Process
 import Random
 import Task
-
-
-
 
 
 type alias Model =
@@ -72,6 +69,13 @@ init () =
             |> Random.step Grid.generator
             |> Tuple.first
     }
+
+
+robotAt : Model -> Cell -> Maybe ( Int, Robot )
+robotAt model cell =
+    Array.toIndexedList model.robots
+        |> List.filter (Tuple.second >> .location >> (==) cell)
+        |> List.head
 
 
 mineHelium3 : Matrix Int -> Cell -> ( Matrix Int, Int )
@@ -227,6 +231,31 @@ performRobotMove ( index, robot ) ( model, actions ) =
             ( model, actions )
 
 
+progressLaser : Direction -> Cell -> Model -> ( Model, Maybe Int )
+progressLaser direction cell model =
+    if Cell.onBoard cell then
+        case robotAt model cell of
+            Just ( index, robot ) ->
+                let
+                    ( hitRobot, shielded ) =
+                        Robot.hit robot
+
+                    updatedModel =
+                        { model | robots = Array.set index hitRobot model.robots }
+                in
+                if shielded then
+                    ( updatedModel, Just index )
+
+                else
+                    progressLaser direction (Cell.move direction cell) updatedModel
+
+            Nothing ->
+                progressLaser direction (Cell.move direction cell) model
+
+    else
+        ( model, Nothing )
+
+
 shootWeapon :
     ( Int, Robot )
     -> ( Model, List Robot.ServerAction )
@@ -235,13 +264,8 @@ shootWeapon ( index, robot ) ( model, actions ) =
     case robot.action of
         Just (Robot.FireMissile target) ->
             let
-                isTarget ( _, testRobot ) =
-                    testRobot.location == target
-
                 maybeHitRobot =
-                    Array.toIndexedList model.robots
-                        |> List.filter isTarget
-                        |> List.head
+                    robotAt model target
                         |> Maybe.map (Tuple.mapSecond Robot.hit)
 
                 robotsWithAttackingRobot =
@@ -265,8 +289,12 @@ shootWeapon ( index, robot ) ( model, actions ) =
                 Nothing ->
                     ( { model | robots = robotsWithAttackingRobot }, actions )
 
-        Just (Robot.FireLaser angle) ->
-
+        Just (Robot.FireLaser direction) ->
+            progressLaser direction (Cell.move direction robot.location) model
+                |> Tuple.mapSecond
+                    (\maybeIndex ->
+                        Robot.ServerFireLaser direction maybeIndex :: actions
+                    )
 
         Just (Robot.ArmMissile cell) ->
             ( model, actions )
@@ -281,9 +309,38 @@ shootWeapon ( index, robot ) ( model, actions ) =
             ( model, actions )
 
         Just Robot.Kamikaze ->
-            ( model, actions )
+            let
+                robotsAround =
+                    List.filterMap (robotAt model) (Cell.ring3 robot.location)
 
-        --TODO
+                hitRobots =
+                    ( index, robot )
+                        :: robotsAround
+                        |> List.map (Tuple.mapSecond Robot.hit)
+
+                destroyed =
+                    List.filterMap
+                        (\( index_, ( _, shield ) ) ->
+                            if not shield then
+                                Just index_
+
+                            else
+                                Nothing
+                        )
+                        hitRobots
+            in
+            ( { model
+                | robots =
+                    List.foldl
+                        (\( index_, ( robot_, _ ) ) robots_ ->
+                            Array.set index_ robot_ robots_
+                        )
+                        model.robots
+                        hitRobots
+              }
+            , Robot.ServerKamikaze destroyed :: actions
+            )
+
         Just (Robot.Move cell) ->
             ( model, actions )
 

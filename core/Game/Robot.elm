@@ -11,6 +11,7 @@ module Game.Robot exposing
 import Game.Cell as Cell exposing (Cell, Direction)
 import Game.Player as Player exposing (PlayerIndex)
 import Json.Encode as Encode
+import Json.Encode.Extra as Encode
 
 
 {-| Describes what a robot did so that clients can animate it. Includes
@@ -18,7 +19,7 @@ information that clients don't know, like if a weapon hit a shielded robot.
 -}
 type ServerAction
     = ServerFireMissile Cell Bool
-    | ServerFireLaser Direction Int
+    | ServerFireLaser Direction (Maybe Int)
     | ServerArmMissile Cell
     | ServerArmLaser Cell
     | ServerShield Cell
@@ -109,7 +110,7 @@ serverActionEncoder serverAction robot =
             Encode.object
                 [ ( "action", Encode.string "FIRE_LASER" )
                 , ( "target", Cell.encodeDirection direction )
-                , ( "stoppedBy", Encode.int stoppedBy )
+                , ( "stoppedBy", Encode.maybe Encode.int stoppedBy )
                 , ( "robot", Encode.int robot )
                 ]
 
