@@ -352,3 +352,9 @@ performTurn : Model -> ( Model, List Robot.ServerAction )
 performTurn model =
     Array.toIndexedList model.robots
         |> List.foldl performRobotMove ( model, [] )
+        |> (\( updatedModel, actions ) ->
+                List.foldl
+                    shootWeapon
+                    ( updatedModel, actions )
+                    (Array.toIndexedList updatedModel.robots)
+           )
