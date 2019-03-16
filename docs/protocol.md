@@ -6,6 +6,8 @@ The Helium 3 client and server communicate with JSON over a web socket.
 // Points must be on the board, which is 20x20, 0-indexed
 type Point = { x: number, y: number }
 
+type Direction = { vX: number, vY: number }
+
 type RobotIndex = 0 | 1 | 2 | 3 | 4
 
 type PlayerIndex = 0 | 1 | 2 | 3
@@ -15,7 +17,7 @@ type Timestamp = number
 type ServerAction
   = { type: 'FIRE_MISSILE', robot: RobotIndex, target: Point, shield: Bool }
   | { type: 'ARM_MISSILE', robot: RobotIndex, target: Point }
-  | { type: 'FIRE_LASER', robot: RobotIndex, target: number, stoppedBy: false | RobotIndex }
+  | { type: 'FIRE_LASER', robot: RobotIndex, target: Direction, stoppedBy: false | RobotIndex }
   | { type: 'ARM_LASER', robot: RobotIndex, target: Point }
   | { type: 'SHIELD', robot: RobotIndex, target: Point }
   | { type: 'KAMAKAZIE', robot: RobotIndex, destroyed: RobotIndex[] }

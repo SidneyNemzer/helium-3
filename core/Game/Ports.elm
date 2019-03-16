@@ -22,7 +22,7 @@ port portAction : Value -> Cmd msg
 port onQueueArmMissile : (( ( Int, Int ), Int ) -> msg) -> Sub msg
 
 
-port onQueueFireLaser : (( Float, Int ) -> msg) -> Sub msg
+port onQueueFireLaser : (( ( Int, Int ), Int ) -> msg) -> Sub msg
 
 
 port onQueueArmLaser : (( ( Int, Int ), Int ) -> msg) -> Sub msg
@@ -49,7 +49,10 @@ onQueueAction : (Robot.Action -> Int -> msg) -> Sub msg
 onQueueAction msg =
     Sub.batch
         [ onQueueArmMissile (portToMsg (Robot.ArmMissile >> msg))
-        , onQueueFireLaser (\( angle, index ) -> msg (Robot.FireLaser angle) index)
+        , onQueueFireLaser
+            (\( direction, index ) ->
+                msg (Robot.FireLaser (Cell.directionFromTuple direction)) index
+            )
         , onQueueArmLaser (portToMsg (Robot.ArmLaser >> msg))
         , onQueueShield (portToMsg (Robot.Shield >> msg))
         , onQueueKamakazie (msg Robot.Kamikaze)

@@ -3,11 +3,12 @@ module Game.Robot exposing
     , Robot
     , ServerAction(..)
     , Tool(..)
+    , hit
     , init
     , serverActionEncoder
     )
 
-import Game.Cell as Cell exposing (Cell)
+import Game.Cell as Cell exposing (Cell, Direction)
 import Game.Player as Player exposing (PlayerIndex)
 import Json.Encode as Encode
 
@@ -17,7 +18,7 @@ information that clients don't know, like if a weapon hit a shielded robot.
 -}
 type ServerAction
     = ServerFireMissile Cell Bool
-    | ServerFireLaser Float Int
+    | ServerFireLaser Direction Int
     | ServerArmMissile Cell
     | ServerArmLaser Cell
     | ServerShield Cell
@@ -28,7 +29,7 @@ type ServerAction
 
 type Action
     = FireMissile Cell
-    | FireLaser Float
+    | FireLaser Direction
     | ArmMissile Cell
     | ArmLaser Cell
     | Shield Cell
@@ -104,10 +105,10 @@ serverActionEncoder serverAction robot =
                 , ( "robot", Encode.int robot )
                 ]
 
-        ServerFireLaser angle stoppedBy ->
+        ServerFireLaser direction stoppedBy ->
             Encode.object
                 [ ( "action", Encode.string "FIRE_LASER" )
-                , ( "target", Encode.float angle )
+                , ( "target", Cell.encodeDirection direction )
                 , ( "stoppedBy", Encode.int stoppedBy )
                 , ( "robot", Encode.int robot )
                 ]
@@ -153,3 +154,12 @@ serverActionEncoder serverAction robot =
                 , ( "target", Cell.encode target )
                 , ( "robot", Encode.int robot )
                 ]
+
+
+hit : Robot -> ( Robot, Bool )
+hit robot =
+    if robot.tool == Just ToolShield then
+        ( { robot | tool = Nothing }, True )
+
+    else
+        ( { robot | destroyed = True }, False )

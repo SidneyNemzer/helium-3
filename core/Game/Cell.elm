@@ -1,9 +1,14 @@
 module Game.Cell exposing
     ( Cell
+    , Direction
+    , direction
+    , directionFromTuple
     , encode
+    , encodeDirection
     , fromTuple
     , fromXY
     , generator
+    , move
     , ring3
     , ring5
     , toXY
@@ -11,6 +16,12 @@ module Game.Cell exposing
 
 import Json.Encode as Encode
 import Random
+
+
+{-| Represents movement between two cells
+-}
+type Direction
+    = Direction Int Int
 
 
 type Cell
@@ -91,3 +102,23 @@ ring5 (Cell x y) =
     , fromXY (x + 1) (y + 2)
     , fromXY (x + 2) (y + 2)
     ]
+
+
+directionFromTuple : ( Int, Int ) -> Direction
+directionFromTuple ( x, y ) =
+    Direction x y
+
+
+encodeDirection : Direction -> Encode.Value
+encodeDirection (Direction x y) =
+    Encode.object [ ( "vX", Encode.int x ), ( "vY", Encode.int y ) ]
+
+
+direction : Cell -> Cell -> Direction
+direction (Cell x1 y1) (Cell x2 y2) =
+    Direction (x2 - x1) (y2 - y1)
+
+
+move : Cell -> Direction -> Cell
+move (Cell x y) (Direction mX mY) =
+    Cell (x + mX) (y + mY)
