@@ -17,9 +17,6 @@ import Task
 type alias Model =
     { -- Who will move next
       turn : PlayerIndex
-
-    -- When the game ends
-    , gameTime : Int
     , robots : Array Robot
 
     -- Keep track of how much money players have, and who is currenly playing
@@ -36,7 +33,6 @@ type alias Model =
 init : () -> Model
 init () =
     { turn = Player1
-    , gameTime = Constants.secondsGameTime * 1000
     , robots =
         [ Robot.init (Cell.fromXY 2 0) Player1
         , Robot.init (Cell.fromXY 2 1) Player1
