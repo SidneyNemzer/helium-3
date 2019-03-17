@@ -13,7 +13,7 @@ import List.Extra
 import Matrix
 import Missile
 import Model exposing (Model)
-import Player exposing (Player(..), Players)
+import Player exposing (Player(..))
 import Point
 import Process
 import Random

@@ -1,8 +1,6 @@
 module Player exposing
     ( Player(..)
-    , Players
     , color
-    , decodePlayers
     , decodeTurn
     , nextTurn
     , toString
@@ -22,14 +20,6 @@ type Player
     | Player2
     | Player3
     | Player4
-
-
-type alias Players =
-    { player1 : Int
-    , player2 : Int
-    , player3 : Int
-    , player4 : Int
-    }
 
 
 
@@ -58,15 +48,6 @@ decodeTurn =
                         Decode.fail
                             ("Unknown player turn:" ++ String.fromInt turn)
             )
-
-
-decodePlayers : Decoder Players
-decodePlayers =
-    Decode.map4 Players
-        (Decode.field "player1" Decode.int)
-        (Decode.field "player2" Decode.int)
-        (Decode.field "player3" Decode.int)
-        (Decode.field "player4" Decode.int)
 
 
 
