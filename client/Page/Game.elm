@@ -1,4 +1,4 @@
-module Game exposing (main)
+module Page.Game exposing (main)
 
 import Animation
 import Array exposing (Array)
