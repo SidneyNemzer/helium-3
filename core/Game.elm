@@ -1,6 +1,12 @@
-module Game exposing (Model, init)
+module Game exposing
+    ( Model
+    , init
+    , performTurn
+    , queueAction
+    )
 
 import Array exposing (Array)
+import Array.Extra
 import Dict exposing (Dict)
 import Game.Cell as Cell exposing (Cell, Direction)
 import Game.Constants as Constants
@@ -354,3 +360,14 @@ performTurn model =
                     ( updatedModel, actions )
                     (Array.toIndexedList updatedModel.robots)
            )
+
+
+queueAction : Robot.Action -> Int -> Model -> Model
+queueAction action index model =
+    { model
+        | robots =
+            Array.Extra.update
+                index
+                (\robot -> { robot | action = Just action })
+                model.robots
+    }
