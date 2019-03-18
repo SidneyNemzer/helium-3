@@ -1,6 +1,7 @@
 module Game.Cell exposing
     ( Cell
     , Direction
+    , around
     , direction
     , directionFromTuple
     , encode
