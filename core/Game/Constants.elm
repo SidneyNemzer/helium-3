@@ -13,6 +13,8 @@ module Game.Constants exposing
     , startingHelium3
     )
 
+-- TIME
+
 
 secondsBeforeStart : Int
 secondsBeforeStart =
@@ -27,6 +29,10 @@ secondsTurnCountdown =
 secondsGameTime : Int
 secondsGameTime =
     60 * 10
+
+
+
+-- HELIUM 3 GENERATION AND MINING
 
 
 maxMinedHelium3 : Int
@@ -67,6 +73,10 @@ helium3SmallDepositCenter =
 helium3SmallDepositOuterRing : Float
 helium3SmallDepositOuterRing =
     0.10625
+
+
+
+-- SIZE
 
 
 gridSide : Int
