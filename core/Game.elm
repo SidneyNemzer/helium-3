@@ -359,16 +359,37 @@ shootWeapon ( index, robot ) ( model, actions ) =
             ( model, actions )
 
 
+performActionFor :
+    PlayerIndex
+    -> (( Int, Robot ) -> a -> a)
+    -> ( Int, Robot )
+    -> a
+    -> a
+performActionFor playerIndex fn ( index, robot ) a =
+    if robot.owner == playerIndex then
+        fn ( index, robot ) a
+
+    else
+        a
+
+
 performTurn : Model -> ( Model, List Robot.ServerAction )
 performTurn model =
-    Array.toIndexedList model.robots
-        |> List.foldl performRobotMove ( model, [] )
-        |> (\( updatedModel, actions ) ->
-                List.foldl
-                    shootWeapon
-                    ( updatedModel, actions )
-                    (Array.toIndexedList updatedModel.robots)
-           )
+    -- TODO destroyed robots still perform their turn
+    let
+        ( modelWithMovedRobots, actions ) =
+            Array.toIndexedList model.robots
+                |> List.foldl
+                    (performActionFor model.turn performRobotMove)
+                    ( model, [] )
+                |> (\( updatedModel, actions_ ) ->
+                        List.foldl
+                            (performActionFor model.turn shootWeapon)
+                            ( updatedModel, actions_ )
+                            (Array.toIndexedList updatedModel.robots)
+                   )
+    in
+    ( { modelWithMovedRobots | turn = Player.next model.turn }, actions )
 
 
 queueActionHelp : Robot.Action -> Int -> Robot -> Model -> Model

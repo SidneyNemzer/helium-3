@@ -1,4 +1,10 @@
-module Game.Player exposing (Player, PlayerIndex(..), pushAction, toString)
+module Game.Player exposing
+    ( Player
+    , PlayerIndex(..)
+    , next
+    , pushAction
+    , toString
+    )
 
 
 type PlayerIndex
@@ -43,3 +49,19 @@ toString playerIndex =
 
         Player4 ->
             "Player 4"
+
+
+next : PlayerIndex -> PlayerIndex
+next playerIndex =
+    case playerIndex of
+        Player1 ->
+            Player2
+
+        Player2 ->
+            Player3
+
+        Player3 ->
+            Player4
+
+        Player4 ->
+            Player1

@@ -9,7 +9,7 @@ import Game.Cell as Cell exposing (Cell, Direction)
 import Game.Constants
 import Game.Player as Player
 import Game.Robot as Robot exposing (Robot)
-import Html exposing (Html, div, li, span, text, ul)
+import Html exposing (Html, button, div, li, span, text, ul)
 import Html.Attributes exposing (class, style)
 import Html.Events exposing (onClick)
 import Missile
@@ -72,6 +72,7 @@ type Msg
     = SelectRobot Int
     | QueueAction QueueAction Int
     | QueueActionTarget Int QueueActionTarget
+    | PerformTurn
 
 
 init : () -> ( Model, Cmd Msg )
@@ -149,6 +150,11 @@ update msg model =
                 | game = Game.queueAction action index model.game
                 , selectedRobot = Nothing
               }
+            , Cmd.none
+            )
+
+        PerformTurn ->
+            ( { model | game = Game.performTurn model.game |> Tuple.first }
             , Cmd.none
             )
 
@@ -293,6 +299,11 @@ view model =
                     [ text (Player.toString model.game.turn) ]
                 , text " is moving next"
                 ]
+
+        endTurn =
+            div []
+                [ button [ onClick PerformTurn ] [ text "End turn" ]
+                ]
     in
     { title = "Helium 3 Singleplayer"
     , body =
@@ -301,7 +312,9 @@ view model =
             [ style "text-align" "center"
             , style "width" "calc((100vw - 100vh) / 2)"
             ]
-            [ currentTurn ]
+            [ currentTurn
+            , endTurn
+            ]
         , Svg.svg
             [ SA.viewBox ("0 0 " ++ svgSideTotal ++ " " ++ svgSideTotal)
             , style "display" "block"
