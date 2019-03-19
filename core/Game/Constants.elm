@@ -7,6 +7,11 @@ module Game.Constants exposing
     , helium3SmallDepositCenter
     , helium3SmallDepositOuterRing
     , maxMinedHelium3
+    , missileRange
+    , moveAndArmWeaponRange
+    , moveAndMineRange
+    , moveAndShieldRange
+    , moveRange
     , secondsBeforeStart
     , secondsGameTime
     , secondsTurnCountdown
@@ -82,3 +87,33 @@ helium3SmallDepositOuterRing =
 gridSide : Int
 gridSide =
     20
+
+
+
+-- ROBOTS
+-- The radius of the area robots can move and shoot in
+
+
+moveRange : Int
+moveRange =
+    4
+
+
+moveAndShieldRange : Int
+moveAndShieldRange =
+    3
+
+
+moveAndArmWeaponRange : Int
+moveAndArmWeaponRange =
+    2
+
+
+missileRange : Int
+missileRange =
+    5
+
+
+moveAndMineRange : Int
+moveAndMineRange =
+    3

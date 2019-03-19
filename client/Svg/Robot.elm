@@ -1,5 +1,9 @@
-module Svg.Robot exposing (def, defMissile, use)
+module Svg.Robot exposing (def, defMissile, use, view)
 
+import Color
+import Game.Cell as Cell
+import Game.Robot as Robot exposing (Robot)
+import Html exposing (text)
 import Html.Attributes
 import Point exposing (Point)
 import Svg
@@ -22,6 +26,30 @@ import Svg
 import Svg.Attributes exposing (..)
 import Svg.Events
 import Svg.Grid
+
+
+view : Robot -> Maybe msg -> Svg msg
+view robot maybeOnClick =
+    let
+        transformCoord coord =
+            String.fromInt (coord - 20)
+
+        ( screenX, screenY ) =
+            Cell.toScreen robot.location Svg.Grid.cellSide
+                |> Tuple.mapBoth transformCoord transformCoord
+
+        robotSvg =
+            use
+                [ x screenX, y screenY ]
+                (Color.fromPlayer robot.owner)
+                maybeOnClick
+
+        targetSvg =
+            Robot.moveTarget robot
+                |> Maybe.map (Svg.Grid.dottedLine robot.location)
+                |> Maybe.withDefault (text "")
+    in
+    g [] [ robotSvg, targetSvg ]
 
 
 {-| Renders a robot

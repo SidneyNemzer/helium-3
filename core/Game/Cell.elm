@@ -13,11 +13,14 @@ module Game.Cell exposing
     , onBoard
     , ring3
     , ring5
+    , toScreen
+    , toScreenOffset
     , toXY
     )
 
 import Game.Constants as Constants
 import Json.Encode as Encode
+import List.Extra
 import Random
 
 
@@ -60,11 +63,19 @@ generator width height =
         |> Random.map fromTuple
 
 
-around : Cell -> Int -> List Cell
-around (Cell x y) radius =
-    List.map2 fromXY
-        (List.range (x - radius) (x + radius))
-        (List.range (y - radius) (y + radius))
+around : Cell -> Int -> Bool -> List Cell
+around ((Cell x y) as cell) radius includeCenter =
+    let
+        cells =
+            List.Extra.lift2 fromXY
+                (List.range (x - radius) (x + radius))
+                (List.range (y - radius) (y + radius))
+    in
+    if includeCenter then
+        cells
+
+    else
+        List.Extra.remove cell cells
 
 
 {-| The ring of cells around the center with a diameter of three. Does not
@@ -132,3 +143,13 @@ direction (Cell x1 y1) (Cell x2 y2) =
 move : Direction -> Cell -> Cell
 move (Direction mX mY) (Cell x y) =
     Cell (x + mX) (y + mY)
+
+
+toScreen : Cell -> Int -> ( Int, Int )
+toScreen (Cell x y) scale =
+    ( x * scale, y * scale )
+
+
+toScreenOffset : Cell -> Int -> Int -> ( Int, Int )
+toScreenOffset (Cell x y) scale offset =
+    ( x * scale + offset, y * scale + offset )

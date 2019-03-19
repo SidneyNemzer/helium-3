@@ -5,6 +5,7 @@ module Game.Robot exposing
     , Tool(..)
     , hit
     , init
+    , moveTarget
     , serverActionEncoder
     )
 

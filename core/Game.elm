@@ -62,10 +62,10 @@ init () =
         , Robot.init (Cell.fromXY 2 19) Player4
         ]
             |> Array.fromList
-    , player1 = { money = 0, playing = True }
-    , player2 = { money = 0, playing = True }
-    , player3 = { money = 0, playing = True }
-    , player4 = { money = 0, playing = True }
+    , player1 = { money = 0, playing = True, moving = [] }
+    , player2 = { money = 0, playing = True, moving = [] }
+    , player3 = { money = 0, playing = True, moving = [] }
+    , player4 = { money = 0, playing = True, moving = [] }
     , helium3 =
         Random.initialSeed 0
             |> Random.step Grid.generator
@@ -101,36 +101,45 @@ mineHelium3 matrix cell =
     )
 
 
-addMoney : PlayerIndex -> Int -> Model -> Model
-addMoney playerIndex money model =
+getPlayer : PlayerIndex -> Model -> Player
+getPlayer playerIndex model =
     case playerIndex of
         Player1 ->
-            let
-                player =
-                    model.player1
-            in
-            { model | player1 = { player | money = player.money + money } }
+            model.player1
 
         Player2 ->
-            let
-                player =
-                    model.player2
-            in
-            { model | player2 = { player | money = player.money + money } }
+            model.player2
 
         Player3 ->
-            let
-                player =
-                    model.player3
-            in
-            { model | player3 = { player | money = player.money + money } }
+            model.player3
 
         Player4 ->
-            let
-                player =
-                    model.player4
-            in
-            { model | player4 = { player | money = player.money + money } }
+            model.player4
+
+
+setPlayer : PlayerIndex -> Player -> Model -> Model
+setPlayer playerIndex player model =
+    case playerIndex of
+        Player1 ->
+            { model | player1 = player }
+
+        Player2 ->
+            { model | player2 = player }
+
+        Player3 ->
+            { model | player3 = player }
+
+        Player4 ->
+            { model | player4 = player }
+
+
+addMoney : PlayerIndex -> Int -> Model -> Model
+addMoney playerIndex money model =
+    let
+        player =
+            getPlayer playerIndex model
+    in
+    setPlayer playerIndex { player | money = player.money + money } model
 
 
 performRobotMove :
@@ -362,12 +371,37 @@ performTurn model =
            )
 
 
+queueActionHelp : Robot.Action -> Int -> Robot -> Model -> Model
+queueActionHelp action index robot model =
+    let
+        oldPlayer =
+            getPlayer robot.owner model
+
+        ( player, maybeRemoveActionIndex ) =
+            Player.pushAction index oldPlayer
+
+        robotsWithAction =
+            Array.set index { robot | action = Just action } model.robots
+
+        robots =
+            case maybeRemoveActionIndex of
+                Just removeActionIndex ->
+                    Array.Extra.update
+                        removeActionIndex
+                        (\robot_ -> { robot_ | action = Nothing })
+                        robotsWithAction
+
+                Nothing ->
+                    robotsWithAction
+    in
+    { model | robots = robots } |> setPlayer robot.owner player
+
+
 queueAction : Robot.Action -> Int -> Model -> Model
 queueAction action index model =
-    { model
-        | robots =
-            Array.Extra.update
-                index
-                (\robot -> { robot | action = Just action })
-                model.robots
-    }
+    case Array.get index model.robots of
+        Just robot ->
+            queueActionHelp action index robot model
+
+        Nothing ->
+            model

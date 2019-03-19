@@ -8,6 +8,7 @@ module Svg.Grid exposing
     )
 
 import Color
+import Game.Cell as Cell exposing (Cell)
 import Html exposing (Html)
 import List.Extra
 import Point exposing (Point)
@@ -97,11 +98,11 @@ grid =
             lineIndexes
 
 
-overlayCell : Maybe msg -> Point -> Svg msg
+overlayCell : Maybe msg -> Cell -> Svg msg
 overlayCell onClick cell =
     let
         ( x_, y_ ) =
-            Point.topLeft cell
+            Cell.toScreen cell cellSide
     in
     rect
         ([ x (String.fromInt (x_ + 4))
@@ -124,20 +125,24 @@ overlayCell onClick cell =
         []
 
 
-overlay : (Point -> msg) -> Point -> Int -> List (Svg msg)
-overlay onClick centerCell radius =
-    Point.around centerCell radius
+overlay : (Cell -> msg) -> Cell -> Int -> Bool -> Svg msg
+overlay onClick centerCell radius includeCenter =
+    Cell.around centerCell radius includeCenter
         |> List.map (\point -> overlayCell (Just (onClick point)) point)
+        |> Svg.g []
 
 
-dottedLine : Point -> Point -> Svg msg
+dottedLine : Cell -> Cell -> Svg msg
 dottedLine start end =
     let
+        halfSide =
+            cellSide // 2
+
         ( startX, startY ) =
-            Point.center start
+            Cell.toScreenOffset start cellSide halfSide
 
         ( endX, endY ) =
-            Point.center end
+            Cell.toScreenOffset end cellSide halfSide
     in
     Svg.line
         [ x1 (String.fromInt startX)

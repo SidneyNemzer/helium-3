@@ -225,7 +225,5 @@ view onClick robot =
               else
                 []
             ]
-    , moveTarget robot
-        |> Maybe.map (Svg.Grid.dottedLine robot.location)
-        |> Maybe.withDefault (Svg.text "")
+    , Svg.text ""
     )

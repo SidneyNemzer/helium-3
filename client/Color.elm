@@ -1,10 +1,13 @@
 module Color exposing
     ( blue
     , cyan
+    , fromPlayer
     , green
     , purple
     , red
     )
+
+import Game.Player as Player exposing (PlayerIndex(..))
 
 
 green : String
@@ -30,3 +33,19 @@ cyan =
 blue : String
 blue =
     "#487CFF"
+
+
+fromPlayer : PlayerIndex -> String
+fromPlayer player =
+    case player of
+        Player1 ->
+            green
+
+        Player2 ->
+            purple
+
+        Player3 ->
+            cyan
+
+        Player4 ->
+            red
