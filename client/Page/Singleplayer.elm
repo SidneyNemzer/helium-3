@@ -184,28 +184,34 @@ viewSelectedRobot robots index =
     Array.get index robots |> Maybe.map Svg.Outline.view_
 
 
-viewAction : String -> QueueAction -> Int -> Html Msg
-viewAction label queueAction index =
-    li
-        [ class "hover--underline"
-        , style "cursor" "pointer"
-        , style "color" "blue"
-        , onClick (QueueAction queueAction index)
-        ]
-        [ text label ]
+viewAction : String -> QueueAction -> Int -> Bool -> Html Msg
+viewAction label queueAction index enabled =
+    let
+        attributes =
+            if enabled then
+                [ class "hover--underline"
+                , style "cursor" "pointer"
+                , style "color" "blue"
+                , onClick (QueueAction queueAction index)
+                ]
+
+            else
+                [ style "color" "gray" ]
+    in
+    li attributes [ text label ]
 
 
-viewActions : Int -> Html Msg
-viewActions index =
+viewActions : Int -> Robot -> Html Msg
+viewActions index robot =
     ul [ style "list-style" "none" ]
-        [ viewAction "Fire Missile" FireMissile index
-        , viewAction "Fire Laser" FireLaser index
-        , viewAction "Arm Missile" ArmMissile index
-        , viewAction "Arm Laser" ArmLaser index
-        , viewAction "Shield" Shield index
-        , viewAction "Mine" Mine index
-        , viewAction "Kamikaze" Kamikaze index
-        , viewAction "Move" Move index
+        [ viewAction "Fire Missile" FireMissile index (Robot.canFireMissile robot)
+        , viewAction "Fire Laser" FireLaser index (Robot.canFireLaser robot)
+        , viewAction "Arm Missile" ArmMissile index True
+        , viewAction "Arm Laser" ArmLaser index True
+        , viewAction "Shield" Shield index True
+        , viewAction "Mine" Mine index True
+        , viewAction "Kamikaze" Kamikaze index True
+        , viewAction "Move" Move index True
         ]
 
 
@@ -348,7 +354,16 @@ view model =
         , div [ style "width" "calc((100vw - 100vh) / 2)" ]
             [ case model.selectedRobot of
                 Just ( Robot, index ) ->
-                    viewActions index
+                    case Array.get index model.game.robots of
+                        Just robot ->
+                            div []
+                                [ viewActions index robot
+
+                                -- , Html.pre [] [ text (Debug.toString robot) ]
+                                ]
+
+                        Nothing ->
+                            text ""
 
                 _ ->
                     text ""
