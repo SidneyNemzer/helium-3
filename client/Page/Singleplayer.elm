@@ -274,7 +274,11 @@ view model =
             Array.toList model.game.robots
                 |> List.indexedMap
                     (\index robot ->
-                        Svg.Robot.view robot (Just (SelectRobot index))
+                        if robot.destroyed then
+                            text ""
+
+                        else
+                            Svg.Robot.view robot (Just (SelectRobot index))
                     )
 
         selection =
