@@ -21,7 +21,7 @@ pushAction newIndex oldPlayer =
         player =
             { oldPlayer | moving = newIndex :: oldPlayer.moving }
     in
-    case Debug.log "player moving" player.moving of
+    case player.moving of
         [ index0, index1, index2 ] ->
             ( { player | moving = [ index0, index1 ] }, Just index2 )
 
