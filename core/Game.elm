@@ -311,10 +311,17 @@ shootWeapon ( index, robot ) ( model, actions ) =
 
         Just (Robot.FireLaser direction) ->
             progressLaser direction (Cell.move direction robot.location) model
-                |> Tuple.mapSecond
-                    (\maybeIndex ->
-                        Robot.ServerFireLaser direction maybeIndex :: actions
-                    )
+                |> (\( modelAfterLaser, maybeIndex ) ->
+                        ( { modelAfterLaser
+                            | robots =
+                                Array.set
+                                    index
+                                    { robot | tool = Nothing, action = Nothing }
+                                    modelAfterLaser.robots
+                          }
+                        , Robot.ServerFireLaser direction maybeIndex :: actions
+                        )
+                   )
 
         Just (Robot.ArmMissile cell) ->
             ( model, actions )
