@@ -14,6 +14,7 @@ import Html.Attributes exposing (class, style)
 import Html.Events exposing (onClick)
 import Missile
 import Svg exposing (Svg)
+import Svg.Arrow
 import Svg.Attributes as SA
 import Svg.Grid
 import Svg.Outline
@@ -334,6 +335,7 @@ view model =
                             [ [ Svg.defs []
                                     [ Svg.Robot.def
                                     , Missile.def
+                                    , Svg.Arrow.def
                                     ]
                               , Svg.Grid.grid
                               ]

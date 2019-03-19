@@ -24,6 +24,7 @@ import Svg
         , text
         , text_
         )
+import Svg.Arrow
 import Svg.Attributes exposing (..)
 import Svg.Events
 import Svg.Grid
@@ -46,9 +47,40 @@ view robot maybeOnClick =
                 maybeOnClick
 
         targetSvg =
-            Robot.moveTarget robot
-                |> Maybe.map (Svg.Grid.dottedLine robot.location)
-                |> Maybe.withDefault (text "")
+            case robot.action of
+                Just (Robot.FireMissile _) ->
+                    text ""
+
+                Just (Robot.FireLaser direction) ->
+                    Svg.Arrow.view robot.location direction
+
+                Just (Robot.ArmMissile target) ->
+                    Svg.Grid.dottedLine robot.location target
+
+                Just (Robot.ArmLaser target) ->
+                    Svg.Grid.dottedLine robot.location target
+
+                Just (Robot.Shield target) ->
+                    Svg.Grid.dottedLine robot.location target
+
+                Just (Robot.Mine target) ->
+                    Svg.Grid.dottedLine robot.location target
+
+                Just Robot.Kamikaze ->
+                    text ""
+
+                Just (Robot.Move target) ->
+                    Svg.Grid.dottedLine robot.location target
+
+                Nothing ->
+                    text ""
+
+        ( centerX, centerY ) =
+            Cell.toScreenOffset
+                robot.location
+                Svg.Grid.cellSide
+                (Svg.Grid.cellSide // 2)
+                |> Tuple.mapBoth String.fromInt String.fromInt
 
         toolSvg =
             case robot.tool of

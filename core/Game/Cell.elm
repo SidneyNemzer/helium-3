@@ -4,6 +4,7 @@ module Game.Cell exposing
     , around
     , direction
     , directionFromTuple
+    , directionToXY
     , encode
     , encodeDirection
     , fromTuple
@@ -15,6 +16,7 @@ module Game.Cell exposing
     , ring5
     , toScreen
     , toScreenOffset
+    , toScreenOffset2
     , toXY
     )
 
@@ -140,6 +142,11 @@ direction (Cell x1 y1) (Cell x2 y2) =
     Direction (x2 - x1) (y2 - y1)
 
 
+directionToXY : Direction -> ( Int, Int )
+directionToXY (Direction x y) =
+    ( x, y )
+
+
 move : Direction -> Cell -> Cell
 move (Direction mX mY) (Cell x y) =
     Cell (x + mX) (y + mY)
@@ -153,3 +160,8 @@ toScreen (Cell x y) scale =
 toScreenOffset : Cell -> Int -> Int -> ( Int, Int )
 toScreenOffset (Cell x y) scale offset =
     ( x * scale + offset, y * scale + offset )
+
+
+toScreenOffset2 : Cell -> Int -> ( Int, Int ) -> ( Int, Int )
+toScreenOffset2 (Cell x y) scale ( offsetX, offsetY ) =
+    ( x * scale + offsetX, y * scale + offsetY )

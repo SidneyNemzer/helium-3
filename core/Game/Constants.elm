@@ -1,5 +1,6 @@
 module Game.Constants exposing
-    ( gridSide
+    ( cellSide
+    , gridSide
     , helium3InLargeDeposit
     , helium3InLargeDepositInnerRing
     , helium3InLargeDepositOuterRing
@@ -87,6 +88,11 @@ helium3SmallDepositOuterRing =
 gridSide : Int
 gridSide =
     20
+
+
+cellSide : Int
+cellSide =
+    100
 
 
 
