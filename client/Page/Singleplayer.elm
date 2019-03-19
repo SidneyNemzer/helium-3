@@ -339,8 +339,6 @@ view model =
                               ]
                             , robots
                             , [ selection ]
-
-                            -- , decorations
                             ]
                         )
                    ]
