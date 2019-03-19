@@ -3,7 +3,6 @@ module Svg.Robot exposing (def, defMissile, use, view)
 import Color
 import Game.Cell as Cell
 import Game.Robot as Robot exposing (Robot)
-import Html exposing (text)
 import Html.Attributes
 import Point exposing (Point)
 import Svg
@@ -22,6 +21,8 @@ import Svg
         , radialGradient
         , rect
         , stop
+        , text
+        , text_
         )
 import Svg.Attributes exposing (..)
 import Svg.Events
@@ -48,8 +49,22 @@ view robot maybeOnClick =
             Robot.moveTarget robot
                 |> Maybe.map (Svg.Grid.dottedLine robot.location)
                 |> Maybe.withDefault (text "")
+
+        toolSvg =
+            case robot.tool of
+                Just Robot.ToolShield ->
+                    text_ [ x screenX, y screenY ] [ text "Shield" ]
+
+                Just Robot.ToolLaser ->
+                    text_ [ x screenX, y screenY ] [ text "Laser" ]
+
+                Just Robot.ToolMissile ->
+                    text_ [ x screenX, y screenY ] [ text "Missile" ]
+
+                Nothing ->
+                    text ""
     in
-    g [] [ robotSvg, targetSvg ]
+    g [] [ robotSvg, targetSvg, toolSvg ]
 
 
 {-| Renders a robot
