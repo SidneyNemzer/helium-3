@@ -48,8 +48,8 @@ view robot maybeOnClick =
 
         targetSvg =
             case robot.action of
-                Just (Robot.FireMissile _) ->
-                    text ""
+                Just (Robot.FireMissile target) ->
+                    Svg.Grid.dottedLine robot.location target
 
                 Just (Robot.FireLaser direction) ->
                     Svg.Arrow.view robot.location direction
@@ -67,7 +67,8 @@ view robot maybeOnClick =
                     Svg.Grid.dottedLine robot.location target
 
                 Just Robot.Kamikaze ->
-                    text ""
+                    text_ [ x centerX, y centerY, fontSize, textAnchor "middle" ]
+                        [ text "Kamikaze" ]
 
                 Just (Robot.Move target) ->
                     Svg.Grid.dottedLine robot.location target
