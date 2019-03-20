@@ -1,6 +1,7 @@
 module Svg.Grid exposing
     ( cellSide
     , dottedLine
+    , fillCell
     , grid
     , gridSideSvg
     , overlay
@@ -152,5 +153,22 @@ dottedLine start end =
         , strokeWidth (String.fromInt (lineWidth * 2))
         , strokeDasharray "30 10"
         , stroke Color.blue
+        ]
+        []
+
+
+fillCell : Cell -> String -> Svg msg
+fillCell cell color =
+    let
+        ( topX, topY ) =
+            Cell.toScreen cell cellSide
+                |> Tuple.mapBoth String.fromInt String.fromInt
+    in
+    rect
+        [ x topX
+        , y topY
+        , width (String.fromInt cellSide)
+        , height (String.fromInt cellSide)
+        , fill color
         ]
         []

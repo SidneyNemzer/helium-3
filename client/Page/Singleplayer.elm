@@ -12,6 +12,7 @@ import Game.Robot as Robot exposing (Robot)
 import Html exposing (Html, button, div, li, span, text, ul)
 import Html.Attributes exposing (class, style)
 import Html.Events exposing (onClick)
+import Matrix
 import Missile
 import Svg exposing (Svg)
 import Svg.Arrow
@@ -274,6 +275,15 @@ viewSelection selection robot index =
                 False
 
 
+viewHelium3Cell : ( Cell, Int ) -> Svg msg
+viewHelium3Cell ( cell, amount ) =
+    let
+        lightness =
+            100 - min 50 (round (toFloat amount * 0.033))
+    in
+    Svg.Grid.fillCell cell (Color.blueShade lightness)
+
+
 view : Model -> Document Msg
 view model =
     let
@@ -315,6 +325,12 @@ view model =
             div []
                 [ button [ onClick PerformTurn ] [ text "End turn" ]
                 ]
+
+        helium3Cells =
+            Matrix.toIndexedArray model.game.helium3
+                |> Array.filter (\( coords, amount ) -> amount > 0)
+                |> Array.map (Tuple.mapFirst Cell.fromTuple >> viewHelium3Cell)
+                |> Array.toList
     in
     { title = "Helium 3 Singleplayer"
     , body =
@@ -345,6 +361,7 @@ view model =
                                     ]
                               , Svg.Grid.grid
                               ]
+                            , helium3Cells
                             , robots
                             , [ selection ]
                             ]

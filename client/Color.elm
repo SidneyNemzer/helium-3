@@ -1,5 +1,6 @@
 module Color exposing
     ( blue
+    , blueShade
     , cyan
     , fromPlayer
     , green
@@ -49,3 +50,8 @@ fromPlayer player =
 
         Player4 ->
             red
+
+
+blueShade : Int -> String
+blueShade lightness =
+    "hsl(201, 100%, " ++ String.fromInt lightness ++ "%)"
