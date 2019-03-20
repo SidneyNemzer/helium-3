@@ -73,7 +73,7 @@ helium3InLargeDepositOuterRing =
 
 helium3SmallDepositCenter : Float
 helium3SmallDepositCenter =
-    15
+    0.15
 
 
 helium3SmallDepositOuterRing : Float
