@@ -4,6 +4,7 @@ module Color exposing
     , cyan
     , fromPlayer
     , green
+    , progressBarGray
     , purple
     , red
     )
@@ -34,6 +35,11 @@ cyan =
 blue : String
 blue =
     "#487CFF"
+
+
+progressBarGray : String
+progressBarGray =
+    "#B9B9B9"
 
 
 fromPlayer : PlayerIndex -> String

@@ -7,7 +7,7 @@ import CountdownRing
 import Game
 import Game.Cell as Cell exposing (Cell, Direction)
 import Game.Constants
-import Game.Player as Player
+import Game.Player as Player exposing (Player, PlayerIndex(..))
 import Game.Robot as Robot exposing (Robot)
 import Html exposing (Html, button, div, li, span, text, ul)
 import Html.Attributes exposing (class, style)
@@ -284,6 +284,33 @@ viewHelium3Cell ( cell, amount ) =
     Svg.Grid.fillCell cell (Color.blueShade lightness)
 
 
+viewPlayer : PlayerIndex -> Player -> Html msg
+viewPlayer playerIndex player =
+    div [ style "margin-bottom" "20px" ]
+        [ div
+            [ style "display" "flex"
+            , style "justify-content" "space-between"
+            , style "margin-bottom" "5px"
+            ]
+            [ span [] [ text (Player.toString playerIndex) ]
+            , span [] [ text ("$" ++ String.fromInt player.money) ]
+            ]
+        , div
+            [ style "background" Color.progressBarGray
+            , style "height" "20px"
+            , style "position" "relative"
+            ]
+            [ div
+                [ style "position" "relative"
+                , style "height" "20px"
+                , style "width" (String.fromInt (player.money // 10000) ++ "%")
+                , style "background" (Color.fromPlayer playerIndex)
+                ]
+                []
+            ]
+        ]
+
+
 view : Model -> Document Msg
 view model =
     let
@@ -341,6 +368,10 @@ view model =
             ]
             [ currentTurn
             , endTurn
+            , viewPlayer Player1 model.game.player1
+            , viewPlayer Player2 model.game.player2
+            , viewPlayer Player3 model.game.player3
+            , viewPlayer Player4 model.game.player4
             ]
         , Svg.svg
             [ SA.viewBox ("0 0 " ++ svgSideTotal ++ " " ++ svgSideTotal)
