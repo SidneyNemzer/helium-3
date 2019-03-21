@@ -1,5 +1,6 @@
 module Color exposing
-    ( blue
+    ( backgroundGray
+    , blue
     , blueShade
     , cyan
     , fromPlayer
@@ -35,6 +36,11 @@ cyan =
 blue : String
 blue =
     "#487CFF"
+
+
+backgroundGray : String
+backgroundGray =
+    "#E0E0E0"
 
 
 progressBarGray : String

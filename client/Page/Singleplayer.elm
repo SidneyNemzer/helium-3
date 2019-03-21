@@ -165,13 +165,20 @@ globalStyle : Html msg
 globalStyle =
     Html.node "style"
         []
-        [ text
+        [ text <|
             """html, body {
                 height: 100%;
                 margin: 0;
+                background-color: """
+                ++ Color.backgroundGray
+                ++ """;
                }
                body {
                 display: flex;
+                font-family: sans-serif;
+               }
+               * {
+                box-sizing: border-box;
                }
                .hover--underline:hover {
                 text-decoration: underline;
@@ -365,6 +372,7 @@ view model =
         , div
             [ style "text-align" "center"
             , style "width" "calc((100vw - 100vh) / 2)"
+            , style "padding" "20px"
             ]
             [ currentTurn
             , endTurn
@@ -378,6 +386,7 @@ view model =
             , style "display" "block"
             , style "height" "100%"
             , style "flex-grow" "2"
+            , style "background-color" "white"
             ]
             (CountdownRing.view Color.green CountdownRing.init
                 ++ [ Svg.svg
