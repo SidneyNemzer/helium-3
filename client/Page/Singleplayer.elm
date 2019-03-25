@@ -293,6 +293,10 @@ viewHelium3Cell ( cell, amount ) =
 
 viewPlayer : PlayerIndex -> Player -> Html msg
 viewPlayer playerIndex player =
+    let
+        percent =
+            toFloat player.money / 10000 * 100
+    in
     div [ style "margin-bottom" "20px" ]
         [ div
             [ style "display" "flex"
@@ -304,13 +308,13 @@ viewPlayer playerIndex player =
             ]
         , div
             [ style "background" Color.progressBarGray
-            , style "height" "20px"
+            , style "height" "10px"
             , style "position" "relative"
             ]
             [ div
                 [ style "position" "relative"
-                , style "height" "20px"
-                , style "width" (String.fromInt (player.money // 10000) ++ "%")
+                , style "height" "10px"
+                , style "width" (String.fromFloat percent ++ "%")
                 , style "background" (Color.fromPlayer playerIndex)
                 ]
                 []
