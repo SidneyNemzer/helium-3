@@ -3,6 +3,8 @@ module Game.Robot exposing
     , Robot
     , ServerAction(..)
     , Tool(..)
+    , canFireLaser
+    , canFireMissile
     , hit
     , init
     , moveTarget
@@ -63,6 +65,16 @@ init cell owner =
     , destroyed = False
     , owner = owner
     }
+
+
+canFireMissile : Robot -> Bool
+canFireMissile robot =
+    robot.tool == Just ToolMissile
+
+
+canFireLaser : Robot -> Bool
+canFireLaser robot =
+    robot.tool == Just ToolLaser
 
 
 moveTarget : Robot -> Maybe Cell

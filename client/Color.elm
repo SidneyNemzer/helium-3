@@ -1,8 +1,11 @@
 module Color exposing
-    ( blue
+    ( backgroundGray
+    , blue
+    , blueShade
     , cyan
     , fromPlayer
     , green
+    , progressBarGray
     , purple
     , red
     )
@@ -35,6 +38,16 @@ blue =
     "#487CFF"
 
 
+backgroundGray : String
+backgroundGray =
+    "#E0E0E0"
+
+
+progressBarGray : String
+progressBarGray =
+    "#B9B9B9"
+
+
 fromPlayer : PlayerIndex -> String
 fromPlayer player =
     case player of
@@ -49,3 +62,8 @@ fromPlayer player =
 
         Player4 ->
             red
+
+
+blueShade : Int -> String
+blueShade lightness =
+    "hsl(201, 100%, " ++ String.fromInt lightness ++ "%)"

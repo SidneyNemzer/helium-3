@@ -3,7 +3,7 @@ module Svg.Robot exposing (def, defMissile, use, view)
 import Color
 import Game.Cell as Cell
 import Game.Robot as Robot exposing (Robot)
-import Html.Attributes
+import Html.Attributes as HA
 import Point exposing (Point)
 import Svg
     exposing
@@ -24,6 +24,7 @@ import Svg
         , text
         , text_
         )
+import Svg.Arrow
 import Svg.Attributes exposing (..)
 import Svg.Events
 import Svg.Grid
@@ -46,20 +47,58 @@ view robot maybeOnClick =
                 maybeOnClick
 
         targetSvg =
-            Robot.moveTarget robot
-                |> Maybe.map (Svg.Grid.dottedLine robot.location)
-                |> Maybe.withDefault (text "")
+            case robot.action of
+                Just (Robot.FireMissile target) ->
+                    Svg.Grid.dottedLine robot.location target
+
+                Just (Robot.FireLaser direction) ->
+                    Svg.Arrow.view robot.location direction
+
+                Just (Robot.ArmMissile target) ->
+                    Svg.Grid.dottedLine robot.location target
+
+                Just (Robot.ArmLaser target) ->
+                    Svg.Grid.dottedLine robot.location target
+
+                Just (Robot.Shield target) ->
+                    Svg.Grid.dottedLine robot.location target
+
+                Just (Robot.Mine target) ->
+                    Svg.Grid.dottedLine robot.location target
+
+                Just Robot.Kamikaze ->
+                    text_ [ x centerX, y centerY, fontSize, textAnchor "middle" ]
+                        [ text "Kamikaze" ]
+
+                Just (Robot.Move target) ->
+                    Svg.Grid.dottedLine robot.location target
+
+                Nothing ->
+                    text ""
+
+        ( centerX, centerY ) =
+            Cell.toScreenOffset
+                robot.location
+                Svg.Grid.cellSide
+                (Svg.Grid.cellSide // 2)
+                |> Tuple.mapBoth String.fromInt String.fromInt
+
+        fontSize =
+            HA.style "font-size" "40px"
 
         toolSvg =
             case robot.tool of
                 Just Robot.ToolShield ->
-                    text_ [ x screenX, y screenY ] [ text "Shield" ]
+                    text_ [ x centerX, y centerY, fontSize, textAnchor "middle" ]
+                        [ text "Shield" ]
 
                 Just Robot.ToolLaser ->
-                    text_ [ x screenX, y screenY ] [ text "Laser" ]
+                    text_ [ x centerX, y centerY, fontSize, textAnchor "middle" ]
+                        [ text "Laser" ]
 
                 Just Robot.ToolMissile ->
-                    text_ [ x screenX, y screenY ] [ text "Missile" ]
+                    text_ [ x centerX, y centerY, fontSize, textAnchor "middle" ]
+                        [ text "Missile" ]
 
                 Nothing ->
                     text ""
@@ -79,7 +118,7 @@ use attributes colorArg maybeOnClick =
             case maybeOnClick of
                 Just msg ->
                     [ Svg.Events.onClick msg
-                    , Html.Attributes.style "cursor" "pointer"
+                    , HA.style "cursor" "pointer"
                     ]
 
                 Nothing ->
@@ -123,19 +162,19 @@ defMissile =
             [ Svg.path [ d "M15 18H18L24 26H15L15 18Z", fill "#F06262" ] []
             , Svg.path [ d "M15 39H18L24 31H15L15 39Z", fill "#F06262" ] []
             , ellipse [ cx "40.6701", cy "28.5001", rx "26.3299", ry "4.49987", fill "white" ] []
-            , Svg.mask [ id "mask0", Html.Attributes.attribute "mask-type" "alpha", maskUnits "userSpaceOnUse", x "54", y "23", width "13", height "11" ]
+            , Svg.mask [ id "mask0", HA.attribute "mask-type" "alpha", maskUnits "userSpaceOnUse", x "54", y "23", width "13", height "11" ]
                 [ rect [ x "54.3608", y "23", width "12.6383", height "10.9997", fill "#C4C4C4" ] []
                 ]
             , g [ mask "url(#mask0)" ]
                 [ ellipse [ cx "40.6701", cy "28.5001", rx "26.3299", ry "4.49987", fill "#F16262" ] []
                 ]
-            , Svg.mask [ id "mask1", Html.Attributes.attribute "mask-type" "alpha", maskUnits "userSpaceOnUse", x "14", y "23", width "13", height "12" ]
+            , Svg.mask [ id "mask1", HA.attribute "mask-type" "alpha", maskUnits "userSpaceOnUse", x "14", y "23", width "13", height "12" ]
                 [ rect [ x "26.9788", y "34", width "12.6383", height "10.9997", transform "rotate(-180 26.9788 34)", fill "#C4C4C4" ] []
                 ]
             , g [ mask "url(#mask1)" ]
                 [ ellipse [ cx "40.6704", cy "28.5001", rx "26.3299", ry "4.49987", transform "rotate(-180 40.6704 28.5001)", fill "#F16262" ] []
                 ]
-            , Svg.mask [ id "mask2", Html.Attributes.attribute "mask-type" "alpha", maskUnits "userSpaceOnUse", x "11", y "24", width "11", height "9" ]
+            , Svg.mask [ id "mask2", HA.attribute "mask-type" "alpha", maskUnits "userSpaceOnUse", x "11", y "24", width "11", height "9" ]
                 [ rect [ width "9.36174", height "7.11756", rx "3", transform "matrix(-1 0 0 1 21.3617 24.9413)", fill "#C4C4C4" ] []
                 ]
             , g [ mask "url(#mask2)" ]

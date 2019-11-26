@@ -6,6 +6,8 @@ module Game.Player exposing
     , toString
     )
 
+import List.Extra
+
 
 type PlayerIndex
     = Player1
@@ -25,7 +27,9 @@ pushAction : Int -> Player -> ( Player, Maybe Int )
 pushAction newIndex oldPlayer =
     let
         player =
-            { oldPlayer | moving = newIndex :: oldPlayer.moving }
+            { oldPlayer
+                | moving = newIndex :: oldPlayer.moving |> List.Extra.unique
+            }
     in
     case player.moving of
         [ index0, index1, index2 ] ->

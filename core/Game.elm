@@ -133,6 +133,15 @@ setPlayer playerIndex player model =
             { model | player4 = player }
 
 
+updatePlayer : (Player -> Player) -> PlayerIndex -> Model -> Model
+updatePlayer fn playerIndex model =
+    let
+        player =
+            getPlayer playerIndex model |> fn
+    in
+    setPlayer playerIndex player model
+
+
 addMoney : PlayerIndex -> Int -> Model -> Model
 addMoney playerIndex money model =
     let
@@ -302,10 +311,17 @@ shootWeapon ( index, robot ) ( model, actions ) =
 
         Just (Robot.FireLaser direction) ->
             progressLaser direction (Cell.move direction robot.location) model
-                |> Tuple.mapSecond
-                    (\maybeIndex ->
-                        Robot.ServerFireLaser direction maybeIndex :: actions
-                    )
+                |> (\( modelAfterLaser, maybeIndex ) ->
+                        ( { modelAfterLaser
+                            | robots =
+                                Array.set
+                                    index
+                                    { robot | tool = Nothing, action = Nothing }
+                                    modelAfterLaser.robots
+                          }
+                        , Robot.ServerFireLaser direction maybeIndex :: actions
+                        )
+                   )
 
         Just (Robot.ArmMissile cell) ->
             ( model, actions )
@@ -389,7 +405,10 @@ performTurn model =
                             (Array.toIndexedList updatedModel.robots)
                    )
     in
-    ( { modelWithMovedRobots | turn = Player.next model.turn }, actions )
+    ( { modelWithMovedRobots | turn = Player.next model.turn }
+        |> updatePlayer (\player -> { player | moving = [] }) model.turn
+    , actions
+    )
 
 
 queueActionHelp : Robot.Action -> Int -> Robot -> Model -> Model

@@ -7,13 +7,15 @@ import CountdownRing
 import Game
 import Game.Cell as Cell exposing (Cell, Direction)
 import Game.Constants
-import Game.Player as Player
+import Game.Player as Player exposing (Player, PlayerIndex(..))
 import Game.Robot as Robot exposing (Robot)
 import Html exposing (Html, button, div, li, span, text, ul)
 import Html.Attributes exposing (class, style)
 import Html.Events exposing (onClick)
+import Matrix
 import Missile
 import Svg exposing (Svg)
+import Svg.Arrow
 import Svg.Attributes as SA
 import Svg.Grid
 import Svg.Outline
@@ -163,13 +165,20 @@ globalStyle : Html msg
 globalStyle =
     Html.node "style"
         []
-        [ text
+        [ text <|
             """html, body {
                 height: 100%;
                 margin: 0;
+                background-color: """
+                ++ Color.backgroundGray
+                ++ """;
                }
                body {
                 display: flex;
+                font-family: sans-serif;
+               }
+               * {
+                box-sizing: border-box;
                }
                .hover--underline:hover {
                 text-decoration: underline;
@@ -183,28 +192,34 @@ viewSelectedRobot robots index =
     Array.get index robots |> Maybe.map Svg.Outline.view_
 
 
-viewAction : String -> QueueAction -> Int -> Html Msg
-viewAction label queueAction index =
-    li
-        [ class "hover--underline"
-        , style "cursor" "pointer"
-        , style "color" "blue"
-        , onClick (QueueAction queueAction index)
-        ]
-        [ text label ]
+viewAction : String -> QueueAction -> Int -> Bool -> Html Msg
+viewAction label queueAction index enabled =
+    let
+        attributes =
+            if enabled then
+                [ class "hover--underline"
+                , style "cursor" "pointer"
+                , style "color" "blue"
+                , onClick (QueueAction queueAction index)
+                ]
+
+            else
+                [ style "color" "gray" ]
+    in
+    li attributes [ text label ]
 
 
-viewActions : Int -> Html Msg
-viewActions index =
+viewActions : Int -> Robot -> Html Msg
+viewActions index robot =
     ul [ style "list-style" "none" ]
-        [ viewAction "Fire Missile" FireMissile index
-        , viewAction "Fire Laser" FireLaser index
-        , viewAction "Arm Missile" ArmMissile index
-        , viewAction "Arm Laser" ArmLaser index
-        , viewAction "Shield" Shield index
-        , viewAction "Mine" Mine index
-        , viewAction "Kamikaze" Kamikaze index
-        , viewAction "Move" Move index
+        [ viewAction "Fire Missile" FireMissile index (Robot.canFireMissile robot)
+        , viewAction "Fire Laser" FireLaser index (Robot.canFireLaser robot)
+        , viewAction "Arm Missile" ArmMissile index True
+        , viewAction "Arm Laser" ArmLaser index True
+        , viewAction "Shield" Shield index True
+        , viewAction "Mine" Mine index True
+        , viewAction "Kamikaze" Kamikaze index True
+        , viewAction "Move" Move index True
         ]
 
 
@@ -267,6 +282,46 @@ viewSelection selection robot index =
                 False
 
 
+viewHelium3Cell : ( Cell, Int ) -> Svg msg
+viewHelium3Cell ( cell, amount ) =
+    let
+        lightness =
+            100 - min 50 (round (toFloat amount * 0.033))
+    in
+    Svg.Grid.fillCell cell (Color.blueShade lightness)
+
+
+viewPlayer : PlayerIndex -> Player -> Html msg
+viewPlayer playerIndex player =
+    let
+        percent =
+            toFloat player.money / 10000 * 100
+    in
+    div [ style "margin-bottom" "20px" ]
+        [ div
+            [ style "display" "flex"
+            , style "justify-content" "space-between"
+            , style "margin-bottom" "5px"
+            ]
+            [ span [] [ text (Player.toString playerIndex) ]
+            , span [] [ text ("$" ++ String.fromInt player.money) ]
+            ]
+        , div
+            [ style "background" Color.progressBarGray
+            , style "height" "10px"
+            , style "position" "relative"
+            ]
+            [ div
+                [ style "position" "relative"
+                , style "height" "10px"
+                , style "width" (String.fromFloat percent ++ "%")
+                , style "background" (Color.fromPlayer playerIndex)
+                ]
+                []
+            ]
+        ]
+
+
 view : Model -> Document Msg
 view model =
     let
@@ -308,6 +363,12 @@ view model =
             div []
                 [ button [ onClick PerformTurn ] [ text "End turn" ]
                 ]
+
+        helium3Cells =
+            Matrix.toIndexedArray model.game.helium3
+                |> Array.filter (\( coords, amount ) -> amount > 0)
+                |> Array.map (Tuple.mapFirst Cell.fromTuple >> viewHelium3Cell)
+                |> Array.toList
     in
     { title = "Helium 3 Singleplayer"
     , body =
@@ -315,15 +376,21 @@ view model =
         , div
             [ style "text-align" "center"
             , style "width" "calc((100vw - 100vh) / 2)"
+            , style "padding" "20px"
             ]
             [ currentTurn
             , endTurn
+            , viewPlayer Player1 model.game.player1
+            , viewPlayer Player2 model.game.player2
+            , viewPlayer Player3 model.game.player3
+            , viewPlayer Player4 model.game.player4
             ]
         , Svg.svg
             [ SA.viewBox ("0 0 " ++ svgSideTotal ++ " " ++ svgSideTotal)
             , style "display" "block"
             , style "height" "100%"
             , style "flex-grow" "2"
+            , style "background-color" "white"
             ]
             (CountdownRing.view Color.green CountdownRing.init
                 ++ [ Svg.svg
@@ -334,9 +401,11 @@ view model =
                             [ [ Svg.defs []
                                     [ Svg.Robot.def
                                     , Missile.def
+                                    , Svg.Arrow.def
                                     ]
                               , Svg.Grid.grid
                               ]
+                            , helium3Cells
                             , robots
                             , [ selection ]
                             ]
@@ -346,7 +415,16 @@ view model =
         , div [ style "width" "calc((100vw - 100vh) / 2)" ]
             [ case model.selectedRobot of
                 Just ( Robot, index ) ->
-                    viewActions index
+                    case Array.get index model.game.robots of
+                        Just robot ->
+                            div []
+                                [ viewActions index robot
+
+                                -- , Html.pre [] [ text (Debug.toString robot) ]
+                                ]
+
+                        Nothing ->
+                            text ""
 
                 _ ->
                     text ""

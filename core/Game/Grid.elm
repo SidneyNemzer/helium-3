@@ -54,18 +54,30 @@ distribute deposit matrix =
                    )
                 |> (\updatedMatrix ->
                         List.foldl
-                            (\cell -> setMatrixCell cell amountInner)
+                            (\cell -> setMatrixCell cell ammountOuter)
                             updatedMatrix
                             (Cell.ring5 center)
                    )
 
         Small helium3 center ->
-            matrix
+            let
+                amountCenter =
+                    toFloat helium3
+                        * Constants.helium3SmallDepositCenter
+                        |> round
 
-
-createDeposit : Deposit -> Matrix Int -> Matrix Int
-createDeposit deposit intMatrix =
-    empty
+                amountOuter =
+                    toFloat helium3
+                        * Constants.helium3SmallDepositOuterRing
+                        |> round
+            in
+            setMatrixCell center amountCenter matrix
+                |> (\updatedMatrix ->
+                        List.foldl
+                            (\cell -> setMatrixCell cell amountOuter)
+                            updatedMatrix
+                            (Cell.ring3 center)
+                   )
 
 
 generator : Random.Generator (Matrix Int)
@@ -86,10 +98,14 @@ generator =
                 Random.map2
                     List.append
                     (Random.list largeCount
-                        (Cell.generator Constants.gridSide Constants.gridSide |> Random.map Large)
+                        (Cell.generator Constants.gridSide Constants.gridSide
+                            |> Random.map Large
+                        )
                     )
                     (Random.list smallCount
-                        (Cell.generator Constants.gridSide Constants.gridSide |> Random.map (Small helium3PerSmallDeposit))
+                        (Cell.generator Constants.gridSide Constants.gridSide
+                            |> Random.map (Small helium3PerSmallDeposit)
+                        )
                     )
             )
-        |> Random.map (List.foldl createDeposit empty)
+        |> Random.map (List.foldl distribute empty)
