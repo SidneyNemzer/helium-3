@@ -164,10 +164,10 @@ moveTo target robot =
         , rotation = rotation
         , animation =
             Animation.interrupt
-                [ Animation.toWith (easingWithDuration 1000) [ rotate ]
-                , Animation.wait (Time.millisToPosix 500)
+                [ Animation.toWith (easingWithDuration 500) [ rotate ]
+                , Animation.wait (Time.millisToPosix 200)
                 , Animation.toWith
-                    (easingWithDuration 2000)
+                    (easingWithDuration 1000)
                     [ x, y, transformOrigin ]
                 ]
                 robot.animation

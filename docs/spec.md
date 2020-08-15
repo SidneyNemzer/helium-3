@@ -112,6 +112,8 @@ TODO pause between some animations
   - rotate\*
   - laser travels
 
+\* = optional (see below)
+
 Animations details:
 
 - move: robot slides from one tile to another (ease-in-out 1s)
