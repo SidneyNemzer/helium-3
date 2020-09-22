@@ -1,6 +1,7 @@
 module Game.Cell exposing
     ( Cell
     , Direction
+    , angle
     , around
     , direction
     , directionFromTuple
@@ -165,3 +166,10 @@ toScreenOffset (Cell x y) scale offset =
 toScreenOffset2 : Cell -> Int -> ( Int, Int ) -> ( Int, Int )
 toScreenOffset2 (Cell x y) scale ( offsetX, offsetY ) =
     ( x * scale + offsetX, y * scale + offsetY )
+
+
+{-| Returns the angle starting at cell 1 looking at cell 2
+-}
+angle : Cell -> Cell -> Float
+angle (Cell x1 y1) (Cell x2 y2) =
+    atan2 (toFloat (y1 - y2)) (toFloat (x1 - x2)) * 180 / pi

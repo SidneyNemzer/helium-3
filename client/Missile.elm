@@ -1,6 +1,5 @@
 module Missile exposing (def, view)
 
-import Point exposing (Point)
 import Svg
     exposing
         ( Svg
@@ -17,24 +16,17 @@ import Svg
         , svg
         , use
         )
-import Svg.Attributes as SA exposing (..)
+import Svg.Attributes exposing (..)
 
 
 view : List (Svg.Attribute msg) -> Svg msg
 view attributes =
-    Svg.use
-        ([ width (String.fromInt (Point.cellSide + 20))
-         , height (String.fromInt (Point.cellSide + 20))
-         , xlinkHref "#missile"
-         ]
-            ++ attributes
-        )
-        []
+    Svg.use (xlinkHref "#missile" :: attributes) []
 
 
 def : Svg msg
 def =
-    svg [ width "55", height "21", viewBox "0 0 55 21", fill "none", id "missile" ]
+    svg [ width "110", height "42", viewBox "0 0 55 21", fill "none", id "missile" ]
         [ g [ filter "url(#missile_filter0_i)" ]
             [ Svg.path [ d "M3 0H6L12 8H3L3 0Z", fill "#F06262" ] []
             , Svg.path [ d "M3 21H6L12 13H3L3 21Z", fill "#F06262" ] []

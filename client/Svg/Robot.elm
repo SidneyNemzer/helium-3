@@ -1,8 +1,10 @@
-module Svg.Robot exposing (def, defMissile, use, view)
+module Svg.Robot exposing (def, defMissile, use, useMissile)
 
-import Color
-import Game.Cell as Cell
-import Game.Robot as Robot exposing (Robot)
+-- import Color
+-- import Game.Cell as Cell
+-- import Game.Robot as Robot exposing (Robot)
+-- import Game.Action exposing (Action(..))
+
 import Html.Attributes as HA
 import Point exposing (Point)
 import Svg
@@ -30,80 +32,64 @@ import Svg.Events
 import Svg.Grid
 
 
-view : Robot -> Maybe msg -> Svg msg
-view robot maybeOnClick =
-    let
-        transformCoord coord =
-            String.fromInt (coord - 20)
 
-        ( screenX, screenY ) =
-            Cell.toScreen robot.location Svg.Grid.cellSide
-                |> Tuple.mapBoth transformCoord transformCoord
-
-        robotSvg =
-            use
-                [ x screenX, y screenY ]
-                (Color.fromPlayer robot.owner)
-                maybeOnClick
-
-        targetSvg =
-            case robot.action of
-                Just (Robot.FireMissile target) ->
-                    Svg.Grid.dottedLine robot.location target
-
-                Just (Robot.FireLaser direction) ->
-                    Svg.Arrow.view robot.location direction
-
-                Just (Robot.ArmMissile target) ->
-                    Svg.Grid.dottedLine robot.location target
-
-                Just (Robot.ArmLaser target) ->
-                    Svg.Grid.dottedLine robot.location target
-
-                Just (Robot.Shield target) ->
-                    Svg.Grid.dottedLine robot.location target
-
-                Just (Robot.Mine target) ->
-                    Svg.Grid.dottedLine robot.location target
-
-                Just Robot.Kamikaze ->
-                    text_ [ x centerX, y centerY, fontSize, textAnchor "middle" ]
-                        [ text "Kamikaze" ]
-
-                Just (Robot.Move target) ->
-                    Svg.Grid.dottedLine robot.location target
-
-                Nothing ->
-                    text ""
-
-        ( centerX, centerY ) =
-            Cell.toScreenOffset
-                robot.location
-                Svg.Grid.cellSide
-                (Svg.Grid.cellSide // 2)
-                |> Tuple.mapBoth String.fromInt String.fromInt
-
-        fontSize =
-            HA.style "font-size" "40px"
-
-        toolSvg =
-            case robot.tool of
-                Just Robot.ToolShield ->
-                    text_ [ x centerX, y centerY, fontSize, textAnchor "middle" ]
-                        [ text "Shield" ]
-
-                Just Robot.ToolLaser ->
-                    text_ [ x centerX, y centerY, fontSize, textAnchor "middle" ]
-                        [ text "Laser" ]
-
-                Just Robot.ToolMissile ->
-                    text_ [ x centerX, y centerY, fontSize, textAnchor "middle" ]
-                        [ text "Missile" ]
-
-                Nothing ->
-                    text ""
-    in
-    g [] [ robotSvg, targetSvg, toolSvg ]
+-- view : Robot -> Maybe msg -> Svg msg
+-- view robot maybeOnClick =
+--     let
+--         transformCoord coord =
+--             String.fromInt (coord - 20)
+--         ( screenX, screenY ) =
+--             Cell.toScreen robot.location Svg.Grid.cellSide
+--                 |> Tuple.mapBoth transformCoord transformCoord
+--         robotSvg =
+--             use
+--                 [ x screenX, y screenY ]
+--                 (Color.fromPlayer robot.owner)
+--                 maybeOnClick
+--         targetSvg =
+--             case robot.action of
+--                 Just (FireMissile target) ->
+--                     Svg.Grid.dottedLine robot.location target
+--                 Just (FireLaser direction) ->
+--                     Svg.Arrow.view robot.location direction
+--                 Just (ArmMissile target) ->
+--                     Svg.Grid.dottedLine robot.location target
+--                 Just (ArmLaser target) ->
+--                     Svg.Grid.dottedLine robot.location target
+--                 Just (Shield target) ->
+--                     Svg.Grid.dottedLine robot.location target
+--                 Just (Mine target) ->
+--                     Svg.Grid.dottedLine robot.location target
+--                 Just Kamikaze ->
+--                     text_ [ x centerX, y centerY, fontSize, textAnchor "middle" ]
+--                         [ text "Kamikaze" ]
+--                 Just (Move target) ->
+--                     Svg.Grid.dottedLine robot.location target
+--                 Nothing ->
+--                     text ""
+--         ( centerX, centerY ) =
+--             Cell.toScreenOffset
+--                 robot.location
+--                 Svg.Grid.cellSide
+--                 (Svg.Grid.cellSide // 2)
+--                 |> Tuple.mapBoth String.fromInt String.fromInt
+--         fontSize =
+--             HA.style "font-size" "40px"
+--         toolSvg =
+--             case robot.tool of
+--                 Just Robot.ToolShield ->
+--                     text_ [ x centerX, y centerY, fontSize, textAnchor "middle" ]
+--                         [ text "Shield" ]
+--                 Just Robot.ToolLaser ->
+--                     text_ [ x centerX, y centerY, fontSize, textAnchor "middle" ]
+--                         [ text "Laser" ]
+--                 Just Robot.ToolMissile ->
+--                     text_ [ x centerX, y centerY, fontSize, textAnchor "middle" ]
+--                         [ text "Missile" ]
+--                 Nothing ->
+--                     text ""
+--     in
+--     g [] [ robotSvg, targetSvg, toolSvg ]
 
 
 {-| Renders a robot
@@ -111,7 +97,7 @@ view robot maybeOnClick =
 _make sure the robot has been defined first with `def`_
 
 -}
-use : List (Svg.Attribute msg) -> String -> Maybe msg -> Svg msg
+use : List (Svg.Attribute msg) -> String -> Maybe msg -> List (Svg msg) -> Svg msg
 use attributes colorArg maybeOnClick =
     let
         onClick =
@@ -131,6 +117,15 @@ use attributes colorArg maybeOnClick =
          , color colorArg
          ]
             ++ onClick
+            ++ attributes
+        )
+
+
+useMissile : List (Svg.Attribute msg) -> Svg msg
+useMissile attributes =
+    Svg.use
+        ([ xlinkHref "#robot_missile"
+         ]
             ++ attributes
         )
         []
