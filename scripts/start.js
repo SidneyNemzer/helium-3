@@ -30,7 +30,7 @@ compiler.hooks.done.tap("tap", (stats) => {
     console.log();
     console.log(statsData.errors.map(formatMessage).join("\n\n"));
   } else if (statsData.warnings.length) {
-    console.log(chalk.yellow("Comipled with warnings.\n"));
+    console.log(chalk.yellow("Compiled with warnings.\n"));
     printPages();
     console.log();
     console.log(statsData.warnings.map(formatMessage).join("\n\n"));
