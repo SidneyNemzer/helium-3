@@ -1,187 +1,222 @@
-module View.Grid exposing
-    ( cellCorner
-    , cellWidth
-    , dottedLine
-    , grid
-    , selectedable
-    , selectedableGrid
-    )
+module View.Grid exposing (..)
 
 import Html exposing (Html)
-import List.Extra
-import Position
-import Svg exposing (Svg, defs, image, pattern, rect, svg)
+import Html.Attributes as HA
+import Html.Events exposing (onClick)
+import Point exposing (Point)
+import Svg exposing (Svg, g, rect, svg, text)
 import Svg.Attributes exposing (..)
-import Svg.Events
-import Svg.Keyed
 
 
-line : Int -> Int -> Int -> Int -> Int -> Svg msg
-line x1_ y1_ x2_ y2_ width_ =
+lineStrokeWidth : Float
+lineStrokeWidth =
+    0.1
+
+
+{-| Number of cells on each side of the grid
+-}
+gridSideCells : Int
+gridSideCells =
+    20
+
+
+{-| The corners of the grid in SVG coordinates, formatted as an SVG viewBox string
+-}
+viewBox : String
+viewBox =
+    [ -lineStrokeWidth / 2
+    , -lineStrokeWidth / 2
+    , toFloat gridSideCells * 2 + lineStrokeWidth
+    , toFloat gridSideCells * 2 + lineStrokeWidth
+    ]
+        |> List.map String.fromFloat
+        |> String.join " "
+
+
+line : Float -> Float -> Float -> Float -> Svg msg
+line x1_ y1_ x2_ y2_ =
     Svg.line
-        [ x1 (String.fromInt x1_)
-        , y1 (String.fromInt y1_)
-        , x2 (String.fromInt x2_)
-        , y2 (String.fromInt y2_)
-        , strokeWidth (String.fromInt width_)
+        [ x1 (String.fromFloat x1_)
+        , y1 (String.fromFloat y1_)
+        , x2 (String.fromFloat x2_)
+        , y2 (String.fromFloat y2_)
         ]
         []
 
 
-{-| Distance between lines, aka "cell width". This does not factor in
-line width, so it's really distance between line points.
--}
-cellWidth : Int
-cellWidth =
-    100
-
-
-{-| Width of a line. Should be even, the math here uses integer division so
-there will be rounding errors if you use an odd width.
--}
-lineWidth : Int
-lineWidth =
-    2
-
-
-{-| Returns position of the top left corner of the given cell. Useful for
-positioning inside the grid.
--}
-cellCorner : Position.Cell -> Position.Svg
-cellCorner =
-    Position.toSvg { x = (*) cellWidth, y = (*) cellWidth }
-
-
-{-| Returns position of the center of the given cell
--}
-cellCenter : Position.Cell -> Position.Svg
-cellCenter =
-    Position.toSvg
-        { x = (*) cellWidth >> (+) (cellWidth // 2)
-        , y = (*) cellWidth >> (+) (cellWidth // 2)
-        }
-
-
-keyed : String -> List (Svg msg) -> List ( String, Svg msg )
-keyed id =
-    List.indexedMap Tuple.pair
-        >> List.map (Tuple.mapFirst (String.fromInt >> (++) id))
-
-
-grid : Int -> List (Html.Attribute msg) -> List ( String, Svg msg ) -> Html msg
-grid widthCells attrs children =
+grid : Svg msg
+grid =
     let
-        {- Width of the whole grid, including the line width of the first and
-           last lines.
-        -}
-        totalWidth =
-            widthCells * cellWidth + lineWidth
-
-        {- Position of the start of each line. It's not just `0` because then
-           half of the line's width would be outside the view box.
-        -}
         start =
-            lineWidth // 2
+            0 - lineStrokeWidth / 2
 
-        {- Position of the end of each line. It's not just `totalWidth` because
-           then half of the line's width would be outside the view box.
-        -}
         end =
-            totalWidth + lineWidth // 2
+            toFloat gridSideCells * 2 + lineStrokeWidth / 2
 
-        point index =
-            index * cellWidth + lineWidth // 2
-
-        {- A list of points where lines should go. This can be changed to
-           remove lines from the start or end.
-        -}
+        {- Indexes of the lines we want to render -}
+        lineIndexes : List Float
         lineIndexes =
-            List.range 1 (widthCells - 1)
+            List.range 0 gridSideCells |> List.map toFloat
+
+        horizontalLine index =
+            line start (index * 2) end (index * 2)
+
+        verticalLine index =
+            line (index * 2) start (index * 2) end
     in
-    Svg.Keyed.node "svg"
-        ([ stroke "black"
-         , viewBox <|
-            "0 0 "
-                ++ String.fromInt totalWidth
-                ++ " "
-                ++ String.fromInt totalWidth
-         ]
-            ++ attrs
-        )
-        (List.concat
-            [ List.map
-                (\index -> line start (point index) end (point index) lineWidth)
-                lineIndexes
-                |> keyed "linesHorizontal"
-            , List.map
-                (\index -> line (point index) start (point index) end lineWidth)
-                lineIndexes
-                |> keyed "linesVertical"
-            , children
+    g
+        [ stroke "#d4d4d4"
+        , strokeWidth (String.fromFloat lineStrokeWidth)
+        ]
+    <|
+        List.concatMap
+            (\index -> [ verticalLine index, horizontalLine index ])
+            lineIndexes
+
+
+
+-- DECORATIONS
+
+
+style : Html msg
+style =
+    Html.node "style"
+        []
+        [ text """
+            .show-on-hover {
+                opacity: 0;
+            }
+            .show-on-hover:hover {
+                opacity: 1;
+            }
+          """
+        ]
+
+
+{-| Changes a square on top of a grid cell to show it is clickable
+
+The return value is split into two parts. The `hover` must be rendered
+after any other highlights so that all the hovers are on top of the
+highlights. This is required to allow hover effects to work because
+SVG does not respect z-index.
+
+-}
+highlightClickable : (Point -> msg) -> Point -> { highlight : Svg msg, hover : Svg msg }
+highlightClickable onClickMsg point =
+    let
+        ( x_, y_ ) =
+            Point.toXY point
+
+        baseAttrs =
+            [ x <| String.fromFloat <| toFloat x_ * 2
+            , y <| String.fromFloat <| toFloat y_ * 2
+            , width "2"
+            , height "2"
+            , strokeWidth <| String.fromFloat lineStrokeWidth
+            , fill "transparent"
+            , HA.style "cursor" "pointer"
             ]
-        )
-
-
-selectedableGrid : (Position.Cell -> msg) -> Position.Cell -> Int -> List (Svg msg)
-selectedableGrid onClick centerPosition range =
-    let
-        center =
-            Position.xyCell centerPosition
-
-        xPositions =
-            List.range (center.x - range) (center.x + range)
-
-        yPositions =
-            List.range (center.y - range) (center.y + range)
     in
-    List.Extra.lift2
-        (\x y ->
-            let
-                position =
-                    Position.cell { x = x, y = y }
-            in
-            selectedable (onClick position) position
-        )
-        xPositions
-        yPositions
+    { highlight =
+        rect ([ stroke "#487CFF" ] ++ baseAttrs) []
+    , hover =
+        rect
+            ([ stroke "black"
+             , class "show-on-hover"
+             , onClick <| onClickMsg point
+             ]
+                ++ baseAttrs
+            )
+            []
+    }
 
 
-selectedable : msg -> Position.Cell -> Svg msg
-selectedable onClick cellPosition =
+highlight : Point -> Svg msg
+highlight point =
     let
-        svgPosition =
-            cellCorner cellPosition |> Position.xySvg
+        ( x_, y_ ) =
+            Point.toXY point
     in
     rect
-        [ x (String.fromInt (svgPosition.x + 4))
-        , y (String.fromInt (svgPosition.y + 4))
-        , height (String.fromInt (cellWidth - 8))
-        , width (String.fromInt (cellWidth - 8))
-        , stroke "#487CFF"
-        , strokeWidth "6"
+        [ stroke "#487CFF"
+        , x <| String.fromFloat <| toFloat x_ * 2
+        , y <| String.fromFloat <| toFloat y_ * 2
+        , width "2"
+        , height "2"
+        , strokeWidth <| String.fromFloat lineStrokeWidth
         , fill "transparent"
-        , style "cursor: pointer;"
-        , Svg.Events.onClick onClick
         ]
         []
 
 
-dottedLine : Position.Cell -> Position.Cell -> Svg msg
-dottedLine cell1 cell2 =
+highlightAround :
+    Point
+    -> Int
+    -> (Point -> msg)
+    -> Bool
+    -> { highlight : Svg msg, hover : Svg msg }
+highlightAround point radius onClickMsg includeCenter =
     let
-        svg1 =
-            cellCenter cell1 |> Position.xySvg
-
-        svg2 =
-            cellCenter cell2 |> Position.xySvg
+        ( highlights, hovers ) =
+            Point.around point radius includeCenter
+                |> List.map
+                    (highlightClickable onClickMsg
+                        >> (\svg -> ( svg.highlight, svg.hover ))
+                    )
+                |> List.unzip
     in
-    Svg.line
-        [ x1 (String.fromInt svg1.x)
-        , y1 (String.fromInt svg1.y)
-        , x2 (String.fromInt svg2.x)
-        , y2 (String.fromInt svg2.y)
-        , strokeWidth (String.fromInt (lineWidth * 2))
-        , strokeDasharray "30 10"
-        , stroke "#487CFF"
+    { highlight = g [] highlights
+    , hover = g [] hovers
+    }
+
+
+{-| Creates a line between two squares on the grid. The line starts and ends at
+the border of the squares.
+
+TODO line becomes invisible at 90 degree angles
+
+-}
+dottedLine : Point -> Point -> Svg msg
+dottedLine start end =
+    let
+        ( startX, startY ) =
+            Point.toXY start
+
+        ( endX, endY ) =
+            Point.toXY end
+
+        square x_ y_ w color =
+            rect
+                -- Offset x and y to avoid vertical/horizontal lines
+                -- https://stackoverflow.com/q/39475396/7486612
+                [ x <| String.fromFloat <| toFloat x_ * 2 + 0.01
+                , y <| String.fromFloat <| toFloat y_ * 2 + 0.01
+                , width w
+                , height w
+                , fill color
+                ]
+                []
+
+        idString =
+            [ startX, startY, endX, endY ]
+                |> List.map String.fromInt
+                |> String.join "-"
+    in
+    g []
+        [ Svg.mask [ id idString ]
+            [ square 0 0 (String.fromInt <| gridSideCells * 2) "white"
+            , square startX startY "2" "black"
+            , square endX endY "2" "black"
+            ]
+        , Svg.line
+            [ x1 <| String.fromInt <| startX * 2 + 1
+            , y1 <| String.fromInt <| startY * 2 + 1
+            , x2 <| String.fromInt <| endX * 2 + 1
+            , y2 <| String.fromInt <| endY * 2 + 1
+            , strokeWidth <| String.fromFloat lineStrokeWidth
+            , strokeDasharray "1 0.3"
+            , stroke "#487CFF"
+            , mask <| "url(#" ++ idString ++ ")"
+            ]
+            []
         ]
-        []

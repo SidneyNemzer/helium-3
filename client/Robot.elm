@@ -1,229 +1,269 @@
-module Robot exposing
-    ( Robot
-    , Tool(..)
-    , init
-    , missileRange
-    , moveAndArmWeaponRange
-    , moveAndMineRange
-    , moveAndShieldRange
-    , moveRange
-    , moveTo
-    , updateAnimation
-    , view
-    )
+module Robot exposing (..)
 
-import Animation
-import Array exposing (Array)
-import Ease
-import Entity exposing (Entity)
-import Json.Decode as Decode exposing (Decoder)
-import Json.Decode.Extra as Decode
-import List.Extra
-import Maybe.Extra
-import Missile
-import Player exposing (Player(..))
 import Point exposing (Point)
-import Svg exposing (Svg)
-import Svg.Grid
-import Svg.Robot
-import Time
 
 
-type Action
-    = FireMissile Point
-    | FireLaser Float
-    | ArmMissile Point
-    | ArmLaser Point
-    | Shield Point
-    | Mine Point
-    | Kamikaze
-    | Move Point
+{-| A robot can 'hold' one of the following items.
 
+The Bool indicates the tool has been activated. Otherwise, tools render in a
+resting state.
 
+Shield: Bright (after impact)
+
+-}
 type Tool
-    = ToolShield
+    = ToolShield Bool
     | ToolLaser
     | ToolMissile
 
 
+type State
+    = Idle (Maybe Tool)
+    | MoveWithTool { pending : Maybe Tool, current : Maybe Tool, target : Point }
+    | SelfDestruct (Maybe Tool)
+    | FireMissile Point Bool -- target, fired
+    | FireLaser Float Bool -- target, fired
+    | Mine { target : Point, tool : Maybe Tool, active : Bool }
+    | Destroyed
+
+
 type alias Robot =
-    { location : Point
-    , rotation : Float
-    , action : Maybe Action
-    , tool : Maybe Tool
-    , destroyed : Bool
-    , owner : Player
-    , animation : Animation.State
+    { id : Int
+    , location : Point
+    , rotation : Float -- degrees
+    , score : Int
+    , state : State
+
+    -- , owner : PlayerIndex
     }
 
 
-width : Int
-width =
-    140
+init : Int -> Point -> Robot
+init id point =
+    { id = id
+    , location = point
+    , rotation = 0
+    , score = 0
+    , state = Idle Nothing
 
-
-height : Int
-height =
-    140
-
-
-moveRange : Int
-moveRange =
-    4
-
-
-moveAndShieldRange : Int
-moveAndShieldRange =
-    3
-
-
-moveAndArmWeaponRange : Int
-moveAndArmWeaponRange =
-    2
-
-
-missileRange : Int
-missileRange =
-    5
-
-
-moveAndMineRange : Int
-moveAndMineRange =
-    3
-
-
-targetDecoder : Decoder (Maybe Point)
-targetDecoder =
-    Decode.maybe (Decode.field "target" Point.decoder)
-
-
-toolDecoder : Decoder (Maybe Tool)
-toolDecoder =
-    Decode.nullable
-        (Decode.string
-            |> Decode.andThen
-                (\tool ->
-                    case tool of
-                        "MISSILE" ->
-                            Decode.succeed ToolMissile
-
-                        "LASER" ->
-                            Decode.succeed ToolLaser
-
-                        "SHIELD" ->
-                            Decode.succeed ToolShield
-
-                        _ ->
-                            Decode.fail ("Unknown tool: " ++ tool)
-                )
-        )
-
-
-init : Point -> Float -> Player -> Robot
-init point rotation owner =
-    { location = point
-    , rotation = rotation
-    , action = Nothing
-    , tool = Nothing
-    , destroyed = False
-    , owner = owner
-    , animation =
-        Entity.toAnimationStyle
-            { location = point
-            , width = width
-            , height = height
-            , rotation = rotation
-            }
+    -- , owner = owner
     }
 
 
-easingWithDuration : Float -> Animation.Interpolation
-easingWithDuration duration =
-    Animation.easing
-        { duration = duration
-        , ease = Ease.bezier 0.42 0 0.58 1
-        }
-
-
-moveTo : Point -> Robot -> Robot
-moveTo target robot =
-    let
-        rotation =
-            Point.angle target robot.location
-
-        { x, y, rotate, transformOrigin } =
-            Entity.toAnimationProperties
-                { location = target
-                , rotation = rotation
-                , width = width
-                , height = height
-                }
-    in
+move : Maybe Tool -> Point -> Robot -> Robot
+move tool point robot =
     { robot
-        | location = target
-        , rotation = rotation
-        , animation =
-            Animation.interrupt
-                [ Animation.toWith (easingWithDuration 500) [ rotate ]
-                , Animation.wait (Time.millisToPosix 200)
-                , Animation.toWith
-                    (easingWithDuration 1000)
-                    [ x, y, transformOrigin ]
-                ]
-                robot.animation
+        | state =
+            case robot.state of
+                MoveWithTool { current } ->
+                    MoveWithTool { pending = tool, current = current, target = point }
+
+                Idle currentTool ->
+                    MoveWithTool { pending = tool, current = currentTool, target = point }
+
+                SelfDestruct currentTool ->
+                    MoveWithTool { pending = tool, current = currentTool, target = point }
+
+                FireMissile _ _ ->
+                    MoveWithTool { pending = tool, current = Just ToolMissile, target = point }
+
+                FireLaser _ _ ->
+                    MoveWithTool { pending = tool, current = Just ToolLaser, target = point }
+
+                Mine state ->
+                    MoveWithTool { pending = tool, current = state.tool, target = point }
+
+                Destroyed ->
+                    robot.state
     }
 
 
-updateAnimation : Animation.Msg -> Robot -> Robot
-updateAnimation time robot =
-    { robot | animation = Animation.update time robot.animation }
+hasAction : Robot -> Bool
+hasAction robot =
+    case robot.state of
+        Idle currentTool ->
+            False
+
+        Destroyed ->
+            False
+
+        _ ->
+            True
 
 
-moveTarget : Robot -> Maybe Point
-moveTarget robot =
-    case robot.action of
-        Just (FireMissile _) ->
+
+-- phase : State -> Int
+-- phase state =
+--     case state of
+--         MoveWithTool _ ->
+--             2
+--         SelfDestruct _ ->
+--             1
+--         FireMissile _ _ ->
+--             1
+--         FireLaser _ _ ->
+--             1
+--         Idle currentTool ->
+--             0
+--         Destroyed ->
+--             0
+
+
+getTarget : Robot -> Maybe Point
+getTarget robot =
+    case robot.state of
+        MoveWithTool { target } ->
+            Just target
+
+        SelfDestruct _ ->
             Nothing
 
-        Just (FireLaser _) ->
+        FireMissile target _ ->
+            Just target
+
+        FireLaser target _ ->
             Nothing
 
-        Just (ArmMissile point) ->
-            Just point
+        Mine { target } ->
+            Just target
 
-        Just (ArmLaser point) ->
-            Just point
-
-        Just (Shield point) ->
-            Just point
-
-        Just (Mine point) ->
-            Just point
-
-        Just Kamikaze ->
+        Idle currentTool ->
             Nothing
 
-        Just (Move point) ->
-            Just point
-
-        Nothing ->
+        Destroyed ->
             Nothing
 
 
-view : Maybe msg -> Robot -> ( Svg msg, Svg msg )
-view onClick robot =
-    let
-        attributes =
-            Animation.render robot.animation
-    in
-    ( Svg.g [] <|
-        List.concat
-            [ [ Svg.Robot.use attributes (Player.color robot.owner) onClick ]
-            , if robot.tool == Just ToolMissile then
-                [ Missile.view attributes ]
+getTool : Robot -> Maybe Tool
+getTool robot =
+    case robot.state of
+        MoveWithTool { current } ->
+            current
 
-              else
-                []
-            ]
-    , Svg.text ""
-    )
+        Idle current ->
+            current
+
+        SelfDestruct current ->
+            current
+
+        FireMissile _ _ ->
+            Just ToolMissile
+
+        FireLaser _ _ ->
+            Just ToolLaser
+
+        Mine { tool } ->
+            tool
+
+        Destroyed ->
+            Nothing
+
+
+impact : Robot -> Robot
+impact robot =
+    { robot
+        | state =
+            case robot.state of
+                MoveWithTool ({ current } as state) ->
+                    if current == Just (ToolShield False) then
+                        MoveWithTool { state | current = Just (ToolShield True) }
+
+                    else
+                        Destroyed
+
+                Idle current ->
+                    if current == Just (ToolShield False) then
+                        Idle (Just (ToolShield True))
+
+                    else
+                        Destroyed
+
+                SelfDestruct current ->
+                    if current == Just (ToolShield False) then
+                        SelfDestruct (Just (ToolShield True))
+
+                    else
+                        Destroyed
+
+                FireMissile _ _ ->
+                    Destroyed
+
+                FireLaser _ _ ->
+                    Destroyed
+
+                Mine ({ tool } as state) ->
+                    if tool == Just (ToolShield False) then
+                        Mine { state | tool = Just (ToolShield True) }
+
+                    else
+                        Destroyed
+
+                Destroyed ->
+                    Destroyed
+    }
+
+
+{-| Removes the shield if it has absorbed an impact. Does not modify state of
+other tools, or shields that have not been impacted.
+-}
+removeShield : Robot -> Robot
+removeShield robot =
+    { robot
+        | state =
+            case robot.state of
+                MoveWithTool state ->
+                    if state.current == Just (ToolShield True) then
+                        MoveWithTool { state | current = Nothing }
+
+                    else
+                        robot.state
+
+                Idle current ->
+                    if current == Just (ToolShield True) then
+                        Idle Nothing
+
+                    else
+                        robot.state
+
+                SelfDestruct current ->
+                    if current == Just (ToolShield True) then
+                        SelfDestruct Nothing
+
+                    else
+                        robot.state
+
+                FireMissile _ _ ->
+                    robot.state
+
+                FireLaser _ _ ->
+                    robot.state
+
+                Mine state ->
+                    if state.tool == Just (ToolShield True) then
+                        Mine { state | tool = Nothing }
+
+                    else
+                        robot.state
+
+                Destroyed ->
+                    Destroyed
+    }
+
+
+
+-- SETTERS
+
+
+setLocation : Point -> Robot -> Robot
+setLocation point robot =
+    { robot | location = point }
+
+
+setRotation : Float -> Robot -> Robot
+setRotation rotation robot =
+    { robot | rotation = rotation }
+
+
+setState : State -> Robot -> Robot
+setState state robot =
+    { robot | state = state }

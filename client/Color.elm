@@ -1,16 +1,12 @@
 module Color exposing
     ( backgroundGray
     , blue
-    , blueShade
     , cyan
-    , fromPlayer
     , green
     , progressBarGray
     , purple
     , red
     )
-
-import Game.Player as Player exposing (PlayerIndex(..))
 
 
 green : String
@@ -48,22 +44,19 @@ progressBarGray =
     "#B9B9B9"
 
 
-fromPlayer : PlayerIndex -> String
-fromPlayer player =
-    case player of
-        Player1 ->
-            green
 
-        Player2 ->
-            purple
-
-        Player3 ->
-            cyan
-
-        Player4 ->
-            red
-
-
-blueShade : Int -> String
-blueShade lightness =
-    "hsl(201, 100%, " ++ String.fromInt lightness ++ "%)"
+-- fromPlayer : PlayerIndex -> String
+-- fromPlayer player =
+--     case player of
+--         Player1 ->
+--             green
+--         Player2 ->
+--             purple
+--         Player3 ->
+--             cyan
+--         Player4 ->
+--             red
+--
+-- blueShade : Int -> String
+-- blueShade lightness =
+--     "hsl(201, 100%, " ++ String.fromInt lightness ++ "%)"
