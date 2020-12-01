@@ -7,6 +7,7 @@ const devServerConfig = require("./lib/webpack-dev-server.config");
 const formatMessage = require("./lib/formatWepbackMessage");
 
 const config = createConfig(null, {});
+config.watch = true;
 const compiler = webpack(config);
 
 const PORT = 8080;
