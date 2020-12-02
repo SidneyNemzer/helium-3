@@ -187,10 +187,8 @@ dottedLine start end =
 
         square x_ y_ w color =
             rect
-                -- Offset x and y to avoid vertical/horizontal lines
-                -- https://stackoverflow.com/q/39475396/7486612
-                [ x <| String.fromFloat <| toFloat x_ * 2 + 0.01
-                , y <| String.fromFloat <| toFloat y_ * 2 + 0.01
+                [ x <| String.fromInt <| x_ * 2
+                , y <| String.fromInt <| y_ * 2
                 , width w
                 , height w
                 , fill color
@@ -209,8 +207,10 @@ dottedLine start end =
             , square endX endY "2" "black"
             ]
         , Svg.line
-            [ x1 <| String.fromInt <| startX * 2 + 1
-            , y1 <| String.fromInt <| startY * 2 + 1
+            -- Offset x and y to avoid vertical/horizontal lines
+            -- https://stackoverflow.com/q/39475396/7486612
+            [ x1 <| String.fromFloat <| toFloat startX * 2 + 1 + 0.01
+            , y1 <| String.fromFloat <| toFloat startY * 2 + 1 + 0.01
             , x2 <| String.fromInt <| endX * 2 + 1
             , y2 <| String.fromInt <| endY * 2 + 1
             , strokeWidth <| String.fromFloat lineStrokeWidth
