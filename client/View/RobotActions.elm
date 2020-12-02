@@ -8,6 +8,7 @@ import Html.Events
 type alias OnClick msg =
     { cancel : msg
     , move : msg
+    , shield : msg
     , armMissile : msg
     , fireMissile : Maybe msg
     }
@@ -33,9 +34,10 @@ view onClick =
             , style "border-radius" "3px"
             , style "padding" "10px"
             ]
-            [ button "Move" (Just onClick.move)
-            , button "Arm Missile" (Just onClick.armMissile)
+            [ button "Arm Missile" (Just onClick.armMissile)
             , button "Fire Missile" onClick.fireMissile
+            , button "Shield" (Just onClick.shield)
+            , button "Move" (Just onClick.move)
             , button "Cancel" (Just onClick.cancel)
             ]
         ]

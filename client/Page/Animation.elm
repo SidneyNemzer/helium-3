@@ -20,6 +20,7 @@ import View.Grid
 import View.Missile
 import View.Robot
 import View.RobotActions
+import View.Shield
 
 
 main : Program () Model Msg
@@ -45,15 +46,13 @@ type Selection
     | ChoosingMoveLocation
     | ChoosingArmMissileLocation
     | ChoosingFireMissileLocation
+    | ChoosingShieldLocation
 
 
 
--- | ChoosingMissileTarget
 -- | ChoosingLaserTarget
 -- | ChoosingArmLaserLocation
--- | ChoosingShieldLocation
 -- | ChoosingMineLocation
--- | Robot
 
 
 type alias Timeline =
@@ -139,6 +138,9 @@ update msg model =
                 Just ( ChoosingArmMissileLocation, _ ) ->
                     ( model, Cmd.none )
 
+                Just ( ChoosingShieldLocation, _ ) ->
+                    ( model, Cmd.none )
+
                 Just ( ChoosingFireMissileLocation, selectedId ) ->
                     let
                         maybePoint =
@@ -196,6 +198,15 @@ update msg model =
                     , Cmd.none
                     )
 
+                Just ( ChoosingShieldLocation, id ) ->
+                    ( { model
+                        | robots =
+                            Dict.update id (Maybe.map (Robot.move (Just (ToolShield False)) point)) model.robots
+                        , selectedRobot = Nothing
+                      }
+                    , Cmd.none
+                    )
+
                 Just ( ChoosingAction, id ) ->
                     ( model, Cmd.none )
 
@@ -238,7 +249,7 @@ stateToAnimation robots robot =
                             if targetRobot.state /= Destroyed then
                                 -- Target has a shield equipped, `Robot.impact` has updated the state
                                 [ SetState targetRobot.id targetRobot.state
-                                , SetState targetRobot.id (Robot.removeShield robot).state
+                                , SetState targetRobot.id (Robot.removeShield targetRobot).state
                                 ]
 
                             else
@@ -367,7 +378,7 @@ view model =
             , style "height" "100%"
             , viewBox View.Grid.viewBox
             ]
-            ([ defs [] [ View.Robot.def, View.Missile.def ]
+            ([ defs [] [ View.Robot.def, View.Missile.def, View.Shield.def ]
              , View.Grid.grid
              , viewSelection model
              ]
@@ -404,6 +415,7 @@ viewActionPickerHelp robot =
 
             else
                 Nothing
+        , shield = ChooseAction ChoosingShieldLocation
         }
 
 
@@ -435,14 +447,21 @@ viewSelectionHelp ( selection, robot ) =
         ChoosingArmMissileLocation ->
             let
                 { highlight, hover } =
-                    View.Grid.highlightAround robot.location 4 ClickPoint False
+                    View.Grid.highlightAround robot.location 4 ClickPoint True
             in
             g [] [ highlight, hover ]
 
         ChoosingFireMissileLocation ->
             let
                 { highlight, hover } =
-                    View.Grid.highlightAround robot.location 3 ClickPoint False
+                    View.Grid.highlightAround robot.location 3 ClickPoint True
+            in
+            g [] [ highlight, hover ]
+
+        ChoosingShieldLocation ->
+            let
+                { highlight, hover } =
+                    View.Grid.highlightAround robot.location 4 ClickPoint True
             in
             g [] [ highlight, hover ]
 
@@ -466,7 +485,7 @@ viewRobot robot =
                 Nothing ->
                     []
 
-        missileSvg =
+        toolSvg =
             Robot.getTool robot
                 |> Maybe.map (viewTool robot)
                 |> Maybe.Extra.toList
@@ -477,10 +496,8 @@ viewRobot robot =
     else
         g []
             [ g [] targetSvg
-            , g
-                [ onClick (ClickRobot robot.id)
-                ]
-                ([ robotSvg ] ++ missileSvg)
+            , g [ onClick (ClickRobot robot.id) ]
+                ([ robotSvg ] ++ toolSvg)
             ]
 
 
@@ -488,8 +505,8 @@ viewTool : Robot -> Robot.Tool -> Svg msg
 viewTool robot tool =
     case tool of
         ToolShield highlight ->
-            -- TODO
-            text ""
+            -- TODO highlight
+            View.Shield.use robot.location robot.rotation
 
         ToolLaser ->
             -- TODO
