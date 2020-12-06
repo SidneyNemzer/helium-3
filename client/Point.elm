@@ -34,9 +34,11 @@ toXY (Point x y) =
     ( x, y )
 
 
-generator : Int -> Int -> Random.Generator Point
-generator width height =
-    Random.pair (Random.int 0 width) (Random.int 0 height)
+{-| Generates a random point somewhere in the grid
+-}
+generator : Random.Generator Point
+generator =
+    Random.pair (Random.int 0 20) (Random.int 0 20)
         |> Random.map fromTuple
 
 
@@ -54,45 +56,6 @@ around ((Point x y) as point) radius includeCenter =
     else
         List.Extra.remove point points
             |> List.filter isInsideGrid
-
-
-
-{- The ring of points around the center with a diameter of three. Does not
-   include the center.
--}
--- ring3 : Point -> List Point
--- ring3 (Point x y) =
---     [ fromXY (x - 1) (y - 1)
---     , fromXY x (y - 1)
---     , fromXY (x + 1) (y - 1)
---     , fromXY (x - 1) y
---     , fromXY (x + 1) y
---     , fromXY (x - 1) (y + 1)
---     , fromXY x (y + 1)
---     , fromXY (x + 1) (y + 1)
---     ]
-{- The ring of cells around the center with a diameter of five. Does not
-   include the inner cells, only the outside ring.
--}
--- ring5 : Point -> List Point
--- ring5 (Point x y) =
---     [ fromXY (x - 2) (y - 2)
---     , fromXY (x - 1) (y - 2)
---     , fromXY x (y - 2)
---     , fromXY (x + 1) (y - 2)
---     , fromXY (x + 2) (y - 2)
---     , fromXY (x - 2) (y - 1)
---     , fromXY (x + 2) (y - 1)
---     , fromXY (x - 2) y
---     , fromXY (x + 2) y
---     , fromXY (x - 2) (y + 1)
---     , fromXY (x + 2) (y + 1)
---     , fromXY (x - 2) (y + 2)
---     , fromXY (x - 1) (y + 2)
---     , fromXY x (y + 2)
---     , fromXY (x + 1) (y + 2)
---     , fromXY (x + 2) (y + 2)
---     ]
 
 
 toScreen : Point -> Int -> ( Int, Int )

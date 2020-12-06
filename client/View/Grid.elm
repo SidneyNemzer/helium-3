@@ -220,3 +220,19 @@ dottedLine start end =
             ]
             []
         ]
+
+
+fillCell : Point -> String -> Svg msg
+fillCell point color =
+    let
+        ( topX, topY ) =
+            Point.toScreen point 2
+    in
+    rect
+        [ x <| String.fromFloat <| toFloat topX + lineStrokeWidth / 2
+        , y <| String.fromFloat <| toFloat topY + lineStrokeWidth / 2
+        , width <| String.fromFloat <| 2 - lineStrokeWidth
+        , height <| String.fromFloat <| 2 - lineStrokeWidth
+        , fill color
+        ]
+        []

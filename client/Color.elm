@@ -1,6 +1,7 @@
 module Color exposing
     ( backgroundGray
     , blue
+    , blueShade
     , cyan
     , green
     , progressBarGray
@@ -56,7 +57,8 @@ progressBarGray =
 --             cyan
 --         Player4 ->
 --             red
---
--- blueShade : Int -> String
--- blueShade lightness =
---     "hsl(201, 100%, " ++ String.fromInt lightness ++ "%)"
+
+
+blueShade : Int -> String
+blueShade lightness =
+    "hsl(201, 100%, " ++ String.fromInt lightness ++ "%)"

@@ -4,14 +4,17 @@ import Array exposing (Array)
 import Browser
 import Color
 import Dict exposing (Dict)
+import HeliumGrid exposing (HeliumGrid)
 import Html exposing (Html, button, text)
 import Html.Attributes exposing (style)
 import Html.Events exposing (onClick)
 import List
 import List.Extra
+import Matrix
 import Maybe.Extra
 import Point exposing (Point)
 import Process
+import Random
 import Robot exposing (Robot, State(..), Tool(..))
 import Svg exposing (Svg, defs, g, rect, svg)
 import Svg.Attributes exposing (color, fill, height, stroke, viewBox, width, x, y)
@@ -38,6 +41,7 @@ type alias Model =
     , timeline : Timeline
     , order : TimelineOrder
     , selectedRobot : Maybe ( Selection, Int )
+    , helium : HeliumGrid
     }
 
 
@@ -92,6 +96,12 @@ init () =
       , timeline = []
       , order = Parallel
       , selectedRobot = Nothing
+
+      -- TODO seed
+      , helium =
+            Random.initialSeed 0
+                |> Random.step HeliumGrid.generator
+                |> Tuple.first
       }
     , Cmd.none
     )
@@ -380,6 +390,7 @@ view model =
             ]
             ([ defs [] [ View.Robot.def, View.Missile.def, View.Shield.def ]
              , View.Grid.grid
+             , viewHeliumGrid model.helium
              , viewSelection model
              ]
                 ++ robots
@@ -523,3 +534,21 @@ viewTool robot tool =
                             robot.location
             in
             View.Missile.use location robot.rotation
+
+
+viewHeliumGrid : HeliumGrid -> Svg msg
+viewHeliumGrid helium =
+    Matrix.toIndexedArray helium
+        |> Array.filter (\( _, amount ) -> amount > 0)
+        |> Array.map (Tuple.mapFirst Point.fromTuple >> viewHelium)
+        |> Array.toList
+        |> g []
+
+
+viewHelium : ( Point, Int ) -> Svg msg
+viewHelium ( point, amount ) =
+    let
+        lightness =
+            100 - min 50 (round (toFloat amount * 0.033))
+    in
+    View.Grid.fillCell point (Color.blueShade lightness)
