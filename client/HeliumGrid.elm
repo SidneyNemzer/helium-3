@@ -35,6 +35,9 @@ type Deposit
 3.  Amount of helium in large deposits is constant. The remaining helium is
     distributed to the small deposits.
 
+TODO maybe H3 should be distributed randomly without a "starting helium",
+value and
+
 -}
 generator : Random.Generator HeliumGrid
 generator =
@@ -87,7 +90,7 @@ distribute deposit matrix =
                             (\point -> set point ammountOuter)
                             updatedMatrix
                             -- TODO
-                            (Point.around center 1 False)
+                            (Point.around center 2 False)
                     -- (Cell.ring5 center)
                    )
 

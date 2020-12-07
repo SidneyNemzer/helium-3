@@ -547,8 +547,4 @@ viewHeliumGrid helium =
 
 viewHelium : ( Point, Int ) -> Svg msg
 viewHelium ( point, amount ) =
-    let
-        lightness =
-            100 - min 50 (round (toFloat amount * 0.033))
-    in
-    View.Grid.fillCell point (Color.blueShade lightness)
+    View.Grid.fillCell point amount

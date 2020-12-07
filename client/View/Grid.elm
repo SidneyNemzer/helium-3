@@ -1,10 +1,11 @@
 module View.Grid exposing (..)
 
+import Color
 import Html exposing (Html)
 import Html.Attributes as HA
 import Html.Events exposing (onClick)
 import Point exposing (Point)
-import Svg exposing (Svg, g, rect, svg, text)
+import Svg exposing (Svg, g, rect, svg, text, text_)
 import Svg.Attributes exposing (..)
 
 
@@ -65,7 +66,7 @@ grid =
             line (index * 2) start (index * 2) end
     in
     g
-        [ stroke "#d4d4d4"
+        [ stroke "#797979"
         , strokeWidth (String.fromFloat lineStrokeWidth)
         ]
     <|
@@ -222,9 +223,12 @@ dottedLine start end =
         ]
 
 
-fillCell : Point -> String -> Svg msg
-fillCell point color =
+fillCell : Point -> Int -> Svg msg
+fillCell point amount =
     let
+        lightness =
+            100 - round (toFloat amount * 0.033)
+
         ( topX, topY ) =
             Point.toScreen point 2
     in
@@ -233,6 +237,38 @@ fillCell point color =
         , y <| String.fromFloat <| toFloat topY + lineStrokeWidth / 2
         , width <| String.fromFloat <| 2 - lineStrokeWidth
         , height <| String.fromFloat <| 2 - lineStrokeWidth
-        , fill color
+        , fill <| Color.blueShade lightness
         ]
         []
+
+
+{-| Creates a square similar to `fillCell`, but places text at the top left
+with the amount and lightness values
+-}
+fillCellDebug : Point -> Int -> Svg msg
+fillCellDebug point amount =
+    let
+        lightness =
+            100 - round (toFloat amount * 0.033)
+
+        -- 100 - Basics.min 50 (round (toFloat amount * 0.033))
+        ( topX, topY ) =
+            Point.toScreen point 2
+    in
+    g []
+        [ rect
+            [ x <| String.fromFloat <| toFloat topX + lineStrokeWidth / 2
+            , y <| String.fromFloat <| toFloat topY + lineStrokeWidth / 2
+            , width <| String.fromFloat <| 2 - lineStrokeWidth
+            , height <| String.fromFloat <| 2 - lineStrokeWidth
+            , fill <| Color.blueShade lightness
+            ]
+            []
+        , text_
+            [ x <| String.fromFloat <| toFloat topX + lineStrokeWidth / 2
+            , y <| String.fromFloat <| toFloat topY + lineStrokeWidth / 2 + 0.35
+            , HA.style "font-size" "0.35px"
+            , fill "white"
+            ]
+            [ text <| String.fromInt amount, text ",", text <| String.fromInt lightness ]
+        ]
