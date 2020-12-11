@@ -9,6 +9,7 @@ type alias OnClick msg =
     { cancel : msg
     , move : msg
     , shield : msg
+    , mine : msg
     , armMissile : msg
     , fireMissile : Maybe msg
     }
@@ -37,6 +38,7 @@ view onClick =
             [ button "Arm Missile" (Just onClick.armMissile)
             , button "Fire Missile" onClick.fireMissile
             , button "Shield" (Just onClick.shield)
+            , button "Mine" (Just onClick.mine)
             , button "Move" (Just onClick.move)
             , button "Cancel" (Just onClick.cancel)
             ]

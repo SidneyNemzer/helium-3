@@ -20,6 +20,7 @@ import Svg exposing (Svg, defs, g, rect, svg)
 import Svg.Attributes exposing (color, fill, height, stroke, viewBox, width, x, y)
 import Task
 import View.Grid
+import View.Miner
 import View.Missile
 import View.Robot
 import View.RobotActions
@@ -39,7 +40,6 @@ main =
 type alias Model =
     { robots : Dict Int Robot
     , timeline : Timeline
-    , order : TimelineOrder
     , selectedRobot : Maybe ( Selection, Int )
     , helium : HeliumGrid
     }
@@ -51,12 +51,12 @@ type Selection
     | ChoosingArmMissileLocation
     | ChoosingFireMissileLocation
     | ChoosingShieldLocation
+    | ChoosingMineLocation
 
 
 
 -- | ChoosingLaserTarget
 -- | ChoosingArmLaserLocation
--- | ChoosingMineLocation
 
 
 type alias Timeline =
@@ -66,6 +66,8 @@ type alias Timeline =
 type Animation
     = SetLocation Int Point
     | SetRotation Int Float
+    | SetMinerActive Int
+    | MineAt Int Point
     | SetState Int State
 
 
@@ -81,11 +83,6 @@ type Animation
 -- | DeleteExplotion Int
 
 
-type TimelineOrder
-    = Sequential (List Int)
-    | Parallel
-
-
 init : () -> ( Model, Cmd Msg )
 init () =
     ( { robots =
@@ -94,7 +91,6 @@ init () =
                 , ( 1, Robot.init 1 (Point.fromXY 4 4) )
                 ]
       , timeline = []
-      , order = Parallel
       , selectedRobot = Nothing
 
       -- TODO seed
@@ -145,11 +141,39 @@ update msg model =
                 Just ( ChoosingMoveLocation, _ ) ->
                     ( model, Cmd.none )
 
-                Just ( ChoosingArmMissileLocation, _ ) ->
-                    ( model, Cmd.none )
+                Just ( ChoosingArmMissileLocation, otherId ) ->
+                    if otherId == id then
+                        ( { model
+                            | robots =
+                                Dict.update id
+                                    (Maybe.map
+                                        (\robot -> Robot.move (Just ToolMissile) robot.location robot)
+                                    )
+                                    model.robots
+                            , selectedRobot = Nothing
+                          }
+                        , Cmd.none
+                        )
 
-                Just ( ChoosingShieldLocation, _ ) ->
-                    ( model, Cmd.none )
+                    else
+                        ( model, Cmd.none )
+
+                Just ( ChoosingShieldLocation, otherId ) ->
+                    if otherId == id then
+                        ( { model
+                            | robots =
+                                Dict.update id
+                                    (Maybe.map
+                                        (\robot -> Robot.move (Just (ToolShield False)) robot.location robot)
+                                    )
+                                    model.robots
+                            , selectedRobot = Nothing
+                          }
+                        , Cmd.none
+                        )
+
+                    else
+                        ( model, Cmd.none )
 
                 Just ( ChoosingFireMissileLocation, selectedId ) ->
                     let
@@ -171,6 +195,19 @@ update msg model =
                       }
                     , Cmd.none
                     )
+
+                Just ( ChoosingMineLocation, otherId ) ->
+                    if otherId == id then
+                        ( { model
+                            | robots =
+                                Dict.update id (Maybe.map (\robot -> Robot.queueMine robot.location robot)) model.robots
+                            , selectedRobot = Nothing
+                          }
+                        , Cmd.none
+                        )
+
+                    else
+                        ( model, Cmd.none )
 
         ChooseAction selection ->
             ( { model
@@ -217,6 +254,15 @@ update msg model =
                     , Cmd.none
                     )
 
+                Just ( ChoosingMineLocation, id ) ->
+                    ( { model
+                        | robots =
+                            Dict.update id (Maybe.map (Robot.queueMine point)) model.robots
+                        , selectedRobot = Nothing
+                      }
+                    , Cmd.none
+                    )
+
                 Just ( ChoosingAction, id ) ->
                     ( model, Cmd.none )
 
@@ -239,8 +285,21 @@ stateToAnimation robots robot =
         Idle currentTool ->
             []
 
-        Mine _ ->
-            Debug.todo "Mine"
+        Mine { target, tool } ->
+            let
+                move =
+                    if robot.location /= target then
+                        rotateAnimation robot target
+                            ++ locationAnimation robot target
+
+                    else
+                        []
+            in
+            move
+                ++ [ SetMinerActive robot.id
+                   , MineAt robot.id target
+                   , SetState robot.id (Idle Nothing)
+                   ]
 
         SelfDestruct currentTool ->
             Debug.todo "SelfDestruct"
@@ -355,6 +414,27 @@ applyAnimation animation model =
                 1
             )
 
+        SetMinerActive id ->
+            ( { model
+                | robots =
+                    Dict.update id (Maybe.map Robot.setMinerActive) model.robots
+              }
+            , 1
+            )
+
+        MineAt id point ->
+            let
+                ( ground, mined ) =
+                    HeliumGrid.mine point model.helium
+            in
+            ( { model
+                | robots =
+                    Dict.update id (Maybe.map (\robot -> { robot | mined = robot.mined + mined })) model.robots
+                , helium = ground
+              }
+            , 0
+            )
+
 
 
 -- SUBSCRIPTIONS
@@ -388,7 +468,12 @@ view model =
             , style "height" "100%"
             , viewBox View.Grid.viewBox
             ]
-            ([ defs [] [ View.Robot.def, View.Missile.def, View.Shield.def ]
+            ([ defs []
+                [ View.Robot.def
+                , View.Missile.def
+                , View.Shield.def
+                , View.Miner.def
+                ]
              , View.Grid.grid
              , viewHeliumGrid model.helium
              , viewSelection model
@@ -427,6 +512,7 @@ viewActionPickerHelp robot =
             else
                 Nothing
         , shield = ChooseAction ChoosingShieldLocation
+        , mine = ChooseAction ChoosingMineLocation
         }
 
 
@@ -443,38 +529,38 @@ viewSelection model =
 
 viewSelectionHelp : ( Selection, Robot ) -> Svg Msg
 viewSelectionHelp ( selection, robot ) =
-    case selection of
-        ChoosingAction ->
-            -- Rendered outside of the SVG by `viewActionPicker`
+    let
+        maybeSize =
+            case selection of
+                ChoosingAction ->
+                    -- Rendered outside of the SVG by `viewActionPicker`
+                    Nothing
+
+                ChoosingMoveLocation ->
+                    Just ( 4, False )
+
+                ChoosingArmMissileLocation ->
+                    Just ( 4, True )
+
+                ChoosingFireMissileLocation ->
+                    Just ( 3, True )
+
+                ChoosingShieldLocation ->
+                    Just ( 4, True )
+
+                ChoosingMineLocation ->
+                    Just ( 3, True )
+    in
+    case maybeSize of
+        Just ( size, center ) ->
+            let
+                { highlight, hover } =
+                    View.Grid.highlightAround robot.location size ClickPoint center
+            in
+            g [] [ highlight, hover ]
+
+        Nothing ->
             text ""
-
-        ChoosingMoveLocation ->
-            let
-                { highlight, hover } =
-                    View.Grid.highlightAround robot.location 4 ClickPoint False
-            in
-            g [] [ highlight, hover ]
-
-        ChoosingArmMissileLocation ->
-            let
-                { highlight, hover } =
-                    View.Grid.highlightAround robot.location 4 ClickPoint True
-            in
-            g [] [ highlight, hover ]
-
-        ChoosingFireMissileLocation ->
-            let
-                { highlight, hover } =
-                    View.Grid.highlightAround robot.location 3 ClickPoint True
-            in
-            g [] [ highlight, hover ]
-
-        ChoosingShieldLocation ->
-            let
-                { highlight, hover } =
-                    View.Grid.highlightAround robot.location 4 ClickPoint True
-            in
-            g [] [ highlight, hover ]
 
 
 viewRobot : Robot -> Svg Msg
@@ -508,7 +594,7 @@ viewRobot robot =
         g []
             [ g [] targetSvg
             , g [ onClick (ClickRobot robot.id) ]
-                ([ robotSvg ] ++ toolSvg)
+                ([ robotSvg ] ++ toolSvg ++ [ viewMiner robot ])
             ]
 
 
@@ -534,6 +620,24 @@ viewTool robot tool =
                             robot.location
             in
             View.Missile.use location robot.rotation
+
+
+viewMiner : Robot -> Svg msg
+viewMiner robot =
+    case robot.state of
+        Mine { active } ->
+            if active then
+                View.Miner.use robot.location robot.rotation
+
+            else
+                text ""
+
+        _ ->
+            text ""
+
+
+
+-- View.Miner.use robot.location robot.rotation
 
 
 viewHeliumGrid : HeliumGrid -> Svg msg

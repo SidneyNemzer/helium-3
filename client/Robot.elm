@@ -31,7 +31,7 @@ type alias Robot =
     { id : Int
     , location : Point
     , rotation : Float -- degrees
-    , score : Int
+    , mined : Int
     , state : State
 
     -- , owner : PlayerIndex
@@ -43,7 +43,7 @@ init id point =
     { id = id
     , location = point
     , rotation = 0
-    , score = 0
+    , mined = 0
     , state = Idle Nothing
 
     -- , owner = owner
@@ -72,6 +72,34 @@ move tool point robot =
 
                 Mine state ->
                     MoveWithTool { pending = tool, current = state.tool, target = point }
+
+                Destroyed ->
+                    robot.state
+    }
+
+
+queueMine : Point -> Robot -> Robot
+queueMine point robot =
+    { robot
+        | state =
+            case robot.state of
+                MoveWithTool { current } ->
+                    Mine { tool = current, target = point, active = False }
+
+                Idle currentTool ->
+                    Mine { tool = currentTool, target = point, active = False }
+
+                SelfDestruct currentTool ->
+                    Mine { tool = currentTool, target = point, active = False }
+
+                FireMissile _ _ ->
+                    Mine { tool = Just ToolMissile, target = point, active = False }
+
+                FireLaser _ _ ->
+                    Mine { tool = Just ToolLaser, target = point, active = False }
+
+                Mine state ->
+                    Mine { tool = state.tool, target = point, active = False }
 
                 Destroyed ->
                     robot.state
@@ -267,3 +295,16 @@ setRotation rotation robot =
 setState : State -> Robot -> Robot
 setState state robot =
     { robot | state = state }
+
+
+setMinerActive : Robot -> Robot
+setMinerActive robot =
+    { robot
+        | state =
+            case robot.state of
+                Mine state ->
+                    Mine { state | active = True }
+
+                _ ->
+                    robot.state
+    }
