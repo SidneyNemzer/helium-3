@@ -143,15 +143,8 @@ update msg model =
 
                 Just ( ChoosingArmMissileLocation, otherId ) ->
                     if otherId == id then
-                        ( { model
-                            | robots =
-                                Dict.update id
-                                    (Maybe.map
-                                        (\robot -> Robot.move (Just ToolMissile) robot.location robot)
-                                    )
-                                    model.robots
-                            , selectedRobot = Nothing
-                          }
+                        ( { model | selectedRobot = Nothing }
+                            |> updateRobot id (\robot -> Robot.move (Just ToolMissile) robot.location robot)
                         , Cmd.none
                         )
 
@@ -160,15 +153,8 @@ update msg model =
 
                 Just ( ChoosingShieldLocation, otherId ) ->
                     if otherId == id then
-                        ( { model
-                            | robots =
-                                Dict.update id
-                                    (Maybe.map
-                                        (\robot -> Robot.move (Just (ToolShield False)) robot.location robot)
-                                    )
-                                    model.robots
-                            , selectedRobot = Nothing
-                          }
+                        ( { model | selectedRobot = Nothing }
+                            |> updateRobot id (\robot -> Robot.move (Just (ToolShield False)) robot.location robot)
                         , Cmd.none
                         )
 
@@ -198,11 +184,8 @@ update msg model =
 
                 Just ( ChoosingMineLocation, otherId ) ->
                     if otherId == id then
-                        ( { model
-                            | robots =
-                                Dict.update id (Maybe.map (\robot -> Robot.queueMine robot.location robot)) model.robots
-                            , selectedRobot = Nothing
-                          }
+                        ( { model | selectedRobot = Nothing }
+                            |> updateRobot id (\robot -> Robot.queueMine robot.location robot)
                         , Cmd.none
                         )
 
@@ -221,45 +204,32 @@ update msg model =
         ClickPoint point ->
             case model.selectedRobot of
                 Just ( ChoosingMoveLocation, id ) ->
-                    ( { model
-                        | robots = Dict.update id (Maybe.map (Robot.move Nothing point)) model.robots
-                        , selectedRobot = Nothing
-                      }
+                    ( { model | selectedRobot = Nothing }
+                        |> updateRobot id (Robot.move Nothing point)
                     , Cmd.none
                     )
 
                 Just ( ChoosingArmMissileLocation, id ) ->
-                    ( { model
-                        | robots = Dict.update id (Maybe.map (Robot.move (Just ToolMissile) point)) model.robots
-                        , selectedRobot = Nothing
-                      }
+                    ( { model | selectedRobot = Nothing }
+                        |> updateRobot id (Robot.move (Just ToolMissile) point)
                     , Cmd.none
                     )
 
                 Just ( ChoosingFireMissileLocation, id ) ->
-                    ( { model
-                        | robots =
-                            Dict.update id (Maybe.map (Robot.setState (FireMissile point False))) model.robots
-                        , selectedRobot = Nothing
-                      }
+                    ( { model | selectedRobot = Nothing }
+                        |> updateRobot id (Robot.setState (FireMissile point False))
                     , Cmd.none
                     )
 
                 Just ( ChoosingShieldLocation, id ) ->
-                    ( { model
-                        | robots =
-                            Dict.update id (Maybe.map (Robot.move (Just (ToolShield False)) point)) model.robots
-                        , selectedRobot = Nothing
-                      }
+                    ( { model | selectedRobot = Nothing }
+                        |> updateRobot id (Robot.move (Just (ToolShield False)) point)
                     , Cmd.none
                     )
 
                 Just ( ChoosingMineLocation, id ) ->
-                    ( { model
-                        | robots =
-                            Dict.update id (Maybe.map (Robot.queueMine point)) model.robots
-                        , selectedRobot = Nothing
-                      }
+                    ( { model | selectedRobot = Nothing }
+                        |> updateRobot id (Robot.queueMine point)
                     , Cmd.none
                     )
 
@@ -268,6 +238,11 @@ update msg model =
 
                 Nothing ->
                     ( model, Cmd.none )
+
+
+updateRobot : Int -> (Robot -> Robot) -> Model -> Model
+updateRobot id fn model =
+    { model | robots = Dict.update id (Maybe.map fn) model.robots }
 
 
 
@@ -387,26 +362,17 @@ applyAnimation : Animation -> Model -> ( Model, Float )
 applyAnimation animation model =
     case animation of
         SetLocation id point ->
-            ( { model
-                | robots =
-                    Dict.update id (Maybe.map (Robot.setLocation point)) model.robots
-              }
+            ( updateRobot id (Robot.setLocation point) model
             , 1
             )
 
         SetRotation id rotation ->
-            ( { model
-                | robots =
-                    Dict.update id (Maybe.map (Robot.setRotation rotation)) model.robots
-              }
+            ( updateRobot id (Robot.setRotation rotation) model
             , 1
             )
 
         SetState id state ->
-            ( { model
-                | robots =
-                    Dict.update id (Maybe.map (Robot.setState state)) model.robots
-              }
+            ( updateRobot id (Robot.setState state) model
             , if state == Idle Nothing then
                 0
 
@@ -415,10 +381,7 @@ applyAnimation animation model =
             )
 
         SetMinerActive id ->
-            ( { model
-                | robots =
-                    Dict.update id (Maybe.map Robot.setMinerActive) model.robots
-              }
+            ( updateRobot id Robot.setMinerActive model
             , 1
             )
 
@@ -427,11 +390,8 @@ applyAnimation animation model =
                 ( ground, mined ) =
                     HeliumGrid.mine point model.helium
             in
-            ( { model
-                | robots =
-                    Dict.update id (Maybe.map (\robot -> { robot | mined = robot.mined + mined })) model.robots
-                , helium = ground
-              }
+            ( { model | helium = groud }
+                |> updateRobot id (\robot -> { robot | mined = robot.mined + mined })
             , 0
             )
 
