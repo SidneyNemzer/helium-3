@@ -390,7 +390,7 @@ applyAnimation animation model =
                 ( ground, mined ) =
                     HeliumGrid.mine point model.helium
             in
-            ( { model | helium = groud }
+            ( { model | helium = ground }
                 |> updateRobot id (\robot -> { robot | mined = robot.mined + mined })
             , 0
             )
