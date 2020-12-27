@@ -3,6 +3,7 @@ module View.RobotActions exposing (..)
 import Html exposing (Html, div, text)
 import Html.Attributes exposing (disabled, style)
 import Html.Events
+import Json.Decode as Decode
 
 
 type alias OnClick msg =
@@ -26,9 +27,7 @@ view onClick =
         , style "display" "flex"
         , style "align-items" "center"
         , style "justify-content" "center"
-
-        -- TODO eats events from buttons
-        -- , Html.Events.onClick onClick.cancel
+        , Html.Events.onClick onClick.cancel
         ]
         [ div
             [ style "background" "gray"
@@ -51,7 +50,10 @@ button label onClick =
         attributes =
             case onClick of
                 Just msg ->
-                    [ Html.Events.onClick msg ]
+                    [ Html.Events.stopPropagationOn
+                        "click"
+                        (Decode.succeed ( msg, True ))
+                    ]
 
                 Nothing ->
                     [ disabled True ]
