@@ -260,7 +260,7 @@ animate model =
         next :: rest ->
             let
                 ( newModel, sleepMs ) =
-                    applyAnimation next { model | timeline = rest }
+                    animateHelp next { model | timeline = rest }
             in
             if sleepMs == 0 then
                 animate newModel
@@ -271,16 +271,8 @@ animate model =
                 )
 
 
-applyAnimation : Effect -> Model -> ( Model, Int )
-applyAnimation effect model =
-    -- let
-    --     _ =
-    --         case effect of
-    --             Batch _ ->
-    --                 effect
-    --             _ ->
-    --                 Debug.log "applying effect" effect
-    -- in
+animateHelp : Effect -> Model -> ( Model, Int )
+animateHelp effect model =
     case effect of
         SetLocation id point ->
             ( updateRobot id (Robot.setLocation point) model, 0 )

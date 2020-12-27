@@ -20,9 +20,6 @@ type Effect
 
 
 -- | Parallel (Dict Int Animation)
--- | SetTool Int (Maybe Robot.Tool)
--- | SetFiringLaser Int
--- | SetFiringMissile Int
 -- | SetScore PlayerId Int
 -- | DropHelium Cell Int
 -- | CreateExplotion Int
@@ -119,15 +116,3 @@ fromRobot robot =
 
         Destroyed ->
             none
-
-
-
--- head : Effect -> ( Effect, Effect )
--- head effect =
---     case effect of
---         Batch [] ->
---             ( Batch [], Batch [] )
---         Batch (next :: rest) ->
---             ( next, Batch rest )
---         _ ->
---             ( effect, Batch [] )
