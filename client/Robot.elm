@@ -1,5 +1,6 @@
 module Robot exposing (..)
 
+import Players exposing (PlayerIndex)
 import Point exposing (Point)
 
 
@@ -33,20 +34,18 @@ type alias Robot =
     , rotation : Float -- degrees
     , mined : Int
     , state : State
-
-    -- , owner : PlayerIndex
+    , owner : PlayerIndex
     }
 
 
-init : Int -> Point -> Robot
-init id point =
+init : Int -> Point -> PlayerIndex -> Robot
+init id point owner =
     { id = id
     , location = point
     , rotation = 0
     , mined = 0
     , state = Idle Nothing
-
-    -- , owner = owner
+    , owner = owner
     }
 
 

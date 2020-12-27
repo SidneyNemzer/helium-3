@@ -1,9 +1,10 @@
-module Page.Animation exposing (main)
+module Page.Client exposing (main)
 
 import Array exposing (Array)
 import Browser
 import Color
 import Dict exposing (Dict)
+import Effect exposing (Effect(..), Timeline)
 import HeliumGrid exposing (HeliumGrid)
 import Html exposing (Html, button, text)
 import Html.Attributes exposing (style)
@@ -12,6 +13,7 @@ import List
 import List.Extra
 import Matrix
 import Maybe.Extra
+import Players exposing (PlayerIndex(..), Players)
 import Point exposing (Point)
 import Process
 import Random
@@ -42,6 +44,8 @@ type alias Model =
     , timeline : Timeline
     , selectedRobot : Maybe ( Selection, Int )
     , helium : HeliumGrid
+    , players : Players
+    , player : PlayerIndex
     }
 
 
@@ -59,36 +63,12 @@ type Selection
 -- | ChoosingArmLaserLocation
 
 
-type alias Timeline =
-    List Animation
-
-
-type Animation
-    = SetLocation Int Point
-    | SetRotation Int Float
-    | SetMinerActive Int
-    | MineAt Int Point
-    | SetState Int State
-
-
-
--- | Parallel (Dict Int Animation)
--- | SetTool Int (Maybe Robot.Tool)
--- | SetFiringLaser Int
--- | SetFiringMissile Int
--- | SetDestroyed Int
--- | SetScore PlayerId Int
--- | DropHelium Cell Int
--- | CreateExplotion Int
--- | DeleteExplotion Int
-
-
 init : () -> ( Model, Cmd Msg )
 init () =
     ( { robots =
             Dict.fromList
-                [ ( 0, Robot.init 0 (Point.fromXY 2 2) )
-                , ( 1, Robot.init 1 (Point.fromXY 4 4) )
+                [ ( 0, Robot.init 0 (Point.fromXY 2 2) Player1 )
+                , ( 1, Robot.init 1 (Point.fromXY 4 4) Player2 )
                 ]
       , timeline = []
       , selectedRobot = Nothing
@@ -98,6 +78,8 @@ init () =
             Random.initialSeed 0
                 |> Random.step HeliumGrid.generator
                 |> Tuple.first
+      , players = Players.init
+      , player = Player2
       }
     , Cmd.none
     )
@@ -123,7 +105,11 @@ update msg model =
                 { model
                     | timeline =
                         Dict.values model.robots
-                            |> List.foldl (\robot timeline -> stateToAnimation model.robots robot ++ timeline) []
+                            |> List.foldl
+                                (\robot timeline ->
+                                    Effect.fromRobot robot ++ timeline
+                                )
+                                Effect.none
                 }
 
         DeselectRobot ->
@@ -133,7 +119,15 @@ update msg model =
             -- TODO Show error/message when selecting an invalid move location?
             case model.selectedRobot of
                 Nothing ->
-                    ( { model | selectedRobot = Just ( ChoosingAction, id ) }, Cmd.none )
+                    let
+                        isOwner =
+                            Dict.get id model.robots |> Maybe.map (.owner >> (==) model.player) |> Maybe.withDefault False
+                    in
+                    if isOwner then
+                        ( { model | selectedRobot = Just ( ChoosingAction, id ) }, Cmd.none )
+
+                    else
+                        ( model, Cmd.none )
 
                 Just ( ChoosingAction, _ ) ->
                     ( model, Cmd.none )
@@ -245,145 +239,57 @@ updateRobot id fn model =
     { model | robots = Dict.update id (Maybe.map fn) model.robots }
 
 
+getRobotAt : Point -> Dict Int Robot -> Maybe Robot
+getRobotAt point =
+    Dict.filter (\id robot -> robot.location == point)
+        >> Dict.toList
+        >> List.head
+        >> Maybe.map Tuple.second
+
+
 
 -- ANIMATION
-
-
-stateToAnimation : Dict Int Robot -> Robot -> Timeline
-stateToAnimation robots robot =
-    case robot.state of
-        MoveWithTool { target, pending } ->
-            [ SetState robot.id (Idle pending) ]
-                ++ rotateAnimation robot target
-                ++ locationAnimation robot target
-
-        Idle currentTool ->
-            []
-
-        Mine { target, tool } ->
-            let
-                move =
-                    if robot.location /= target then
-                        rotateAnimation robot target
-                            ++ locationAnimation robot target
-
-                    else
-                        []
-            in
-            move
-                ++ [ SetMinerActive robot.id
-                   , MineAt robot.id target
-                   , SetState robot.id (Idle Nothing)
-                   ]
-
-        SelfDestruct currentTool ->
-            Debug.todo "SelfDestruct"
-
-        FireMissile target _ ->
-            let
-                maybeTargetRobot =
-                    -- TODO this will run logic on robots that are already destroyed
-                    Dict.values robots
-                        |> List.Extra.find (\r -> r.location == target)
-                        |> Maybe.map Robot.impact
-
-                targetRobotAnimation =
-                    case maybeTargetRobot of
-                        Just targetRobot ->
-                            if targetRobot.state /= Destroyed then
-                                -- Target has a shield equipped, `Robot.impact` has updated the state
-                                [ SetState targetRobot.id targetRobot.state
-                                , SetState targetRobot.id (Robot.removeShield targetRobot).state
-                                ]
-
-                            else
-                                -- Target will be destroyed
-                                [ SetState targetRobot.id Destroyed ]
-
-                        Nothing ->
-                            []
-            in
-            rotateAnimation robot target
-                ++ [ SetState robot.id (FireMissile target True) ]
-                ++ targetRobotAnimation
-                ++ [ SetState robot.id (Idle Nothing) ]
-
-        FireLaser _ _ ->
-            Debug.todo "FireLaser"
-
-        Destroyed ->
-            Debug.todo "Destroyed"
-
-
-rotateAnimation : Robot -> Point -> List Animation
-rotateAnimation robot target =
-    let
-        angle =
-            Point.angle robot.location target
-    in
-    if angle /= robot.rotation then
-        [ SetRotation robot.id angle ]
-
-    else
-        []
-
-
-locationAnimation : Robot -> Point -> List Animation
-locationAnimation robot target =
-    if target /= robot.location then
-        [ SetLocation robot.id target ]
-
-    else
-        []
 
 
 animate : Model -> ( Model, Cmd Msg )
 animate model =
     case model.timeline of
-        animation :: timeline ->
+        [] ->
+            ( model, Cmd.none )
+
+        next :: rest ->
             let
-                ( newModel, sleepSeconds ) =
-                    applyAnimation animation { model | timeline = timeline }
+                ( newModel, sleepMs ) =
+                    applyAnimation next { model | timeline = rest }
             in
-            if sleepSeconds == 0 then
+            if sleepMs == 0 then
                 animate newModel
 
             else
                 ( newModel
-                , Process.sleep (sleepSeconds * 1000)
-                    |> Task.perform (\() -> NextAnimation)
+                , Process.sleep (toFloat sleepMs) |> Task.perform (\() -> NextAnimation)
                 )
 
-        [] ->
-            ( model, Cmd.none )
 
-
-applyAnimation : Animation -> Model -> ( Model, Float )
-applyAnimation animation model =
-    case animation of
+applyAnimation : Effect -> Model -> ( Model, Int )
+applyAnimation effect model =
+    -- let
+    --     _ =
+    --         case effect of
+    --             Batch _ ->
+    --                 effect
+    --             _ ->
+    --                 Debug.log "applying effect" effect
+    -- in
+    case effect of
         SetLocation id point ->
-            ( updateRobot id (Robot.setLocation point) model
-            , 1
-            )
+            ( updateRobot id (Robot.setLocation point) model, 0 )
 
         SetRotation id rotation ->
-            ( updateRobot id (Robot.setRotation rotation) model
-            , 1
-            )
-
-        SetState id state ->
-            ( updateRobot id (Robot.setState state) model
-            , if state == Idle Nothing then
-                0
-
-              else
-                1
-            )
+            ( updateRobot id (Robot.setRotation rotation) model, 0 )
 
         SetMinerActive id ->
-            ( updateRobot id Robot.setMinerActive model
-            , 1
-            )
+            ( updateRobot id Robot.setMinerActive model, 0 )
 
         MineAt id point ->
             let
@@ -394,6 +300,20 @@ applyAnimation animation model =
                 |> updateRobot id (\robot -> { robot | mined = robot.mined + mined })
             , 0
             )
+
+        SetState id state ->
+            ( updateRobot id (Robot.setState state) model, 0 )
+
+        Impact point ->
+            case getRobotAt point model.robots of
+                Just robot ->
+                    ( updateRobot robot.id Robot.impact model, 0 )
+
+                Nothing ->
+                    ( model, 0 )
+
+        Wait ms ->
+            ( model, ms )
 
 
 
@@ -530,7 +450,7 @@ viewRobot robot =
             View.Robot.use
                 robot.location
                 robot.rotation
-                Color.blue
+                (Players.color robot.owner)
 
         targetSvg =
             case Robot.getTarget robot of
@@ -594,10 +514,6 @@ viewMiner robot =
 
         _ ->
             text ""
-
-
-
--- View.Miner.use robot.location robot.rotation
 
 
 viewHeliumGrid : HeliumGrid -> Svg msg
