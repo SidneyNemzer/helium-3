@@ -46,6 +46,7 @@ type alias Model =
     , helium : HeliumGrid
     , players : Players
     , player : PlayerIndex
+    , turn : PlayerIndex
     }
 
 
@@ -80,6 +81,7 @@ init () =
                 |> Tuple.first
       , players = Players.init
       , player = Player2
+      , turn = Player1
       }
     , Cmd.none
     )
@@ -105,11 +107,12 @@ update msg model =
                 { model
                     | timeline =
                         Dict.values model.robots
+                            |> List.filter (\robot -> robot.owner == model.turn)
                             |> List.foldl
                                 (\robot timeline ->
                                     Effect.fromRobot robot ++ timeline
                                 )
-                                Effect.none
+                                [ ChangeTurn ]
                 }
 
         DeselectRobot ->
@@ -310,6 +313,9 @@ animateHelp effect model =
                 Nothing ->
                     ( model, 0 )
 
+        ChangeTurn ->
+            ( { model | turn = Players.next model.turn }, 0 )
+
         Wait ms ->
             ( model, ms )
 
@@ -343,7 +349,14 @@ view model =
             ]
             [ div [ style "flex-shrink" "0", style "padding" "20px" ]
                 [ viewPlayers model.players model.player
-                , button [ onClick StartTurn ] [ text "Next" ]
+                , div []
+                    [ text "Current Turn: "
+                    , span [ style "color" (Players.color model.turn) ]
+                        [ text "Player "
+                        , text <| String.fromInt <| Players.toNumber model.turn
+                        ]
+                    ]
+                , button [ onClick StartTurn ] [ text "End Turn" ]
                 ]
             , svg
                 [ style "max-height" "100vh"

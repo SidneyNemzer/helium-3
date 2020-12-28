@@ -15,6 +15,7 @@ type Effect
     | MineAt Int Point
     | SetState Int State
     | Impact Point
+    | ChangeTurn
     | Wait Int
 
 

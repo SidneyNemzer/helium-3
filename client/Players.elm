@@ -104,3 +104,19 @@ addScore id score players =
             get id players
     in
     set { player | score = player.score + score } players
+
+
+next : PlayerIndex -> PlayerIndex
+next id =
+    case id of
+        Player1 ->
+            Player2
+
+        Player2 ->
+            Player3
+
+        Player3 ->
+            Player4
+
+        Player4 ->
+            Player1
