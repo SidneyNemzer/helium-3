@@ -6,14 +6,14 @@ import Color
 import Dict exposing (Dict)
 import Effect exposing (Effect(..), Timeline)
 import HeliumGrid exposing (HeliumGrid)
-import Html exposing (Html, button, text)
+import Html exposing (Html, button, div, span, text)
 import Html.Attributes exposing (style)
 import Html.Events exposing (onClick)
 import List
 import List.Extra
 import Matrix
 import Maybe.Extra
-import Players exposing (PlayerIndex(..), Players)
+import Players exposing (Player, PlayerIndex(..), Players)
 import Point exposing (Point)
 import Process
 import Random
@@ -288,7 +288,13 @@ animateHelp effect model =
                 ( ground, mined ) =
                     HeliumGrid.mine point model.helium
             in
-            ( { model | helium = ground }
+            ( { model
+                | helium = ground
+                , players =
+                    Dict.get id model.robots
+                        |> Maybe.map (\robot -> Players.addScore robot.owner mined model.players)
+                        |> Maybe.withDefault model.players
+              }
                 |> updateRobot id (\robot -> { robot | mined = robot.mined + mined })
             , 0
             )
@@ -331,27 +337,34 @@ view model =
     , body =
         [ View.Missile.style
         , View.Grid.style
-        , button [ onClick StartTurn ] [ text "Next" ]
         , viewActionPicker model.robots model.selectedRobot
-        , svg
-            [ style "max-height" "100vh"
-            , style "max-width" "100vw"
-            , style "width" "100%"
-            , style "height" "100%"
-            , viewBox View.Grid.viewBox
+        , div
+            [ style "display" "flex"
             ]
-            ([ defs []
-                [ View.Robot.def
-                , View.Missile.def
-                , View.Shield.def
-                , View.Miner.def
+            [ div [ style "flex-shrink" "0", style "padding" "20px" ]
+                [ viewPlayers model.players model.player
+                , button [ onClick StartTurn ] [ text "Next" ]
                 ]
-             , View.Grid.grid
-             , viewHeliumGrid model.helium
-             , viewSelection model
-             ]
-                ++ robots
-            )
+            , svg
+                [ style "max-height" "100vh"
+                , style "max-width" "100vw"
+                , style "width" "100%"
+                , style "height" "100%"
+                , viewBox View.Grid.viewBox
+                ]
+                ([ defs []
+                    [ View.Robot.def
+                    , View.Missile.def
+                    , View.Shield.def
+                    , View.Miner.def
+                    ]
+                 , View.Grid.grid
+                 , viewHeliumGrid model.helium
+                 , viewSelection model
+                 ]
+                    ++ robots
+                )
+            ]
         ]
     }
 
@@ -386,6 +399,34 @@ viewActionPickerHelp robot =
         , shield = ChooseAction ChoosingShieldLocation
         , mine = ChooseAction ChoosingMineLocation
         }
+
+
+viewPlayers : Players -> PlayerIndex -> Html Msg
+viewPlayers players self =
+    div []
+        [ viewPlayer players.player1 (Player1 == self)
+        , viewPlayer players.player2 (Player2 == self)
+        , viewPlayer players.player3 (Player3 == self)
+        , viewPlayer players.player4 (Player4 == self)
+        ]
+
+
+viewPlayer : Player -> Bool -> Html Msg
+viewPlayer player isSelf =
+    div [ style "padding-bottom" "10px" ]
+        [ div []
+            [ span [ style "color" (Players.color player.id) ]
+                [ text "Player "
+                , text <| String.fromInt <| Players.toNumber player.id
+                ]
+            , if isSelf then
+                text " (you)"
+
+              else
+                text ""
+            ]
+        , div [] [ text (String.fromInt player.score) ]
+        ]
 
 
 viewSelection : Model -> Svg Msg

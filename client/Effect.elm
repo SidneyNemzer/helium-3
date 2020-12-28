@@ -95,8 +95,8 @@ fromRobot robot =
         Mine { target, tool } ->
             move robot target
                 ++ [ SetMinerActive robot.id
-                   , Wait 1000
                    , MineAt robot.id target
+                   , Wait 1000
                    ]
                 ++ setIdle robot Nothing
 
