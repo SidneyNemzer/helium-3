@@ -124,7 +124,9 @@ update msg model =
                 Nothing ->
                     let
                         isOwner =
-                            Dict.get id model.robots |> Maybe.map (.owner >> (==) model.player) |> Maybe.withDefault False
+                            Dict.get id model.robots
+                                |> Maybe.map (.owner >> (==) model.player)
+                                |> Maybe.withDefault False
                     in
                     if isOwner then
                         ( { model | selectedRobot = Just ( ChoosingAction, id ) }, Cmd.none )
@@ -308,7 +310,23 @@ animateHelp effect model =
         Impact point ->
             case getRobotAt point model.robots of
                 Just robot ->
-                    ( updateRobot robot.id Robot.impact model, 0 )
+                    let
+                        impacted =
+                            Robot.impact robot
+
+                        animation =
+                            if impacted.state /= Destroyed then
+                                [ Wait 1000
+                                , SetState robot.id (Robot.removeShield impacted).state
+                                ]
+
+                            else
+                                []
+                    in
+                    ( { model | timeline = animation ++ model.timeline }
+                        |> updateRobot robot.id (\_ -> impacted)
+                    , 0
+                    )
 
                 Nothing ->
                     ( model, 0 )
@@ -343,6 +361,7 @@ view model =
     , body =
         [ View.Missile.style
         , View.Grid.style
+        , View.Shield.style
         , viewActionPicker model.robots model.selectedRobot
         , div
             [ style "display" "flex"
@@ -528,8 +547,7 @@ viewTool : Robot -> Robot.Tool -> Svg msg
 viewTool robot tool =
     case tool of
         ToolShield highlight ->
-            -- TODO highlight
-            View.Shield.use robot.location robot.rotation
+            View.Shield.use robot.location robot.rotation highlight
 
         ToolLaser ->
             -- TODO

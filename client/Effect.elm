@@ -1,7 +1,7 @@
 module Effect exposing (..)
 
 import Point exposing (Point)
-import Robot exposing (Robot, State(..), Tool)
+import Robot exposing (Robot, State(..), Tool(..))
 
 
 type alias Timeline =
@@ -81,13 +81,25 @@ fromRobot robot =
     case robot.state of
         MoveWithTool { target, pending } ->
             batch
-                [ setIdle robot pending
-                , if pending /= Nothing then
-                    [ Wait 1000 ]
+                [ if pending /= Just (ToolShield False) then
+                    batch
+                        [ setIdle robot pending
+                        , if pending /= Nothing then
+                            [ Wait 1000 ]
+
+                          else
+                            none
+                        ]
+
+                  else
+                    -- shield will appear at the end of the move
+                    setIdle robot Nothing
+                , move robot target
+                , if pending == Just (ToolShield False) then
+                    setIdle robot (Just (ToolShield False))
 
                   else
                     none
-                , move robot target
                 ]
 
         Idle currentTool ->
@@ -105,12 +117,14 @@ fromRobot robot =
             Debug.todo "SelfDestruct"
 
         FireMissile target _ ->
-            rotate robot target
-                ++ [ SetState robot.id (FireMissile target True)
-                   , Wait 1000
-                   , Impact target
-                   ]
-                ++ setIdle robot Nothing
+            batch
+                [ rotate robot target
+                , [ SetState robot.id (FireMissile target True)
+                  , Wait 1000
+                  ]
+                , setIdle robot Nothing
+                , [ Impact target ]
+                ]
 
         FireLaser _ _ ->
             Debug.todo "FireLaser"

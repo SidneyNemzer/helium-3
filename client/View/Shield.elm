@@ -1,5 +1,6 @@
 module View.Shield exposing (..)
 
+import Html exposing (Html, text)
 import Html.Attributes as HA
 import Point exposing (Point)
 import Svg exposing (Svg, rect, svg)
@@ -38,8 +39,21 @@ shield point rotation =
         ]
 
 
-use : Point -> Float -> Svg msg
-use point rotation =
+style : Html msg
+style =
+    Html.node "style"
+        []
+        [ text """
+            @keyframes fade {
+              from { opacity: 1; }
+              to { opacity: 0; }
+            }
+          """
+        ]
+
+
+use : Point -> Float -> Bool -> Svg msg
+use point rotation highlight =
     let
         ( x_, y_ ) =
             Point.toXY point
@@ -55,16 +69,28 @@ use point rotation =
                 ++ " "
                 ++ center
                 ++ ")"
+
+        highlightAttr =
+            if highlight then
+                -- TODO shield should become bright, but the fill does not work here
+                [ fill "#ffffff"
+                , HA.style "animation" "1s linear fade"
+                ]
+
+            else
+                []
     in
     Svg.use
-        [ xlinkHref "#robot_shield"
-        , x <| String.fromFloat <| toFloat x_ * 2 - 0.5
-        , y <| String.fromFloat <| toFloat y_ * 2 - 0.5
-        , transform rotate
-        , HA.style "transition" "x 1s, y 1s, transform 1s"
-        , width "3"
-        , height "3"
-        ]
+        ([ xlinkHref "#robot_shield"
+         , x <| String.fromFloat <| toFloat x_ * 2 - 0.5
+         , y <| String.fromFloat <| toFloat y_ * 2 - 0.5
+         , transform rotate
+         , HA.style "transition" "x 1s, y 1s, transform 1s"
+         , width "3"
+         , height "3"
+         ]
+            ++ highlightAttr
+        )
         []
 
 
