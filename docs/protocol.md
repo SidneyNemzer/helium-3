@@ -32,7 +32,7 @@ type ServerAction =
     }
   | { type: "ARM_LASER"; robot: RobotId; target: Point }
   // robots that are in range but not `destroyed` were shielded
-  | { type: "KAMAKAZIE"; robot: RobotId; destroyed: RobotId[] }
+  | { type: "SELF_DESTRUCT"; robot: RobotId; destroyed: RobotId[] }
   | { type: "MOVE"; robot: RobotId; target: Point }
   | { type: "MINE"; robot: RobotId; target: Point };
 
@@ -42,7 +42,7 @@ type ClientAction =
   | { action: "FIRE_LASER"; robot: RobotId; target: number }
   | { action: "ARM_LASER"; robot: RobotId; target: Point }
   | { action: "SHIELD"; robot: RobotId; target: Point }
-  | { action: "KAMAKAZIE"; robot: RobotId }
+  | { action: "SELF_DESTRUCT"; robot: RobotId }
   | { action: "MOVE"; robot: RobotId; target: Point }
   | { action: "MINE"; robot: RobotId; target: Point };
 ```
