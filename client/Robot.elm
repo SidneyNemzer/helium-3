@@ -186,27 +186,27 @@ getTool robot =
             Nothing
 
 
-impact : Robot -> Robot
-impact robot =
+impact : Bool -> Robot -> Robot
+impact forceShield robot =
     { robot
         | state =
             case robot.state of
                 MoveWithTool ({ current } as state) ->
-                    if current == Just (ToolShield False) then
+                    if current == Just (ToolShield False) || forceShield then
                         MoveWithTool { state | current = Just (ToolShield True) }
 
                     else
                         Destroyed
 
                 Idle current ->
-                    if current == Just (ToolShield False) then
+                    if current == Just (ToolShield False) || forceShield then
                         Idle (Just (ToolShield True))
 
                     else
                         Destroyed
 
                 SelfDestruct current ->
-                    if current == Just (ToolShield False) then
+                    if current == Just (ToolShield False) || forceShield then
                         SelfDestruct (Just (ToolShield True))
 
                     else
@@ -219,7 +219,7 @@ impact robot =
                     Destroyed
 
                 Mine ({ tool } as state) ->
-                    if tool == Just (ToolShield False) then
+                    if tool == Just (ToolShield False) || forceShield then
                         Mine { state | tool = Just (ToolShield True) }
 
                     else
@@ -305,5 +305,5 @@ setMinerActive robot =
                     Mine { state | active = True }
 
                 _ ->
-                    robot.state
+                    Mine { target = robot.location, tool = Nothing, active = True }
     }

@@ -2,6 +2,7 @@ module Effect exposing (..)
 
 import Point exposing (Point)
 import Robot exposing (Robot, State(..), Tool(..))
+import ServerAction exposing (ServerAction)
 
 
 type alias Timeline =
@@ -14,7 +15,7 @@ type Effect
     | SetMinerActive Int
     | MineAt Int Point
     | SetState Int State
-    | Impact Point
+    | Impact Point Bool
     | ChangeTurn
     | Wait Int
 
@@ -76,58 +77,90 @@ batch =
     List.concat
 
 
+fireMissile : Robot -> Point -> Bool -> Timeline
+fireMissile robot target forceShield =
+    batch
+        [ rotate robot target
+        , [ SetState robot.id (FireMissile target True)
+          , Wait 1000
+          ]
+        , setIdle robot Nothing
+        , [ Impact target forceShield ]
+        ]
+
+
+moveWithTool : Robot -> Point -> Maybe Tool -> Timeline
+moveWithTool robot target tool =
+    if tool == Just (ToolShield False) then
+        batch
+            [ setIdle robot Nothing
+            , move robot target
+            , setIdle robot (Just (ToolShield False))
+            ]
+
+    else
+        batch
+            [ setIdle robot tool
+            , if tool /= Nothing then
+                [ Wait 1000 ]
+
+              else
+                none
+            , move robot target
+            ]
+
+
+mine : Robot -> Point -> Timeline
+mine robot target =
+    batch
+        [ move robot target
+        , [ SetMinerActive robot.id
+          , MineAt robot.id target
+          , Wait 1000
+          ]
+        , setIdle robot Nothing
+        ]
+
+
 fromRobot : Robot -> Timeline
 fromRobot robot =
     case robot.state of
         MoveWithTool { target, pending } ->
-            batch
-                [ if pending /= Just (ToolShield False) then
-                    batch
-                        [ setIdle robot pending
-                        , if pending /= Nothing then
-                            [ Wait 1000 ]
-
-                          else
-                            none
-                        ]
-
-                  else
-                    -- shield will appear at the end of the move
-                    setIdle robot Nothing
-                , move robot target
-                , if pending == Just (ToolShield False) then
-                    setIdle robot (Just (ToolShield False))
-
-                  else
-                    none
-                ]
+            moveWithTool robot target pending
 
         Idle currentTool ->
             none
 
-        Mine { target, tool } ->
-            move robot target
-                ++ [ SetMinerActive robot.id
-                   , MineAt robot.id target
-                   , Wait 1000
-                   ]
-                ++ setIdle robot Nothing
+        Mine { target } ->
+            mine robot target
 
         SelfDestruct currentTool ->
             Debug.todo "SelfDestruct"
 
         FireMissile target _ ->
-            batch
-                [ rotate robot target
-                , [ SetState robot.id (FireMissile target True)
-                  , Wait 1000
-                  ]
-                , setIdle robot Nothing
-                , [ Impact target ]
-                ]
+            fireMissile robot target False
 
         FireLaser _ _ ->
             Debug.todo "FireLaser"
 
         Destroyed ->
             none
+
+
+fromServer : ServerAction -> Robot -> Timeline
+fromServer action robot =
+    case action of
+        ServerAction.FireMissile args ->
+            fireMissile robot args.target args.shield
+
+        ServerAction.ArmMissile _ target ->
+            moveWithTool robot target (Just ToolMissile)
+
+        ServerAction.SelfDestruct args ->
+            Debug.todo "SelfDestruct"
+
+        ServerAction.Move _ target ->
+            moveWithTool robot target Nothing
+
+        ServerAction.Mine _ target ->
+            mine robot target

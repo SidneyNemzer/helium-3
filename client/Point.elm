@@ -2,6 +2,7 @@ module Point exposing
     ( Point
     , angle
     , around
+    , decoder
     , fromTuple
     , fromXY
     , generator
@@ -11,6 +12,8 @@ module Point exposing
     , toXY
     )
 
+import Json.Decode as Decode exposing (Decoder)
+import Json.Decode.Extra as Decode
 import List.Extra
 import Random
 
@@ -83,3 +86,10 @@ angle (Point x1 y1) (Point x2 y2) =
 isInsideGrid : Point -> Bool
 isInsideGrid (Point x y) =
     x >= 0 && x < 20 && y >= 0 && y < 20
+
+
+decoder : Decoder Point
+decoder =
+    Decode.succeed fromXY
+        |> Decode.andMap (Decode.field "x" Decode.int)
+        |> Decode.andMap (Decode.field "y" Decode.int)

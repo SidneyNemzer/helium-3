@@ -1,3 +1,5 @@
 import { Elm } from "./Client.elm";
 
-Elm.Page.Client.init();
+const app = Elm.Page.Client.init();
+
+window.app = app;

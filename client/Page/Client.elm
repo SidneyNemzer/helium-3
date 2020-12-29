@@ -9,15 +9,18 @@ import HeliumGrid exposing (HeliumGrid)
 import Html exposing (Html, button, div, span, text)
 import Html.Attributes exposing (style)
 import Html.Events exposing (onClick)
+import Json.Decode exposing (Error)
 import List
 import List.Extra
 import Matrix
 import Maybe.Extra
 import Players exposing (Player, PlayerIndex(..), Players)
 import Point exposing (Point)
+import Ports
 import Process
 import Random
 import Robot exposing (Robot, State(..), Tool(..))
+import ServerAction exposing (ServerAction)
 import Svg exposing (Svg, defs, g, rect, svg)
 import Svg.Attributes exposing (color, fill, height, stroke, viewBox, width, x, y)
 import Task
@@ -94,6 +97,7 @@ type Msg
     | ClickRobot Int
     | ChooseAction Selection
     | ClickPoint Point
+    | OnActionReceived (Result Error (List ServerAction))
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -238,6 +242,31 @@ update msg model =
                 Nothing ->
                     ( model, Cmd.none )
 
+        OnActionReceived result ->
+            result
+                |> Result.map (onActionRecieved model)
+                -- TODO handle errors
+                |> Result.withDefault ( model, Cmd.none )
+
+
+onActionRecieved : Model -> List ServerAction -> ( Model, Cmd Msg )
+onActionRecieved model actions =
+    animate
+        { model
+            | timeline =
+                List.foldl
+                    (\action timeline ->
+                        case Dict.get (ServerAction.id action) model.robots of
+                            Just robot ->
+                                Effect.fromServer action robot ++ timeline
+
+                            Nothing ->
+                                timeline
+                    )
+                    [ ChangeTurn ]
+                    actions
+        }
+
 
 updateRobot : Int -> (Robot -> Robot) -> Model -> Model
 updateRobot id fn model =
@@ -307,12 +336,12 @@ animateHelp effect model =
         SetState id state ->
             ( updateRobot id (Robot.setState state) model, 0 )
 
-        Impact point ->
+        Impact point forceShield ->
             case getRobotAt point model.robots of
                 Just robot ->
                     let
                         impacted =
-                            Robot.impact robot
+                            Robot.impact forceShield robot
 
                         animation =
                             if impacted.state /= Destroyed then
@@ -344,7 +373,9 @@ animateHelp effect model =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.none
+    Sub.batch
+        [ Ports.onActionReceived OnActionReceived
+        ]
 
 
 
