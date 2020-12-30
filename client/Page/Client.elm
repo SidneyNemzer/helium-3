@@ -65,6 +65,7 @@ type Selection
 
 -- | ChoosingLaserTarget
 -- | ChoosingArmLaserLocation
+-- | ChoosingSelfDestructLocation
 
 
 init : () -> ( Model, Cmd Msg )
