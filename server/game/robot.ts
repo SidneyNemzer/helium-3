@@ -1,51 +1,51 @@
-import { Game } from './game'
-import { Point } from './point'
-import { Player } from './player'
+import { Game } from "./game";
+import { Point } from "./point";
+import { Player } from "./player";
 
 export enum ActionType {
-  FIRE_MISSILE = 'FIRE_MISSILE',
-  ARM_MISSILE = 'ARM_MISSILE',
-  FIRE_LASER = 'FIRE_LASER',
-  ARM_LASER = 'ARM_LASER',
-  SHIELD = 'SHIELD',
-  KAMAKAZIE = 'KAMAKAZIE',
-  MOVE = 'MOVE',
-  MINE = 'MINE'
+  FIRE_MISSILE = "FIRE_MISSILE",
+  ARM_MISSILE = "ARM_MISSILE",
+  FIRE_LASER = "FIRE_LASER",
+  ARM_LASER = "ARM_LASER",
+  SHIELD = "SHIELD",
+  KAMAKAZIE = "KAMAKAZIE",
+  MOVE = "MOVE",
+  MINE = "MINE",
 }
 
-export type Action
-  = { type: ActionType.FIRE_MISSILE, target: Point }
-  | { type: ActionType.ARM_MISSILE, target: Point }
-  | { type: ActionType.FIRE_LASER, target: number }
-  | { type: ActionType.ARM_LASER, target: Point }
-  | { type: ActionType.SHIELD, target: Point }
+export type Action =
+  | { type: ActionType.FIRE_MISSILE; target: Point }
+  | { type: ActionType.ARM_MISSILE; target: Point }
+  | { type: ActionType.FIRE_LASER; target: number }
+  | { type: ActionType.ARM_LASER; target: Point }
+  | { type: ActionType.SHIELD; target: Point }
   | { type: ActionType.KAMAKAZIE }
-  | { type: ActionType.MOVE, target: Point }
-  | { type: ActionType.MINE, target: Point }
+  | { type: ActionType.MOVE; target: Point }
+  | { type: ActionType.MINE; target: Point };
 
 export enum Tool {
-  MISSILE = 'MISSILE',
-  LASER = 'LASER',
-  SHIELD = 'SHIELD'
+  MISSILE = "MISSILE",
+  LASER = "LASER",
+  SHIELD = "SHIELD",
 }
 
 export class Robot {
-  location: Point
-  tool: Tool | null
-  action: Action | null
-  game: Game
-  player: Player
-  helium3: number
-  destroyed: boolean
+  location: Point;
+  tool: Tool | null;
+  action: Action | null;
+  game: Game;
+  player: Player;
+  helium3: number;
+  destroyed: boolean;
 
   constructor(game: Game, player: Player, start: Point) {
-    this.location = start
-    this.tool = null
-    this.action = null
-    this.game = game
-    this.helium3 = 0
-    this.player = player
-    this.destroyed = false
+    this.location = start;
+    this.tool = null;
+    this.action = null;
+    this.game = game;
+    this.helium3 = 0;
+    this.player = player;
+    this.destroyed = false;
   }
 
   /**
@@ -54,97 +54,95 @@ export class Robot {
    */
   target = (): Point | null => {
     if (
-      this.action
-      && this.action.type !== ActionType.KAMAKAZIE
-      && this.action.type !== ActionType.FIRE_LASER
+      this.action &&
+      this.action.type !== ActionType.KAMAKAZIE &&
+      this.action.type !== ActionType.FIRE_LASER
     ) {
-      return this.action.target
+      return this.action.target;
     }
-    return null
-  }
+    return null;
+  };
 
   move = () => {
-    const { action } = this
+    const { action } = this;
     if (!action) {
-      return
+      return;
     }
-    this.action = null
-    const location = this.location
+    this.action = null;
+    const location = this.location;
 
     switch (action.type) {
       case ActionType.FIRE_MISSILE:
-        this.tool = null
-        this.game.hit(action.target)
-        break
+        this.tool = null;
+        this.game.hit(action.target);
+        break;
 
       case ActionType.ARM_MISSILE:
-        this.tool = Tool.MISSILE
-        this.location = action.target
-        break
+        this.tool = Tool.MISSILE;
+        this.location = action.target;
+        break;
 
       case ActionType.FIRE_LASER:
-        this.tool = null
-        this.game.hitInLine(this.location, action.target)
-        break
+        this.tool = null;
+        this.game.hitInLine(this.location, action.target);
+        break;
 
       case ActionType.ARM_LASER:
-        this.tool = Tool.LASER
-        this.location = action.target
-        break
+        this.tool = Tool.LASER;
+        this.location = action.target;
+        break;
 
       case ActionType.SHIELD:
-        this.tool = Tool.SHIELD
-        this.location = action.target
-        break
+        this.tool = Tool.SHIELD;
+        this.location = action.target;
+        break;
 
       case ActionType.KAMAKAZIE:
-        const robotsAround = <Robot[]> this.location
-            .around(true)
-            .map(this.game.robotAt)
-            .filter(Boolean) // TypeScript doesn't understand this so we have to cast to <Robot[]>
-        robotsAround
-          .forEach((robot: Robot) => {
-            robot.hit()
-          })
-        break
+        const robotsAround = <Robot[]>(
+          this.location.around(true).map(this.game.robotAt).filter(Boolean)
+        ); // TypeScript doesn't understand this so we have to cast to <Robot[]>
+        robotsAround.forEach((robot: Robot) => {
+          robot.hit();
+        });
+        break;
 
       case ActionType.MOVE:
-        this.location = action.target
-        this.tool = null
-        break
+        this.location = action.target;
+        this.tool = null;
+        break;
 
       case ActionType.MINE:
-        this.location = action.target
-        this.tool = null
-        const mined = this.game.helium3.mine(action.target)
-        this.helium3 += mined
-        this.player.helium3 += mined
-        break
+        this.location = action.target;
+        this.tool = null;
+        const mined = this.game.helium3.mine(action.target);
+        this.helium3 += mined;
+        this.player.helium3 += mined;
+        break;
     }
 
     if (this.location !== location) {
-      this.game.eachRobot(robot => {
+      this.game.eachRobot((robot) => {
         if (robot !== this && robot.target() === location) {
-          robot.action = null
+          robot.action = null;
         }
-      })
+      });
     }
-  }
+  };
 
   /**
    * Damages the robot, possibly destroying it
    */
   hit = (): boolean => {
     if (this.tool === Tool.SHIELD) {
-      this.tool = null
-      return false
+      this.tool = null;
+      return false;
     }
-    const lostHelium3 = this.helium3 * 0.5
-    this.destroyed = true
-    this.player.helium3 -= lostHelium3
-    this.game.helium3.drop(this.location, lostHelium3)
-    return true
-  }
+    const lostHelium3 = this.helium3 * 0.5;
+    this.destroyed = true;
+    this.player.helium3 -= lostHelium3;
+    this.game.helium3.drop(this.location, lostHelium3);
+    return true;
+  };
 
   toJSON = () => {
     return {
@@ -152,7 +150,7 @@ export class Robot {
       tool: this.tool,
       action: this.action,
       helium3: this.helium3,
-      destroyed: this.destroyed
-    }
-  }
+      destroyed: this.destroyed,
+    };
+  };
 }

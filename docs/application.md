@@ -1,4 +1,4 @@
-*This document explains how the application works and how the code is organized. It will change over time. If you notice inconsistencies, feel free to open an issue or pull request.*
+_This document explains how the application works and how the code is organized. It will change over time. If you notice inconsistencies, feel free to open an issue or pull request._
 
 # Structure
 

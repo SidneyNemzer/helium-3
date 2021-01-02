@@ -1,17 +1,14 @@
 export class Point {
-  readonly x: number
-  readonly y: number
+  readonly x: number;
+  readonly y: number;
   constructor(x: number, y: number) {
-    this.x = x
-    this.y = y
+    this.x = x;
+    this.y = y;
   }
 
   translate = (tx: number, ty: number): Point => {
-    return new Point(
-      this.x + tx,
-      this.y + ty
-    )
-  }
+    return new Point(this.x + tx, this.y + ty);
+  };
 
   /**
    * Returns an array of the points around this point
@@ -26,22 +23,22 @@ export class Point {
       this.translate(0, 1),
       this.translate(-1, -1),
       this.translate(-1, 0),
-      this.translate(-1, 1)
-    ].concat(includeCenter ? [ this ] : [])
-  }
+      this.translate(-1, 1),
+    ].concat(includeCenter ? [this] : []);
+  };
 
   within = (width: number, height: number) => {
-    return this.x >= 0 && this.y >= 0 && this.x < width && this.y < height
-  }
+    return this.x >= 0 && this.y >= 0 && this.x < width && this.y < height;
+  };
 
   /**
    * Returns true if this point has the same x and y as the given point
    */
   equals = (point: Point): boolean => {
-    return this.x === point.x && this.y === point.y
-  }
+    return this.x === point.x && this.y === point.y;
+  };
 
   toJSON = () => {
-    return { x: this.x, y: this.y }
-  }
+    return { x: this.x, y: this.y };
+  };
 }
