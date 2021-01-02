@@ -20,6 +20,7 @@ module.exports = (env, args) => {
   return {
     mode: args.mode || 'development',
 
+    // TODO entry names will end in `.js` so output file ends with `.js.js`
     entry: entries.reduce((map, name) => {
       map[name] = path.resolve(ROOT, SOURCE, 'Page', name)
       return map
@@ -33,17 +34,23 @@ module.exports = (env, args) => {
           test: /\.elm$/,
           exclude: [/elm-stuff/, /node_modules/],
           loader: 'elm-webpack-loader',
-          options: { cwd: ROOT, debug: false }
+          options: { 
+            cwd: ROOT,
+            debug: false,
+            files: [
+              path.resolve(ROOT, SOURCE, 'Page/Client.elm'),
+              path.resolve(ROOT, SOURCE, 'Server.elm')
+            ]
+          }
         }
       ]
     },
 
     plugins: entries.map(name =>
       new HtmlWebpackPlugin({
-        title: 'Helium 3',
         filename: name.replace('.entry.js', '.html'),
-        inject: true,
-        chunks: [ name ]
+        chunks: [ name ],
+        template: 'client/index.html'
       })
     )
   }

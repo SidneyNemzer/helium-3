@@ -1,15 +1,22 @@
-port module Ports exposing (onActionReceived)
+port module Ports exposing (endTurn, log, onEndTurn)
 
 import Json.Decode as Decode exposing (Error, Value)
-import ServerAction exposing (ServerAction)
 
 
-onActionReceived : (Result Error (List ServerAction) -> msg) -> Sub msg
-onActionReceived msg =
-    onActionReceived_
-        (Decode.decodeValue (Decode.list ServerAction.decoder)
-            >> msg
-        )
+port log : String -> Cmd msg
 
 
-port onActionReceived_ : (Value -> msg) -> Sub msg
+endTurn : Cmd msg
+endTurn =
+    endTurn_ ()
+
+
+port endTurn_ : () -> Cmd msg
+
+
+onEndTurn : msg -> Sub msg
+onEndTurn msg =
+    onEndTurn_ (\_ -> msg)
+
+
+port onEndTurn_ : (() -> msg) -> Sub msg

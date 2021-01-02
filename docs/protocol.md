@@ -34,6 +34,8 @@ type ServerAction =
   // robots that are in range but not `destroyed` were shielded
   | { type: "SELF_DESTRUCT"; robot: RobotId; destroyed: RobotId[] }
   | { type: "MOVE"; robot: RobotId; target: Point }
+  // Only the owner sees their robot's shields. Other players just receive a "move" action.
+  | { type: "SHIELD"; robot: RobotId; target: Point }
   | { type: "MINE"; robot: RobotId; target: Point };
 
 type ClientAction =

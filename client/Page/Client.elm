@@ -2,6 +2,7 @@ module Page.Client exposing (main)
 
 import Array exposing (Array)
 import Browser
+import ClientAction exposing (ClientAction(..))
 import Color
 import Dict exposing (Dict)
 import Effect exposing (Effect(..), Timeline)
@@ -19,7 +20,7 @@ import Point exposing (Point)
 import Ports
 import Process
 import Random
-import Robot exposing (Robot, State(..), Tool(..))
+import Robot exposing (Robot, State, Tool(..))
 import ServerAction exposing (ServerAction)
 import Svg exposing (Svg, defs, g, rect, svg)
 import Svg.Attributes exposing (color, fill, height, stroke, viewBox, width, x, y)
@@ -32,14 +33,18 @@ import View.RobotActions
 import View.Shield
 
 
-main : Program () Model Msg
+main : Program Flags Model Msg
 main =
-    Browser.document
+    Browser.element
         { init = init
         , update = update
         , subscriptions = subscriptions
         , view = view
         }
+
+
+type alias Flags =
+    { player : Int }
 
 
 type alias Model =
@@ -68,8 +73,8 @@ type Selection
 -- | ChoosingSelfDestructLocation
 
 
-init : () -> ( Model, Cmd Msg )
-init () =
+init : Flags -> ( Model, Cmd Msg )
+init { player } =
     ( { robots =
             Dict.fromList
                 [ ( 0, Robot.init 0 (Point.fromXY 2 2) Player1 )
@@ -84,7 +89,7 @@ init () =
                 |> Random.step HeliumGrid.generator
                 |> Tuple.first
       , players = Players.init
-      , player = Player2
+      , player = Players.fromNumber player
       , turn = Player1
       }
     , Cmd.none
@@ -108,17 +113,7 @@ update msg model =
             animate model
 
         StartTurn ->
-            animate
-                { model
-                    | timeline =
-                        Dict.values model.robots
-                            |> List.filter (\robot -> robot.owner == model.turn)
-                            |> List.foldl
-                                (\robot timeline ->
-                                    Effect.fromRobot robot ++ timeline
-                                )
-                                [ ChangeTurn ]
-                }
+            ( model, Ports.endTurn )
 
         DeselectRobot ->
             ( { model | selectedRobot = Nothing }, Cmd.none )
@@ -147,51 +142,34 @@ update msg model =
 
                 Just ( ChoosingArmMissileLocation, otherId ) ->
                     if otherId == id then
-                        ( { model | selectedRobot = Nothing }
-                            |> updateRobot id (\robot -> Robot.move (Just ToolMissile) robot.location robot)
-                        , Cmd.none
-                        )
+                        queueActionAt ArmMissile id model
 
                     else
                         ( model, Cmd.none )
 
                 Just ( ChoosingShieldLocation, otherId ) ->
                     if otherId == id then
-                        ( { model | selectedRobot = Nothing }
-                            |> updateRobot id (\robot -> Robot.move (Just (ToolShield False)) robot.location robot)
-                        , Cmd.none
-                        )
+                        queueActionAt Shield id model
 
                     else
                         ( model, Cmd.none )
 
                 Just ( ChoosingFireMissileLocation, selectedId ) ->
                     let
-                        maybePoint =
+                        maybeTarget =
                             Dict.get id model.robots
                                 |> Maybe.map .location
                     in
-                    ( { model
-                        | robots =
-                            Dict.update selectedId
-                                (Maybe.map2
-                                    (\point ->
-                                        Robot.setState (FireMissile point False)
-                                    )
-                                    maybePoint
-                                )
-                                model.robots
-                        , selectedRobot = Nothing
-                      }
-                    , Cmd.none
-                    )
+                    case maybeTarget of
+                        Just target ->
+                            queueAction (FireMissile selectedId target) model
+
+                        Nothing ->
+                            ( model, Cmd.none )
 
                 Just ( ChoosingMineLocation, otherId ) ->
                     if otherId == id then
-                        ( { model | selectedRobot = Nothing }
-                            |> updateRobot id (\robot -> Robot.queueMine robot.location robot)
-                        , Cmd.none
-                        )
+                        queueActionAt Mine id model
 
                     else
                         ( model, Cmd.none )
@@ -208,34 +186,19 @@ update msg model =
         ClickPoint point ->
             case model.selectedRobot of
                 Just ( ChoosingMoveLocation, id ) ->
-                    ( { model | selectedRobot = Nothing }
-                        |> updateRobot id (Robot.move Nothing point)
-                    , Cmd.none
-                    )
+                    queueAction (Move id point) model
 
                 Just ( ChoosingArmMissileLocation, id ) ->
-                    ( { model | selectedRobot = Nothing }
-                        |> updateRobot id (Robot.move (Just ToolMissile) point)
-                    , Cmd.none
-                    )
+                    queueAction (ArmMissile id point) model
 
                 Just ( ChoosingFireMissileLocation, id ) ->
-                    ( { model | selectedRobot = Nothing }
-                        |> updateRobot id (Robot.setState (FireMissile point False))
-                    , Cmd.none
-                    )
+                    queueAction (FireMissile id point) model
 
                 Just ( ChoosingShieldLocation, id ) ->
-                    ( { model | selectedRobot = Nothing }
-                        |> updateRobot id (Robot.move (Just (ToolShield False)) point)
-                    , Cmd.none
-                    )
+                    queueAction (Shield id point) model
 
                 Just ( ChoosingMineLocation, id ) ->
-                    ( { model | selectedRobot = Nothing }
-                        |> updateRobot id (Robot.queueMine point)
-                    , Cmd.none
-                    )
+                    queueAction (Mine id point) model
 
                 Just ( ChoosingAction, id ) ->
                     ( model, Cmd.none )
@@ -248,6 +211,26 @@ update msg model =
                 |> Result.map (onActionRecieved model)
                 -- TODO handle errors
                 |> Result.withDefault ( model, Cmd.none )
+
+
+queueActionAt : (Int -> Point -> ClientAction) -> Int -> Model -> ( Model, Cmd Msg )
+queueActionAt action id model =
+    case Dict.get id model.robots of
+        Just robot ->
+            queueAction (action id robot.location) model
+
+        Nothing ->
+            ( model, Cmd.none )
+
+
+queueAction : ClientAction -> Model -> ( Model, Cmd Msg )
+queueAction action model =
+    ( updateRobot
+        (ClientAction.id action)
+        (Robot.queueAction action)
+        { model | selectedRobot = Nothing }
+    , ClientAction.send action
+    )
 
 
 onActionRecieved : Model -> List ServerAction -> ( Model, Cmd Msg )
@@ -272,14 +255,6 @@ onActionRecieved model actions =
 updateRobot : Int -> (Robot -> Robot) -> Model -> Model
 updateRobot id fn model =
     { model | robots = Dict.update id (Maybe.map fn) model.robots }
-
-
-getRobotAt : Point -> Dict Int Robot -> Maybe Robot
-getRobotAt point =
-    Dict.filter (\id robot -> robot.location == point)
-        >> Dict.toList
-        >> List.head
-        >> Maybe.map Tuple.second
 
 
 
@@ -338,14 +313,14 @@ animateHelp effect model =
             ( updateRobot id (Robot.setState state) model, 0 )
 
         Impact point forceShield ->
-            case getRobotAt point model.robots of
+            case Robot.getRobotAt point model.robots of
                 Just robot ->
                     let
                         impacted =
                             Robot.impact forceShield robot
 
                         animation =
-                            if impacted.state /= Destroyed then
+                            if impacted.state /= Robot.Destroyed then
                                 [ Wait 1000
                                 , SetState robot.id (Robot.removeShield impacted).state
                                 ]
@@ -375,7 +350,7 @@ animateHelp effect model =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
-        [ Ports.onActionReceived OnActionReceived
+        [ ServerAction.receive OnActionReceived
         ]
 
 
@@ -383,14 +358,9 @@ subscriptions model =
 -- VIEW
 
 
-view : Model -> Browser.Document Msg
+view : Model -> Html Msg
 view model =
-    let
-        robots =
-            Dict.values model.robots |> List.map viewRobot
-    in
-    { title = "Helium 3"
-    , body =
+    div []
         [ View.Missile.style
         , View.Grid.style
         , View.Shield.style
@@ -426,11 +396,10 @@ view model =
                  , viewHeliumGrid model.helium
                  , viewSelection model
                  ]
-                    ++ robots
+                    ++ (Dict.values model.robots |> List.map viewRobot)
                 )
             ]
         ]
-    }
 
 
 viewActionPicker : Dict Int Robot -> Maybe ( Selection, Int ) -> Html Msg
@@ -564,7 +533,7 @@ viewRobot robot =
                 |> Maybe.map (viewTool robot)
                 |> Maybe.Extra.toList
     in
-    if robot.state == Destroyed then
+    if robot.state == Robot.Destroyed then
         text ""
 
     else
@@ -589,7 +558,7 @@ viewTool robot tool =
             let
                 location =
                     case robot.state of
-                        FireMissile target True ->
+                        Robot.FireMissile target True ->
                             target
 
                         _ ->
@@ -601,7 +570,7 @@ viewTool robot tool =
 viewMiner : Robot -> Svg msg
 viewMiner robot =
     case robot.state of
-        Mine { active } ->
+        Robot.Mine { active } ->
             if active then
                 View.Miner.use robot.location robot.rotation
 

@@ -15,7 +15,7 @@
       "elm-community/easing-functions": "2.0.0",
       "elm-community/json-extra": "4.0.0",
       "elm-community/list-extra": "8.1.0",
-      "elm-community/maybe-extra": "5.0.0",
+      "elm-community/maybe-extra": "5.2.0",
       "mdgriffith/elm-style-animation": "4.0.0"
     },
     "indirect": {

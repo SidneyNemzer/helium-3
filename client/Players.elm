@@ -1,6 +1,7 @@
 module Players exposing (..)
 
 import Color
+import List.Extra
 
 
 type alias Players =
@@ -22,6 +23,15 @@ type PlayerIndex
     | Player2
     | Player3
     | Player4
+
+
+order : List PlayerIndex
+order =
+    [ Player1
+    , Player2
+    , Player3
+    , Player4
+    ]
 
 
 init : Players
@@ -63,6 +73,12 @@ toNumber index =
 
         Player4 ->
             4
+
+
+fromNumber : Int -> PlayerIndex
+fromNumber index =
+    -- TODO propagate error instead of defaulting?
+    List.Extra.getAt (index - 1) order |> Maybe.withDefault Player1
 
 
 get : PlayerIndex -> Players -> Player
@@ -120,3 +136,10 @@ next id =
 
         Player4 ->
             Player1
+
+
+{-| Returns a list of players excluding the given ID
+-}
+others : PlayerIndex -> List PlayerIndex
+others id =
+    List.filter ((/=) id) order

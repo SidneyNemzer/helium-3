@@ -162,5 +162,8 @@ fromServer action robot =
         ServerAction.Move _ target ->
             moveWithTool robot target Nothing
 
+        ServerAction.Shield _ target ->
+            moveWithTool robot target (Just (ToolShield False))
+
         ServerAction.Mine _ target ->
             mine robot target

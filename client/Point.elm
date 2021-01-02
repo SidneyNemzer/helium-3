@@ -3,6 +3,7 @@ module Point exposing
     , angle
     , around
     , decoder
+    , encode
     , fromTuple
     , fromXY
     , generator
@@ -14,6 +15,7 @@ module Point exposing
 
 import Json.Decode as Decode exposing (Decoder)
 import Json.Decode.Extra as Decode
+import Json.Encode as Encode exposing (Value)
 import List.Extra
 import Random
 
@@ -93,3 +95,8 @@ decoder =
     Decode.succeed fromXY
         |> Decode.andMap (Decode.field "x" Decode.int)
         |> Decode.andMap (Decode.field "y" Decode.int)
+
+
+encode : Point -> Value
+encode (Point x y) =
+    Encode.object [ ( "x", Encode.int x ), ( "y", Encode.int y ) ]

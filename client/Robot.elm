@@ -1,7 +1,10 @@
 module Robot exposing (..)
 
+import ClientAction exposing (ClientAction)
+import Dict exposing (Dict)
 import Players exposing (PlayerIndex)
 import Point exposing (Point)
+import ServerAction exposing (ServerAction)
 
 
 {-| A robot can 'hold' one of the following items.
@@ -116,24 +119,6 @@ hasAction robot =
 
         _ ->
             True
-
-
-
--- phase : State -> Int
--- phase state =
---     case state of
---         MoveWithTool _ ->
---             2
---         SelfDestruct _ ->
---             1
---         FireMissile _ _ ->
---             1
---         FireLaser _ _ ->
---             1
---         Idle currentTool ->
---             0
---         Destroyed ->
---             0
 
 
 getTarget : Robot -> Maybe Point
@@ -275,6 +260,90 @@ removeShield robot =
                 Destroyed ->
                     Destroyed
     }
+
+
+{-| Robot will preform the given action on the next turn.
+
+Note that ID is ignored. Maybe ID should not be part of the `ClientAction` type?
+
+-}
+queueAction : ClientAction -> Robot -> Robot
+queueAction action =
+    case action of
+        ClientAction.FireMissile _ target ->
+            setState (FireMissile target False)
+
+        ClientAction.ArmMissile _ target ->
+            move (Just ToolMissile) target
+
+        ClientAction.Shield _ target ->
+            move (Just (ToolShield False)) target
+
+        ClientAction.SelfDestruct _ ->
+            Debug.todo "self destruct"
+
+        ClientAction.Move _ target ->
+            move Nothing target
+
+        ClientAction.Mine _ target ->
+            queueMine target
+
+
+toServerAction : Dict Int Robot -> Robot -> List ServerAction.Recipient
+toServerAction robots robot =
+    case robot.state of
+        Idle _ ->
+            []
+
+        MoveWithTool { pending, target } ->
+            case pending of
+                Just ToolLaser ->
+                    Debug.todo "laser"
+
+                Just ToolMissile ->
+                    [ ServerAction.Everyone <|
+                        ServerAction.ArmMissile robot.id target
+                    ]
+
+                Just (ToolShield _) ->
+                    [ ServerAction.Specific [ robot.owner ] (ServerAction.Shield robot.id target)
+                    , ServerAction.Specific (Players.others robot.owner) (ServerAction.Move robot.id target)
+                    ]
+
+                Nothing ->
+                    []
+
+        SelfDestruct _ ->
+            Debug.todo "self destruct"
+
+        FireMissile target _ ->
+            [ ServerAction.Everyone <|
+                ServerAction.FireMissile
+                    { id = robot.id
+                    , target = target
+                    , shield =
+                        getRobotAt target robots
+                            |> Maybe.map (getTool >> (==) (Just (ToolShield False)))
+                            |> Maybe.withDefault False
+                    }
+            ]
+
+        FireLaser angle _ ->
+            Debug.todo "laser"
+
+        Mine { target } ->
+            [ ServerAction.Everyone <| ServerAction.Mine robot.id target ]
+
+        Destroyed ->
+            []
+
+
+getRobotAt : Point -> Dict Int Robot -> Maybe Robot
+getRobotAt point =
+    Dict.filter (\id robot -> robot.location == point)
+        >> Dict.toList
+        >> List.head
+        >> Maybe.map Tuple.second
 
 
 
