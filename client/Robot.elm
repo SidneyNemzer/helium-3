@@ -289,11 +289,11 @@ queueAction action =
             queueMine target
 
 
-toServerAction : Dict Int Robot -> Robot -> List ServerAction.Recipient
+toServerAction : Dict Int Robot -> Robot -> Maybe ServerAction
 toServerAction robots robot =
     case robot.state of
         Idle _ ->
-            []
+            Nothing
 
         MoveWithTool { pending, target } ->
             case pending of
@@ -301,23 +301,19 @@ toServerAction robots robot =
                     Debug.todo "laser"
 
                 Just ToolMissile ->
-                    [ ServerAction.Everyone <|
-                        ServerAction.ArmMissile robot.id target
-                    ]
+                    Just (ServerAction.ArmMissile robot.id target)
 
                 Just (ToolShield _) ->
-                    [ ServerAction.Specific [ robot.owner ] (ServerAction.Shield robot.id target)
-                    , ServerAction.Specific (Players.others robot.owner) (ServerAction.Move robot.id target)
-                    ]
+                    Just (ServerAction.Shield robot.id target)
 
                 Nothing ->
-                    []
+                    Nothing
 
         SelfDestruct _ ->
             Debug.todo "self destruct"
 
         FireMissile target _ ->
-            [ ServerAction.Everyone <|
+            Just <|
                 ServerAction.FireMissile
                     { id = robot.id
                     , target = target
@@ -326,16 +322,15 @@ toServerAction robots robot =
                             |> Maybe.map (getTool >> (==) (Just (ToolShield False)))
                             |> Maybe.withDefault False
                     }
-            ]
 
         FireLaser angle _ ->
             Debug.todo "laser"
 
         Mine { target } ->
-            [ ServerAction.Everyone <| ServerAction.Mine robot.id target ]
+            Just (ServerAction.Mine robot.id target)
 
         Destroyed ->
-            []
+            Nothing
 
 
 getRobotAt : Point -> Dict Int Robot -> Maybe Robot

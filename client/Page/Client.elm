@@ -15,6 +15,7 @@ import List
 import List.Extra
 import Matrix
 import Maybe.Extra
+import Message exposing (ServerMessage)
 import Players exposing (Player, PlayerIndex(..), Players)
 import Point exposing (Point)
 import Ports
@@ -103,7 +104,8 @@ type Msg
     | ClickRobot Int
     | ChooseAction Selection
     | ClickPoint Point
-    | OnActionReceived (Result Error (List ServerAction))
+    | OnServerMessage ServerMessage
+    | OnError Error
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -206,11 +208,20 @@ update msg model =
                 Nothing ->
                     ( model, Cmd.none )
 
-        OnActionReceived result ->
-            result
-                |> Result.map (onActionRecieved model)
-                -- TODO handle errors
-                |> Result.withDefault ( model, Cmd.none )
+        OnServerMessage message ->
+            case message of
+                Message.Actions player actions ->
+                    onActionRecieved model player actions
+
+                Message.Start _ ->
+                    Debug.todo "Start"
+
+                Message.Countdown _ ->
+                    Debug.todo "Countdown"
+
+        OnError _ ->
+            -- TODO log or something
+            ( model, Cmd.none )
 
 
 queueActionAt : (Int -> Point -> ClientAction) -> Int -> Model -> ( Model, Cmd Msg )
@@ -229,12 +240,12 @@ queueAction action model =
         (ClientAction.id action)
         (Robot.queueAction action)
         { model | selectedRobot = Nothing }
-    , ClientAction.send action
+    , Message.sendClientMessage <| Message.Queue action
     )
 
 
-onActionRecieved : Model -> List ServerAction -> ( Model, Cmd Msg )
-onActionRecieved model actions =
+onActionRecieved : Model -> PlayerIndex -> List ServerAction -> ( Model, Cmd Msg )
+onActionRecieved model turn actions =
     animate
         { model
             | timeline =
@@ -247,7 +258,7 @@ onActionRecieved model actions =
                             Nothing ->
                                 timeline
                     )
-                    [ ChangeTurn ]
+                    [ SetTurn (Players.next turn) ]
                     actions
         }
 
@@ -336,8 +347,8 @@ animateHelp effect model =
                 Nothing ->
                     ( model, 0 )
 
-        ChangeTurn ->
-            ( { model | turn = Players.next model.turn }, 0 )
+        SetTurn player ->
+            ( { model | turn = player }, 0 )
 
         Wait ms ->
             ( model, ms )
@@ -350,7 +361,7 @@ animateHelp effect model =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
-        [ ServerAction.receive OnActionReceived
+        [ Message.receiveServerMessage OnServerMessage OnError
         ]
 
 

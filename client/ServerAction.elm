@@ -1,11 +1,11 @@
-port module ServerAction exposing
+module ServerAction exposing
     ( FireMissileArgs
-    , Recipient(..)
     , SelfDestructArgs
     , ServerAction(..)
+    , decoder
+    , encoder
     , id
-    , receive
-    , send
+    , obfuscate
     )
 
 import ClientAction exposing (ClientAction)
@@ -33,13 +33,6 @@ type ServerAction
 -- // path up to `stoppedBy` are destroyed
 -- | { type: 'FIRE_LASER', robot: RobotIndex, target: Direction, stoppedBy: RobotIndex? }
 -- | { type: 'ARM_LASER', robot: RobotIndex, target: Point }
-
-
-{-| Some actions, like shields, are hidden from other players
--}
-type Recipient
-    = Everyone ServerAction
-    | Specific (List PlayerIndex) ServerAction
 
 
 type alias FireMissileArgs =
@@ -77,50 +70,16 @@ id action =
             id_
 
 
+{-| Some actions are hidden from other players
+-}
+obfuscate : ServerAction -> ServerAction
+obfuscate action =
+    case action of
+        Shield id_ target ->
+            Move id_ target
 
--- PORTS
-
-
-send : List Recipient -> Cmd msg
-send recipients =
-    let
-        upsert : ServerAction -> Maybe (List ServerAction) -> Maybe (List ServerAction)
-        upsert action =
-            Maybe.withDefault [] >> (::) action >> Just
-
-        messagesByRecipient : Dict (List Int) (List ServerAction)
-        messagesByRecipient =
-            List.foldl
-                (\recipient ->
-                    case recipient of
-                        Everyone action ->
-                            Dict.update [] (upsert action)
-
-                        Specific playerIds action ->
-                            Dict.update
-                                (List.map Players.toNumber playerIds)
-                                (upsert action)
-                )
-                Dict.empty
-                recipients
-    in
-    Dict.toList messagesByRecipient
-        |> List.map
-            (\( recipientIds, actions ) ->
-                sendServerAction_ ( recipientIds, encodeList actions )
-            )
-        |> Cmd.batch
-
-
-port sendServerAction_ : ( List Int, Value ) -> Cmd msg
-
-
-receive : (Result Error (List ServerAction) -> msg) -> Sub msg
-receive msg =
-    receiveServerAction_ (Decode.decodeValue (Decode.list decoder) >> msg)
-
-
-port receiveServerAction_ : (Value -> msg) -> Sub msg
+        _ ->
+            action
 
 
 
@@ -203,28 +162,19 @@ equals =
 -- ENCODER
 
 
-encodeList : List ServerAction -> Value
-encodeList =
-    Encode.list encode
-
-
-encode : ServerAction -> Value
-encode action =
+encoder : ServerAction -> Value
+encoder action =
     case action of
         FireMissile args ->
             Encode.object
                 [ ( "type", Encode.string "FIRE_MISSILE" )
                 , ( "robot", Encode.int args.id )
-                , ( "target", Point.encode args.target )
+                , ( "target", Point.encoder args.target )
                 , ( "shield", Encode.bool args.shield )
                 ]
 
         ArmMissile id_ target ->
-            Encode.object
-                [ ( "type", Encode.string "ARM_MISSILE" )
-                , ( "robot", Encode.int id_ )
-                , ( "target", Point.encode target )
-                ]
+            encodeMoveWithType "ARM_MISSILE" id_ target
 
         SelfDestruct args ->
             Encode.object
@@ -234,22 +184,19 @@ encode action =
                 ]
 
         Move id_ target ->
-            Encode.object
-                [ ( "type", Encode.string "MOVE" )
-                , ( "robot", Encode.int id_ )
-                , ( "target", Point.encode target )
-                ]
+            encodeMoveWithType "MOVE" id_ target
 
         Shield id_ target ->
-            Encode.object
-                [ ( "type", Encode.string "SHIELD" )
-                , ( "robot", Encode.int id_ )
-                , ( "target", Point.encode target )
-                ]
+            encodeMoveWithType "SHIELD" id_ target
 
         Mine id_ target ->
-            Encode.object
-                [ ( "type", Encode.string "MINE" )
-                , ( "robot", Encode.int id_ )
-                , ( "target", Point.encode target )
-                ]
+            encodeMoveWithType "MINE" id_ target
+
+
+encodeMoveWithType : String -> Int -> Point -> Value
+encodeMoveWithType type_ id_ target =
+    Encode.object
+        [ ( "type", Encode.string type_ )
+        , ( "robot", Encode.int id_ )
+        , ( "target", Point.encoder target )
+        ]

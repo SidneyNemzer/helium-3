@@ -3,14 +3,14 @@ import { Elm } from "./Client.elm";
 
 // CLIENT PORTS
 // endTurn_
-// receiveServerAction_
-// sendClientAction_
+// messageIn
+// messageOut
 
 // SERVER PORTS
 // onEndTurn_
 // log
-// receiveClientAction_
-// sendServerAction_
+// messageIn
+// messageOut
 
 const root1 = document.getElementById("root1");
 const root2 = document.getElementById("root2");
@@ -35,8 +35,8 @@ const subscribeApp = (app) => {
     server.ports.onEndTurn_.send(null);
   });
 
-  app.ports.sendClientAction_.subscribe((action) => {
-    server.ports.receiveClientAction_.send(action);
+  app.ports.messageOut.subscribe(([action]) => {
+    server.ports.messageIn.send(action);
   });
 };
 
@@ -49,16 +49,15 @@ server.ports.log.subscribe((data) => {
   console.log("[Server]", data);
 });
 
-server.ports.sendServerAction_.subscribe(([players, data]) => {
+server.ports.messageOut.subscribe(([data, players]) => {
   if (players.length === 0) {
-    app1.ports.receiveServerAction_.send(data);
-    app2.ports.receiveServerAction_.send(data);
-    app3.ports.receiveServerAction_.send(data);
-    app4.ports.receiveServerAction_.send(data);
+    app1.ports.messageIn.send(data);
+    app2.ports.messageIn.send(data);
+    app3.ports.messageIn.send(data);
+    app4.ports.messageIn.send(data);
   } else {
     players.forEach((playerId) => {
-      debugger;
-      appsByPlayerId[playerId].ports.receiveServerAction_.send(data);
+      appsByPlayerId[playerId].ports.messageIn.send(data);
     });
   }
 });

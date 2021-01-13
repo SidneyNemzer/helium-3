@@ -1,5 +1,6 @@
 module Effect exposing (..)
 
+import Players exposing (PlayerIndex)
 import Point exposing (Point)
 import Robot exposing (Robot, State(..), Tool(..))
 import ServerAction exposing (ServerAction)
@@ -16,7 +17,7 @@ type Effect
     | MineAt Int Point
     | SetState Int State
     | Impact Point Bool
-    | ChangeTurn
+    | SetTurn PlayerIndex
     | Wait Int
 
 

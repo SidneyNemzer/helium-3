@@ -3,7 +3,7 @@ module Point exposing
     , angle
     , around
     , decoder
-    , encode
+    , encoder
     , fromTuple
     , fromXY
     , generator
@@ -97,6 +97,6 @@ decoder =
         |> Decode.andMap (Decode.field "y" Decode.int)
 
 
-encode : Point -> Value
-encode (Point x y) =
+encoder : Point -> Value
+encoder (Point x y) =
     Encode.object [ ( "x", Encode.int x ), ( "y", Encode.int y ) ]

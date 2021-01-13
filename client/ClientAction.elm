@@ -1,4 +1,4 @@
-port module ClientAction exposing (ClientAction(..), decoder, id, receive, send)
+module ClientAction exposing (ClientAction(..), decoder, encoder, id)
 
 import Json.Decode as Decode exposing (Decoder, Error)
 import Json.Decode.Extra as Decode
@@ -40,26 +40,6 @@ id action =
 
         Mine id_ _ ->
             id_
-
-
-
--- PORTS
-
-
-send : ClientAction -> Cmd msg
-send =
-    encode >> sendClientAction_
-
-
-port sendClientAction_ : Value -> Cmd msg
-
-
-receive : (Result Error ClientAction -> msg) -> Sub msg
-receive msg =
-    receiveClientAction_ (Decode.decodeValue decoder >> msg)
-
-
-port receiveClientAction_ : (Value -> msg) -> Sub msg
 
 
 
@@ -114,8 +94,8 @@ actionTypeDecoder =
 -- ENCODERS
 
 
-encode : ClientAction -> Value
-encode action =
+encoder : ClientAction -> Value
+encoder action =
     case action of
         FireMissile id_ target ->
             robotAndTargetEncoder "FIRE_MISSILE" id_ target
@@ -144,5 +124,5 @@ robotAndTargetEncoder action id_ target =
     Encode.object
         [ ( "type", Encode.string action )
         , ( "robot", Encode.int id_ )
-        , ( "target", Point.encode target )
+        , ( "target", Point.encoder target )
         ]

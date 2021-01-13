@@ -1,6 +1,8 @@
 module Players exposing (..)
 
 import Color
+import Json.Decode as Decode exposing (Decoder)
+import Json.Encode as Encode exposing (Value)
 import List.Extra
 
 
@@ -143,3 +145,21 @@ next id =
 others : PlayerIndex -> List PlayerIndex
 others id =
     List.filter ((/=) id) order
+
+
+
+-- DECODERS
+
+
+indexDecoder : Decoder PlayerIndex
+indexDecoder =
+    Decode.int |> Decode.map fromNumber
+
+
+
+-- ENCODERS
+
+
+indexEncoder : PlayerIndex -> Value
+indexEncoder =
+    toNumber >> Encode.int

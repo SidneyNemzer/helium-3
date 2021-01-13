@@ -7,14 +7,15 @@ import Effect exposing (Effect(..), Timeline)
 import HeliumGrid exposing (HeliumGrid)
 import Html exposing (Html, div)
 import Json.Decode as Decode exposing (Error)
-import Maybe.Extra as Maybe
+import Maybe.Extra
+import Message exposing (ClientMessage)
 import Platform
 import Players exposing (Player, PlayerIndex(..), Players)
 import Point exposing (Point)
 import Ports
 import Random
 import Robot exposing (Robot, State(..), Tool(..))
-import ServerAction exposing (ServerAction)
+import ServerAction exposing (ServerAction, obfuscate)
 
 
 main : Program () Model Msg
@@ -55,15 +56,18 @@ init () =
 
 
 type Msg
-    = ActionReceived (Result Error ClientAction)
+    = OnClientMessage ClientMessage
     | EndTurn
+    | DecodeError Error
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        ActionReceived result ->
-            onMessage onActionReceived result model
+        OnClientMessage message ->
+            case message of
+                Message.Queue action ->
+                    onActionReceived action model
 
         EndTurn ->
             let
@@ -71,20 +75,21 @@ update msg model =
                     Dict.values model.robots
                         |> List.filter (\robot -> robot.owner == model.turn)
                         |> List.foldl performTurn ( model, [] )
+
+                messageForPlayer : PlayerIndex -> Cmd msg
+                messageForPlayer player =
+                    obfuscateActions model.robots actions player
+                        |> Message.Actions model.turn
+                        |> Message.sendServerMessage [ player ]
             in
             ( { newModel | turn = Players.next newModel.turn }
-            , ServerAction.send actions
+            , Players.order
+                |> List.map messageForPlayer
+                |> Cmd.batch
             )
 
-
-onMessage : (a -> Model -> ( Model, Cmd Msg )) -> Result Error a -> Model -> ( Model, Cmd Msg )
-onMessage handler result model =
-    case result of
-        Ok a ->
-            handler a model
-
-        Err x ->
-            ( model, Ports.log (Decode.errorToString x) )
+        DecodeError error ->
+            ( model, Ports.log (Decode.errorToString error) )
 
 
 onActionReceived : ClientAction -> Model -> ( Model, Cmd Msg )
@@ -94,15 +99,33 @@ onActionReceived action model =
     )
 
 
-performTurn : Robot -> ( Model, List ServerAction.Recipient ) -> ( Model, List ServerAction.Recipient )
+performTurn : Robot -> ( Model, List ServerAction ) -> ( Model, List ServerAction )
 performTurn robot ( model, actions ) =
-    let
-        moreActions =
-            Robot.toServerAction model.robots robot
-    in
     ( animate (Effect.fromRobot robot) model
-    , List.append actions moreActions
+    , List.append actions <|
+        Maybe.Extra.toList <|
+            Robot.toServerAction model.robots robot
     )
+
+
+obfuscateActions : Dict Int Robot -> List ServerAction -> PlayerIndex -> List ServerAction
+obfuscateActions robots actions player =
+    List.map (obfuscateAction robots player) actions
+
+
+obfuscateAction : Dict Int Robot -> PlayerIndex -> ServerAction -> ServerAction
+obfuscateAction robots player action =
+    let
+        isOwner =
+            Dict.get (ServerAction.id action) robots
+                |> Maybe.map (.owner >> (==) player)
+                |> Maybe.withDefault False
+    in
+    if isOwner then
+        action
+
+    else
+        ServerAction.obfuscate action
 
 
 {-| Note that the server ignores all `Wait` effects
@@ -173,8 +196,8 @@ animateHelp effect model =
                 Nothing ->
                     ( model, [] )
 
-        ChangeTurn ->
-            ( { model | turn = Players.next model.turn }, [] )
+        SetTurn turn ->
+            ( { model | turn = turn }, [] )
 
         Wait ms ->
             ( model, [] )
@@ -192,6 +215,6 @@ updateRobot id fn model =
 subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
-        [ ClientAction.receive ActionReceived
+        [ Message.receiveClientMessage OnClientMessage DecodeError
         , Ports.onEndTurn EndTurn
         ]
