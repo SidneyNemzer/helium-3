@@ -391,10 +391,7 @@ view model =
                 , button [ onClick StartTurn ] [ text "End Turn" ]
                 ]
             , svg
-                [ style "max-height" "100vh"
-                , style "max-width" "100vw"
-                , style "width" "100%"
-                , style "height" "100%"
+                [ style "flex" "1"
                 , viewBox View.Grid.viewBox
                 ]
                 ([ defs []
