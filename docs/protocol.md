@@ -83,31 +83,49 @@ Clients should carefully validate actions before sending, for example, a player 
 
 ```plantuml
 @startuml
-group lobby
-  loop until lobby is full
-    Server -> Client : player count\n(count: number 1 to 3)
-  end
+== Lobby ==
 
+loop until lobby fills
+  Server -> Client : player count
   note right
-    message repeats until lobby
-    is full. "count" may not
+    "count" may not
     increase, players can leave
     the lobby
   end note
-
-  Server -> Client : game join\n(id: string, position: 1 - 4)
 end
 
-group game
-  Server -> Client : game start\n(end: timestamp)
+...
 
-  loop
-    Client -> Server : action\n(details ...)
+Server -> Client : game join
+note right
+  game should start after lobby
+  fills, but client must wait for
+  the "game join" message
+end note
 
-    note right
-      actions can be queued at any
-      time during the game
-    end note
+== Game ==
+
+...
+
+Server -> Client : game start
+note right
+  similar to "game join", client must
+  wait for "game start" to start
+  the timer
+end note
+
+...
+
+loop game
+  Client -> Server : action\n(details ...)
+
+  note right
+    actions can be queued at any
+    time during the game
+  end note
+
+  group turn
+    Server -> Client : turn countdown
 
     Server -> Client : server action
 
@@ -117,8 +135,9 @@ group game
       before their turn.
     end note
   end
-
-  Server -> Client : game end
 end
+
+Server -> Client : game end
+
 @enduml
 ```
