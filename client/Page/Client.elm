@@ -56,6 +56,7 @@ type alias Model =
     , players : Players
     , player : PlayerIndex
     , turn : PlayerIndex
+    , countdownSeconds : Int
     }
 
 
@@ -92,6 +93,7 @@ init { player } =
       , players = Players.init
       , player = Players.fromNumber player
       , turn = Player1
+      , countdownSeconds = 0
       }
     , Cmd.none
     )
@@ -99,13 +101,13 @@ init { player } =
 
 type Msg
     = NextAnimation
-    | StartTurn
     | DeselectRobot
     | ClickRobot Int
     | ChooseAction Selection
     | ClickPoint Point
     | OnServerMessage ServerMessage
     | OnError Error
+    | Countdown
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -113,9 +115,6 @@ update msg model =
     case msg of
         NextAnimation ->
             animate model
-
-        StartTurn ->
-            ( model, Ports.endTurn )
 
         DeselectRobot ->
             ( { model | selectedRobot = Nothing }, Cmd.none )
@@ -216,12 +215,15 @@ update msg model =
                 Message.Start _ ->
                     Debug.todo "Start"
 
-                Message.Countdown _ ->
-                    Debug.todo "Countdown"
+                Message.Countdown player ->
+                    startCountdown player model
 
         OnError _ ->
             -- TODO log or something
             ( model, Cmd.none )
+
+        Countdown ->
+            tickCountdown model
 
 
 queueActionAt : (Int -> Point -> ClientAction) -> Int -> Model -> ( Model, Cmd Msg )
@@ -248,7 +250,8 @@ onActionRecieved : Model -> PlayerIndex -> List ServerAction -> ( Model, Cmd Msg
 onActionRecieved model turn actions =
     animate
         { model
-            | timeline =
+            | countdownSeconds = 0
+            , timeline =
                 List.foldl
                     (\action timeline ->
                         case Dict.get (ServerAction.id action) model.robots of
@@ -261,6 +264,35 @@ onActionRecieved model turn actions =
                     [ SetTurn (Players.next turn) ]
                     actions
         }
+
+
+startCountdown : PlayerIndex -> Model -> ( Model, Cmd Msg )
+startCountdown player model =
+    ( { model
+        | turn = player
+        , countdownSeconds = 5
+      }
+    , if model.countdownSeconds == 0 then
+        Process.sleep 1000 |> Task.perform (\() -> Countdown)
+
+      else
+        Cmd.none
+    )
+
+
+tickCountdown : Model -> ( Model, Cmd Msg )
+tickCountdown model =
+    let
+        remaining =
+            max (model.countdownSeconds - 1) 0
+    in
+    ( { model | countdownSeconds = remaining }
+    , if remaining > 0 then
+        Process.sleep 1000 |> Task.perform (\() -> Countdown)
+
+      else
+        Cmd.none
+    )
 
 
 updateRobot : Int -> (Robot -> Robot) -> Model -> Model
@@ -388,7 +420,13 @@ view model =
                         , text <| String.fromInt <| Players.toNumber model.turn
                         ]
                     ]
-                , button [ onClick StartTurn ] [ text "End Turn" ]
+                , if model.countdownSeconds > 0 then
+                    div []
+                        [ text <| String.fromInt model.countdownSeconds
+                        ]
+
+                  else
+                    text ""
                 ]
             , svg
                 [ style "flex" "1"
@@ -466,7 +504,7 @@ viewPlayer player isSelf =
               else
                 text ""
             ]
-        , div [] [ text (String.fromInt player.score) ]
+        , div [] [ text "$", text (String.fromInt player.score) ]
         ]
 
 

@@ -2,12 +2,10 @@
 import { Elm } from "./Client.elm";
 
 // CLIENT PORTS
-// endTurn_
 // messageIn
 // messageOut
 
 // SERVER PORTS
-// onEndTurn_
 // log
 // messageIn
 // messageOut
@@ -31,10 +29,6 @@ const appsByPlayerId = {
 };
 
 const subscribeApp = (app) => {
-  app.ports.endTurn_.subscribe(() => {
-    server.ports.onEndTurn_.send(null);
-  });
-
   app.ports.messageOut.subscribe(([action]) => {
     server.ports.messageIn.send(action);
   });

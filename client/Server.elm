@@ -13,9 +13,11 @@ import Platform
 import Players exposing (Player, PlayerIndex(..), Players)
 import Point exposing (Point)
 import Ports
+import Process
 import Random
 import Robot exposing (Robot, State(..), Tool(..))
 import ServerAction exposing (ServerAction, obfuscate)
+import Task
 
 
 main : Program () Model Msg
@@ -31,8 +33,14 @@ type alias Model =
     { robots : Dict Int Robot
     , helium : HeliumGrid
     , players : Players
+    , timer : Timer
     , turn : PlayerIndex
     }
+
+
+type Timer
+    = Countdown
+    | Turn
 
 
 init : () -> ( Model, Cmd Msg )
@@ -50,15 +58,20 @@ init () =
                 |> Tuple.first
       , players = Players.init
       , turn = Player1
+      , timer = Countdown
       }
-    , Cmd.none
+    , Cmd.batch
+        [ Process.sleep 6000
+            |> Task.perform (\() -> Timer)
+        , Message.sendServerMessage [] <| Message.Countdown Player1
+        ]
     )
 
 
 type Msg
     = OnClientMessage ClientMessage
-    | EndTurn
     | DecodeError Error
+    | Timer
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -69,27 +82,47 @@ update msg model =
                 Message.Queue action ->
                     onActionReceived action model
 
-        EndTurn ->
-            let
-                ( newModel, actions ) =
-                    Dict.values model.robots
-                        |> List.filter (\robot -> robot.owner == model.turn)
-                        |> List.foldl performTurn ( model, [] )
-
-                messageForPlayer : PlayerIndex -> Cmd msg
-                messageForPlayer player =
-                    obfuscateActions model.robots actions player
-                        |> Message.Actions model.turn
-                        |> Message.sendServerMessage [ player ]
-            in
-            ( { newModel | turn = Players.next newModel.turn }
-            , Players.order
-                |> List.map messageForPlayer
-                |> Cmd.batch
-            )
-
         DecodeError error ->
             ( model, Ports.log (Decode.errorToString error) )
+
+        Timer ->
+            case model.timer of
+                Countdown ->
+                    let
+                        ( newModel, wait, actions ) =
+                            Dict.values model.robots
+                                |> List.filter (\robot -> robot.owner == model.turn)
+                                |> List.foldl performTurn ( model, 0, [] )
+
+                        messageForPlayer : PlayerIndex -> Cmd msg
+                        messageForPlayer player =
+                            obfuscateActions model.robots actions player
+                                |> Message.Actions model.turn
+                                |> Message.sendServerMessage [ player ]
+                    in
+                    ( { newModel | timer = Turn }
+                    , Cmd.batch
+                        [ Process.sleep (toFloat wait)
+                            |> Task.perform (\() -> Timer)
+                        , Players.order
+                            |> List.map messageForPlayer
+                            |> Cmd.batch
+                        ]
+                    )
+
+                Turn ->
+                    let
+                        turn =
+                            Players.next model.turn
+                    in
+                    ( { model | turn = turn, timer = Countdown }
+                    , Cmd.batch
+                        [ Process.sleep 6000
+                            -- server waits an extra second
+                            |> Task.perform (\() -> Timer)
+                        , Message.sendServerMessage [] <| Message.Countdown turn
+                        ]
+                    )
 
 
 onActionReceived : ClientAction -> Model -> ( Model, Cmd Msg )
@@ -99,9 +132,14 @@ onActionReceived action model =
     )
 
 
-performTurn : Robot -> ( Model, List ServerAction ) -> ( Model, List ServerAction )
-performTurn robot ( model, actions ) =
-    ( animate (Effect.fromRobot robot) model
+performTurn : Robot -> ( Model, Int, List ServerAction ) -> ( Model, Int, List ServerAction )
+performTurn robot ( model, wait1, actions ) =
+    let
+        ( newModel, wait2 ) =
+            animate (Effect.fromRobot robot) 0 model
+    in
+    ( newModel
+    , max wait1 wait2
     , List.append actions <|
         Maybe.Extra.toList <|
             Robot.toServerAction model.robots robot
@@ -130,31 +168,31 @@ obfuscateAction robots player action =
 
 {-| Note that the server ignores all `Wait` effects
 -}
-animate : Timeline -> Model -> Model
-animate timeline model =
+animate : Timeline -> Int -> Model -> ( Model, Int )
+animate timeline totalWait model =
     case timeline of
         [] ->
-            model
+            ( model, totalWait )
 
         next :: rest ->
             let
-                ( newModel, extraTimeline ) =
+                ( newModel, extraTimeline, wait ) =
                     animateHelp next model
             in
-            animate (extraTimeline ++ rest) newModel
+            animate (extraTimeline ++ rest) (wait + totalWait) newModel
 
 
-animateHelp : Effect -> Model -> ( Model, Timeline )
+animateHelp : Effect -> Model -> ( Model, Timeline, Int )
 animateHelp effect model =
     case effect of
         SetLocation id point ->
-            ( updateRobot id (Robot.setLocation point) model, [] )
+            ( updateRobot id (Robot.setLocation point) model, [], 0 )
 
         SetRotation id rotation ->
-            ( updateRobot id (Robot.setRotation rotation) model, [] )
+            ( updateRobot id (Robot.setRotation rotation) model, [], 0 )
 
         SetMinerActive id ->
-            ( updateRobot id Robot.setMinerActive model, [] )
+            ( updateRobot id Robot.setMinerActive model, [], 0 )
 
         MineAt id point ->
             let
@@ -170,10 +208,11 @@ animateHelp effect model =
               }
                 |> updateRobot id (\robot -> { robot | mined = robot.mined + mined })
             , []
+            , 0
             )
 
         SetState id state ->
-            ( updateRobot id (Robot.setState state) model, [] )
+            ( updateRobot id (Robot.setState state) model, [], 0 )
 
         Impact point forceShield ->
             case Robot.getRobotAt point model.robots of
@@ -191,16 +230,16 @@ animateHelp effect model =
                             else
                                 []
                     in
-                    ( updateRobot robot.id (\_ -> impacted) model, animation )
+                    ( updateRobot robot.id (\_ -> impacted) model, animation, 0 )
 
                 Nothing ->
-                    ( model, [] )
+                    ( model, [], 0 )
 
         SetTurn turn ->
-            ( { model | turn = turn }, [] )
+            ( { model | turn = turn }, [], 0 )
 
         Wait ms ->
-            ( model, [] )
+            ( model, [], ms )
 
 
 updateRobot : Int -> (Robot -> Robot) -> Model -> Model
@@ -216,5 +255,4 @@ subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
         [ Message.receiveClientMessage OnClientMessage DecodeError
-        , Ports.onEndTurn EndTurn
         ]
