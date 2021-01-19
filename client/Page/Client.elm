@@ -79,8 +79,26 @@ init : Flags -> ( Model, Cmd Msg )
 init { player } =
     ( { robots =
             Dict.fromList
-                [ ( 0, Robot.init 0 (Point.fromXY 2 2) Player1 )
-                , ( 1, Robot.init 1 (Point.fromXY 4 4) Player2 )
+                [ ( 1, Robot.init 1 (Point.fromXY 2 0) Player1 )
+                , ( 2, Robot.init 2 (Point.fromXY 2 1) Player1 )
+                , ( 3, Robot.init 3 (Point.fromXY 2 2) Player1 )
+                , ( 4, Robot.init 4 (Point.fromXY 0 2) Player1 )
+                , ( 5, Robot.init 5 (Point.fromXY 1 2) Player1 )
+                , ( 6, Robot.init 6 (Point.fromXY 17 0) Player2 )
+                , ( 7, Robot.init 7 (Point.fromXY 17 1) Player2 )
+                , ( 8, Robot.init 8 (Point.fromXY 17 2) Player2 )
+                , ( 9, Robot.init 9 (Point.fromXY 18 2) Player2 )
+                , ( 10, Robot.init 10 (Point.fromXY 19 2) Player2 )
+                , ( 11, Robot.init 11 (Point.fromXY 17 19) Player3 )
+                , ( 12, Robot.init 12 (Point.fromXY 17 18) Player3 )
+                , ( 13, Robot.init 13 (Point.fromXY 17 17) Player3 )
+                , ( 14, Robot.init 14 (Point.fromXY 18 17) Player3 )
+                , ( 15, Robot.init 15 (Point.fromXY 19 17) Player3 )
+                , ( 16, Robot.init 16 (Point.fromXY 0 17) Player4 )
+                , ( 17, Robot.init 17 (Point.fromXY 1 17) Player4 )
+                , ( 18, Robot.init 18 (Point.fromXY 2 17) Player4 )
+                , ( 19, Robot.init 19 (Point.fromXY 2 18) Player4 )
+                , ( 20, Robot.init 20 (Point.fromXY 2 19) Player4 )
                 ]
       , timeline = []
       , selectedRobot = Nothing
