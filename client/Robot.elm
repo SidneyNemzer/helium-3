@@ -307,7 +307,7 @@ toServerAction robots robot =
                     Just (ServerAction.Shield robot.id target)
 
                 Nothing ->
-                    Nothing
+                    Just (ServerAction.Move robot.id target)
 
         SelfDestruct _ ->
             Debug.todo "self destruct"
