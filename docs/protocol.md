@@ -16,6 +16,12 @@ type PlayerIndex = 0 | 1 | 2 | 3;
 
 type Timestamp = number;
 
+type HeliumGrid = {
+  width: number;
+  height: number;
+  data: Int[];
+};
+
 // Server actions include hidden state like enemy robots that were hit by a
 // weapon but had a shield
 type ServerAction =
@@ -68,7 +74,7 @@ While in a game:
 
 | Sender | Message                                                            | Notes                                                                                                           |
 | ------ | ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
-| Server | `{ type: 'game-start', end: Timestamp }`                           |                                                                                                                 |
+| Server | `{ type: 'game-start', helium: HeliumGrid , end: Timestamp }`      |                                                                                                                 |
 | Client | `{ type: 'queue', action: ClientAction }`                          |                                                                                                                 |
 | Server | `{ type: 'action-countdown', player: PlayerIndex }`                | The indicated player will move after the countdown. Clients must wait for the `action` message for the actions. |
 | Server | `{ type: 'action', player: PlayerIndex, actions: ServerAction[] }` | There may be 0, 1, or 2 moves.                                                                                  |

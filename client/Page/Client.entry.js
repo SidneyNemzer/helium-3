@@ -10,6 +10,9 @@ import { Elm } from "./Client.elm";
 // messageIn
 // messageOut
 
+const seed = Math.floor(Math.random() * Number.MAX_SAFE_INTEGER);
+console.log("Seed", seed);
+
 const root1 = document.getElementById("root1");
 const root2 = document.getElementById("root2");
 const root3 = document.getElementById("root3");
@@ -19,7 +22,7 @@ const app1 = Elm.Page.Client.init({ node: root1, flags: { player: 1 } });
 const app2 = Elm.Page.Client.init({ node: root2, flags: { player: 2 } });
 const app3 = Elm.Page.Client.init({ node: root3, flags: { player: 3 } });
 const app4 = Elm.Page.Client.init({ node: root4, flags: { player: 4 } });
-const server = Elm.Server.init();
+const server = Elm.Server.init({ flags: { seed } });
 
 const appsByPlayerId = {
   1: app1,
@@ -30,6 +33,7 @@ const appsByPlayerId = {
 
 const subscribeApp = (app) => {
   app.ports.messageOut.subscribe(([action]) => {
+    console.log("client -> server:", action);
     server.ports.messageIn.send(action);
   });
 };
@@ -44,6 +48,7 @@ server.ports.log.subscribe((data) => {
 });
 
 server.ports.messageOut.subscribe(([data, players]) => {
+  console.log("server -> client:", data, players);
   if (players.length === 0) {
     app1.ports.messageIn.send(data);
     app2.ports.messageIn.send(data);

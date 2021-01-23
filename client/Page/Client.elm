@@ -57,6 +57,11 @@ type alias Model =
     , player : PlayerIndex
     , turn : PlayerIndex
     , countdownSeconds : Int
+
+    -- TODO probably should use a union type around model instead of a bool here,
+    -- but that will likely require moving most of the code into a sub module,
+    -- where the parent waits for the game to start.
+    , waitingForStart : Bool
     }
 
 
@@ -102,16 +107,12 @@ init { player } =
                 ]
       , timeline = []
       , selectedRobot = Nothing
-
-      -- TODO seed
-      , helium =
-            Random.initialSeed 0
-                |> Random.step HeliumGrid.generator
-                |> Tuple.first
+      , helium = Matrix.empty
       , players = Players.init
       , player = Players.fromNumber player
       , turn = Player1
       , countdownSeconds = 0
+      , waitingForStart = True
       }
     , Cmd.none
     )
@@ -230,8 +231,14 @@ update msg model =
                 Message.Actions player actions ->
                     onActionRecieved model player actions
 
-                Message.Start _ ->
-                    Debug.todo "Start"
+                -- TODO time
+                Message.Start _ helium ->
+                    ( { model
+                        | helium = helium
+                        , waitingForStart = False
+                      }
+                    , Cmd.none
+                    )
 
                 Message.Countdown player ->
                     startCountdown player model

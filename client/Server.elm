@@ -1,6 +1,5 @@
 module Server exposing (..)
 
-import Browser
 import ClientAction exposing (ClientAction)
 import Dict exposing (Dict)
 import Effect exposing (Effect(..), Timeline)
@@ -20,13 +19,18 @@ import ServerAction exposing (ServerAction, obfuscate)
 import Task
 
 
-main : Program () Model Msg
+main : Program Flags Model Msg
 main =
     Platform.worker
         { init = init
         , update = update
         , subscriptions = subscriptions
         }
+
+
+type alias Flags =
+    { seed : Int
+    }
 
 
 type alias Model =
@@ -43,8 +47,14 @@ type Timer
     | Turn
 
 
-init : () -> ( Model, Cmd Msg )
-init () =
+init : Flags -> ( Model, Cmd Msg )
+init { seed } =
+    let
+        helium =
+            Random.initialSeed seed
+                |> Random.step HeliumGrid.generator
+                |> Tuple.first
+    in
     ( { robots =
             Dict.fromList
                 [ ( 1, Robot.init 1 (Point.fromXY 2 0) Player1 )
@@ -68,12 +78,7 @@ init () =
                 , ( 19, Robot.init 19 (Point.fromXY 2 18) Player4 )
                 , ( 20, Robot.init 20 (Point.fromXY 2 19) Player4 )
                 ]
-
-      -- TODO seed
-      , helium =
-            Random.initialSeed 0
-                |> Random.step HeliumGrid.generator
-                |> Tuple.first
+      , helium = helium
       , players = Players.init
       , turn = Player1
       , timer = Countdown
@@ -82,6 +87,12 @@ init () =
         [ Process.sleep 6000
             |> Task.perform (\() -> Timer)
         , Message.sendServerMessage [] <| Message.Countdown Player1
+
+        -- Commands are processed in reverse order, so this message
+        -- is sent first. Maybe this could be more explicit, like
+        -- providing a "sequence" number
+        -- TODO start time
+        , Message.sendServerMessage [] <| Message.Start 0 helium
         ]
     )
 

@@ -11,6 +11,8 @@ port module Message exposing
     )
 
 import ClientAction exposing (ClientAction)
+import Codec
+import HeliumGrid exposing (HeliumGrid)
 import Json.Decode as Decode exposing (Decoder, Error)
 import Json.Decode.Extra as Decode
 import Json.Encode as Encode exposing (Value)
@@ -38,7 +40,7 @@ type ServerMessageLobby
 
 -}
 type ServerMessage
-    = Start Int -- Allows user to queue actions
+    = Start Int HeliumGrid -- Allows user to queue actions
     | Countdown PlayerIndex -- Countdown until turn ends and player will move
     | Actions PlayerIndex (List ServerAction)
 
@@ -152,6 +154,7 @@ serverDecoderWithType messageType =
         "game-start" ->
             Decode.succeed Start
                 |> Decode.andMap (Decode.field "end" Decode.int)
+                |> Decode.andMap (Decode.field "helium" (Codec.decoder HeliumGrid.codec))
 
         "action-countdown" ->
             Decode.succeed Countdown
@@ -205,10 +208,11 @@ lobbyEncoder message =
 serverEncoder : ServerMessage -> Value
 serverEncoder message =
     case message of
-        Start endTime ->
+        Start endTime helium ->
             Encode.object
                 [ ( "type", Encode.string "game-start" )
                 , ( "end", Encode.int endTime )
+                , ( "helium", Codec.encoder HeliumGrid.codec helium )
                 ]
 
         Countdown player ->

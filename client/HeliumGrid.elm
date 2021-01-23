@@ -1,5 +1,6 @@
-module HeliumGrid exposing (HeliumGrid, generator, mine)
+module HeliumGrid exposing (HeliumGrid, codec, generator, mine)
 
+import Codec exposing (Codec)
 import Matrix exposing (Matrix)
 import Point exposing (Point)
 import Random
@@ -35,8 +36,7 @@ type Deposit
 3.  Amount of helium in large deposits is constant. The remaining helium is
     distributed to the small deposits.
 
-TODO maybe H3 should be distributed randomly without a "starting helium",
-value and
+TODO maybe H3 should be distributed randomly without a "starting helium"
 
 -}
 generator : Random.Generator HeliumGrid
@@ -152,3 +152,8 @@ mine location matrix =
                 )
             )
             ( matrix, 0 )
+
+
+codec : Codec HeliumGrid
+codec =
+    Matrix.codec Codec.int

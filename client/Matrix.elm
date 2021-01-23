@@ -1,8 +1,6 @@
 module Matrix exposing
     ( Matrix
-    , concatHorizontal
-    , concatVertical
-    , decoder
+    , codec
     , empty
     , filter
     , fromList
@@ -15,6 +13,7 @@ module Matrix exposing
     , repeat
     , set
     , toIndexedArray
+    , toList
     , update
     , width
     )
@@ -30,13 +29,14 @@ This module is based on eeue56/elm-flat-matrix, which has not been updated for
 -}
 
 import Array exposing (Array)
-import Json.Decode as Decode exposing (Decoder)
+import Codec exposing (Codec)
 
 
 {-| Matrix a has a given size, and data contained within
 -}
 type alias Matrix a =
-    { size : ( Int, Int )
+    { width : Int
+    , height : Int
     , data : Array a
     }
 
@@ -45,46 +45,40 @@ type alias Matrix a =
 -}
 empty : Matrix a
 empty =
-    { size = ( 0, 0 ), data = Array.empty }
+    { width = 0, height = 0, data = Array.empty }
 
 
 {-| Width of a given matrix
 -}
 width : Matrix a -> Int
-width matrix =
-    Tuple.first matrix.size
+width =
+    .width
 
 
 {-| Height of a given matrix
 -}
 height : Matrix a -> Int
-height matrix =
-    Tuple.second matrix.size
+height =
+    .height
 
 
-{-| Create a matrix of a given size `x y` with a default value of `v`
+{-| Create a matrix of a given size `w h` with a default value of `v`
 -}
 repeat : Int -> Int -> a -> Matrix a
-repeat x y v =
-    { size = ( x, y )
-    , data = Array.repeat (x * y) v
+repeat w h v =
+    { width = w
+    , height = h
+    , data = Array.repeat (w * h) v
     }
 
 
-{-| Decodes nested JSON arrays into a matrix
--}
-decoder : Decoder a -> Decoder (Matrix a)
-decoder valueDecoder =
-    Decode.list (Decode.list valueDecoder)
-        |> Decode.andThen
-            (\list2d ->
-                case fromList list2d of
-                    Just matrix ->
-                        Decode.succeed matrix
-
-                    Nothing ->
-                        Decode.fail "Failed to decode matrix because arrays are not consistently sized"
-            )
+codec : Codec a -> Codec (Matrix a)
+codec inner =
+    Codec.object Matrix
+        |> Codec.field "width" .width Codec.int
+        |> Codec.field "height" .height Codec.int
+        |> Codec.field "data" .data (Codec.array inner)
+        |> Codec.buildObject
 
 
 {-| Create a matrix from a list of lists.
@@ -124,7 +118,23 @@ fromList list =
         Nothing
 
     else
-        Just { size = ( width_, height_ ), data = Array.fromList <| List.concat list }
+        Just { width = width_, height = height_, data = Array.fromList <| List.concat list }
+
+
+{-| Converts a matrix to a 2D list. Opposite of `fromList`.
+The default value is used in place of empty cells.
+-}
+toList : a -> Matrix a -> List (List a)
+toList default matrix =
+    List.range 0 matrix.height
+        |> List.map
+            (\y ->
+                List.range 0 matrix.width
+                    |> List.map
+                        (\x ->
+                            get x y matrix |> Maybe.withDefault default
+                        )
+            )
 
 
 {-| Get a value from a given `x y` and return `Just v` if it exists
@@ -167,10 +177,10 @@ getColumn : Int -> Matrix a -> Maybe (Array a)
 getColumn i matrix =
     let
         width_ =
-            Tuple.first matrix.size
+            width matrix
 
         height_ =
-            Tuple.second matrix.size
+            height matrix
 
         indices =
             List.map (\x -> x * width_ + i) (List.range 0 (height_ - 1))
@@ -194,56 +204,6 @@ getColumn i matrix =
                     indices
 
 
-{-| Append a matrix to another matrix horizontally and return the result. Return Nothing if the heights don't match
--}
-concatHorizontal : Matrix a -> Matrix a -> Maybe (Matrix a)
-concatHorizontal a b =
-    let
-        finalWidth =
-            Tuple.first a.size + Tuple.first b.size
-
-        insert i xs array =
-            Array.append
-                (Array.append (Array.slice 0 i array) xs)
-                (Array.slice i (Array.length array) array)
-    in
-    if Tuple.second a.size /= Tuple.second b.size then
-        Nothing
-
-    else
-        Just <|
-            { a
-                | size = ( finalWidth, Tuple.second a.size )
-                , data =
-                    List.foldl
-                        (\( i, xs ) acc -> insert (i * finalWidth) xs acc)
-                        b.data
-                    <|
-                        List.foldl
-                            (\i ls ->
-                                case getRow i a of
-                                    Just v ->
-                                        ls ++ [ ( i, v ) ]
-
-                                    Nothing ->
-                                        ls
-                            )
-                            []
-                            (List.range 0 (Tuple.second a.size - 1))
-            }
-
-
-{-| Append a matrix to another matrix vertically and return the result. Return Nothing if the widths don't match
--}
-concatVertical : Matrix a -> Matrix a -> Maybe (Matrix a)
-concatVertical a b =
-    if Tuple.first a.size /= Tuple.first b.size then
-        Nothing
-
-    else
-        Just <| { a | size = ( Tuple.first a.size, Tuple.second a.size + Tuple.second b.size ), data = Array.append a.data b.data }
-
-
 {-| Set a value at a given `i, j` in the matrix and return the new matrix
 If the `i, j` is out of bounds then return the unmodified matrix
 -}
@@ -251,7 +211,7 @@ set : Int -> Int -> a -> Matrix a -> Matrix a
 set i j v matrix =
     let
         pos =
-            (j * Tuple.first matrix.size) + i
+            (j * width matrix) + i
     in
     if (i < width matrix && i > -1) && (j < height matrix && j > -1) then
         { matrix | data = Array.set pos v matrix.data }
@@ -277,7 +237,7 @@ update x y f matrix =
 -}
 map : (a -> b) -> Matrix a -> Matrix b
 map f matrix =
-    { size = matrix.size, data = Array.map f matrix.data }
+    { width = matrix.width, height = matrix.height, data = Array.map f matrix.data }
 
 
 {-| Apply a function, taking the `x, y` of every element in the matrix
@@ -295,7 +255,8 @@ indexedMap f matrix =
             in
             f x y v
     in
-    { size = matrix.size
+    { width = matrix.width
+    , height = matrix.height
     , data = Array.fromList <| List.indexedMap f_ <| Array.toList matrix.data
     }
 
