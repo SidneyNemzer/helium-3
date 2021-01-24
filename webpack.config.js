@@ -9,20 +9,20 @@ const DEV_SERVER_DOMAIN = "http://localhost:8080/";
 module.exports = (env, args) => {
   const entries = fs
     .readdirSync(path.resolve(ROOT, SOURCE, "Page"))
-    .filter((name) => name.endsWith(".entry.js"));
+    .filter((name) => name.endsWith(".entry.js"))
+    .map((name) => name.replace(".entry.js", ""));
 
   console.log("Building Pages:");
   entries.forEach((name) => {
-    console.log(name, DEV_SERVER_DOMAIN + name.replace(".entry.js", ".html"));
+    console.log(name, DEV_SERVER_DOMAIN + name + ".html");
   });
   console.log("");
 
   return {
     mode: args.mode || "development",
 
-    // TODO entry names will end in `.js` so output file ends with `.js.js`
     entry: entries.reduce((map, name) => {
-      map[name] = path.resolve(ROOT, SOURCE, "Page", name);
+      map[name] = path.resolve(ROOT, SOURCE, "Page", name + ".entry.js");
       return map;
     }, {}),
 
@@ -49,7 +49,7 @@ module.exports = (env, args) => {
     plugins: entries.map(
       (name) =>
         new HtmlWebpackPlugin({
-          filename: name.replace(".entry.js", ".html"),
+          filename: name + ".html",
           chunks: [name],
           template: "client/index.html",
         })
