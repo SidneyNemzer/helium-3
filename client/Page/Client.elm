@@ -229,7 +229,7 @@ update msg model =
         OnServerMessage message ->
             case message of
                 Message.Actions player actions ->
-                    onActionRecieved model player actions
+                    onActionRecieved model actions
 
                 -- TODO time
                 Message.Start _ helium ->
@@ -271,8 +271,8 @@ queueAction action model =
     )
 
 
-onActionRecieved : Model -> PlayerIndex -> List ServerAction -> ( Model, Cmd Msg )
-onActionRecieved model turn actions =
+onActionRecieved : Model -> List ServerAction -> ( Model, Cmd Msg )
+onActionRecieved model actions =
     animate
         { model
             | countdownSeconds = 0
@@ -286,7 +286,7 @@ onActionRecieved model turn actions =
                             Nothing ->
                                 timeline
                     )
-                    [ SetTurn (Players.next turn) ]
+                    []
                     actions
         }
 
@@ -395,17 +395,32 @@ animateHelp effect model =
 
                             else
                                 []
+
+                        helium =
+                            if impacted.state /= Robot.Destroyed then
+                                model.helium
+
+                            else
+                                HeliumGrid.drop robot.location (robot.mined // 2) model.helium
+
+                        players =
+                            if impacted.state /= Robot.Destroyed then
+                                model.players
+
+                            else
+                                Players.addScore robot.owner (-robot.mined // 2) model.players
                     in
-                    ( { model | timeline = animation ++ model.timeline }
+                    ( { model
+                        | timeline = animation ++ model.timeline
+                        , players = players
+                        , helium = helium
+                      }
                         |> updateRobot robot.id (\_ -> impacted)
                     , 0
                     )
 
                 Nothing ->
                     ( model, 0 )
-
-        SetTurn player ->
-            ( { model | turn = player }, 0 )
 
         Wait ms ->
             ( model, ms )

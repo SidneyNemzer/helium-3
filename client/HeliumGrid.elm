@@ -1,4 +1,4 @@
-module HeliumGrid exposing (HeliumGrid, codec, generator, mine)
+module HeliumGrid exposing (HeliumGrid, codec, drop, generator, mine)
 
 import Codec exposing (Codec)
 import Matrix exposing (Matrix)
@@ -152,6 +152,11 @@ mine location matrix =
                 )
             )
             ( matrix, 0 )
+
+
+drop : Point -> Int -> HeliumGrid -> HeliumGrid
+drop location amount =
+    distribute (Small amount location)
 
 
 codec : Codec HeliumGrid

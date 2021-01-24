@@ -264,9 +264,6 @@ animateHelp effect model =
                 Nothing ->
                     ( model, [], 0 )
 
-        SetTurn turn ->
-            ( { model | turn = turn }, [], 0 )
-
         Wait ms ->
             ( model, [], ms )
 
