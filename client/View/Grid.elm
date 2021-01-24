@@ -173,9 +173,6 @@ highlightAround point radius onClickMsg includeCenter =
 
 {-| Creates a line between two squares on the grid. The line starts and ends at
 the border of the squares.
-
-TODO line becomes invisible at 90 degree angles
-
 -}
 dottedLine : Point -> Point -> Svg msg
 dottedLine start end =

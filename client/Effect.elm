@@ -124,7 +124,7 @@ fromRobot robot =
         MoveWithTool { target, pending } ->
             moveWithTool robot target pending
 
-        Idle currentTool ->
+        Idle _ ->
             none
 
         Mine { target } ->

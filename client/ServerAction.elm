@@ -8,13 +8,10 @@ module ServerAction exposing
     , obfuscate
     )
 
-import ClientAction exposing (ClientAction)
-import Dict exposing (Dict)
 import Html.Attributes exposing (action)
-import Json.Decode as Decode exposing (Decoder, Error)
+import Json.Decode as Decode exposing (Decoder)
 import Json.Decode.Extra as Decode
 import Json.Encode as Encode exposing (Value)
-import Players exposing (PlayerIndex)
 import Point exposing (Point)
 
 
