@@ -72,10 +72,6 @@ const printPages = () => {
   console.log("Pages:");
 
   Object.keys(config.entry).map((chunkName) => {
-    console.log(
-      chalk.blue(
-        `${DEV_SERVER_ORIGIN}${chunkName.replace(".entry.js", ".html")}`
-      )
-    );
+    console.log(chalk.blue(`${DEV_SERVER_ORIGIN}${chunkName}.html`));
   });
 };
