@@ -2,7 +2,7 @@ module Robot exposing (..)
 
 import ClientAction exposing (ClientAction)
 import Dict exposing (Dict)
-import Players exposing (PlayerIndex)
+import Players exposing (PlayerIndex(..))
 import Point exposing (Point)
 import ServerAction exposing (ServerAction)
 
@@ -39,6 +39,32 @@ type alias Robot =
     , state : State
     , owner : PlayerIndex
     }
+
+
+initAll : Dict Int Robot
+initAll =
+    Dict.fromList
+        [ ( 1, init 1 (Point.fromXY 2 0) Player1 0 )
+        , ( 2, init 2 (Point.fromXY 2 1) Player1 0 )
+        , ( 3, init 3 (Point.fromXY 2 2) Player1 315 )
+        , ( 4, init 4 (Point.fromXY 0 2) Player1 270 )
+        , ( 5, init 5 (Point.fromXY 1 2) Player1 270 )
+        , ( 6, init 6 (Point.fromXY 17 0) Player2 180 )
+        , ( 7, init 7 (Point.fromXY 17 1) Player2 180 )
+        , ( 8, init 8 (Point.fromXY 17 2) Player2 225 )
+        , ( 9, init 9 (Point.fromXY 18 2) Player2 270 )
+        , ( 10, init 10 (Point.fromXY 19 2) Player2 270 )
+        , ( 11, init 11 (Point.fromXY 17 19) Player3 180 )
+        , ( 12, init 12 (Point.fromXY 17 18) Player3 180 )
+        , ( 13, init 13 (Point.fromXY 17 17) Player3 135 )
+        , ( 14, init 14 (Point.fromXY 18 17) Player3 90 )
+        , ( 15, init 15 (Point.fromXY 19 17) Player3 90 )
+        , ( 16, init 16 (Point.fromXY 0 17) Player4 90 )
+        , ( 17, init 17 (Point.fromXY 1 17) Player4 90 )
+        , ( 18, init 18 (Point.fromXY 2 17) Player4 45 )
+        , ( 19, init 19 (Point.fromXY 2 18) Player4 0 )
+        , ( 20, init 20 (Point.fromXY 2 19) Player4 0 )
+        ]
 
 
 init : Int -> Point -> PlayerIndex -> Float -> Robot

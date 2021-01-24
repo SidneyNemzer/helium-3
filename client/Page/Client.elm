@@ -82,29 +82,7 @@ type Selection
 
 init : Flags -> ( Model, Cmd Msg )
 init { player } =
-    ( { robots =
-            Dict.fromList
-                [ ( 1, Robot.init 1 (Point.fromXY 2 0) Player1 0 )
-                , ( 2, Robot.init 2 (Point.fromXY 2 1) Player1 0 )
-                , ( 3, Robot.init 3 (Point.fromXY 2 2) Player1 45 )
-                , ( 4, Robot.init 4 (Point.fromXY 0 2) Player1 90 )
-                , ( 5, Robot.init 5 (Point.fromXY 1 2) Player1 90 )
-                , ( 6, Robot.init 6 (Point.fromXY 17 0) Player2 180 )
-                , ( 7, Robot.init 7 (Point.fromXY 17 1) Player2 180 )
-                , ( 8, Robot.init 8 (Point.fromXY 17 2) Player2 135 )
-                , ( 9, Robot.init 9 (Point.fromXY 18 2) Player2 90 )
-                , ( 10, Robot.init 10 (Point.fromXY 19 2) Player2 90 )
-                , ( 11, Robot.init 11 (Point.fromXY 17 19) Player3 180 )
-                , ( 12, Robot.init 12 (Point.fromXY 17 18) Player3 180 )
-                , ( 13, Robot.init 13 (Point.fromXY 17 17) Player3 225 )
-                , ( 14, Robot.init 14 (Point.fromXY 18 17) Player3 270 )
-                , ( 15, Robot.init 15 (Point.fromXY 19 17) Player3 270 )
-                , ( 16, Robot.init 16 (Point.fromXY 0 17) Player4 270 )
-                , ( 17, Robot.init 17 (Point.fromXY 1 17) Player4 270 )
-                , ( 18, Robot.init 18 (Point.fromXY 2 17) Player4 315 )
-                , ( 19, Robot.init 19 (Point.fromXY 2 18) Player4 0 )
-                , ( 20, Robot.init 20 (Point.fromXY 2 19) Player4 0 )
-                ]
+    ( { robots = Robot.initAll
       , timeline = []
       , selectedRobot = Nothing
       , helium = Matrix.empty
