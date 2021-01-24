@@ -41,11 +41,11 @@ type alias Robot =
     }
 
 
-init : Int -> Point -> PlayerIndex -> Robot
-init id point owner =
+init : Int -> Point -> PlayerIndex -> Float -> Robot
+init id point owner rotation =
     { id = id
     , location = point
-    , rotation = 0
+    , rotation = rotation
     , mined = 0
     , state = Idle Nothing
     , owner = owner
