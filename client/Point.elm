@@ -10,6 +10,7 @@ module Point exposing
     , toScreen
     , toScreenOffset
     , toScreenOffset2
+    , toSvgOffset
     , toXY
     )
 
@@ -18,6 +19,8 @@ import Json.Decode.Extra as Decode
 import Json.Encode as Encode exposing (Value)
 import List.Extra
 import Random
+import Svg
+import Svg.Attributes
 
 
 type Point
@@ -100,3 +103,10 @@ decoder =
 encoder : Point -> Value
 encoder (Point x y) =
     Encode.object [ ( "x", Encode.int x ), ( "y", Encode.int y ) ]
+
+
+toSvgOffset : Point -> Float -> Float -> List (Svg.Attribute msg)
+toSvgOffset (Point x y) scale offset =
+    [ Svg.Attributes.x <| String.fromFloat <| toFloat x * scale + offset
+    , Svg.Attributes.y <| String.fromFloat <| toFloat y * scale + offset
+    ]

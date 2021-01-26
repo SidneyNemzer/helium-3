@@ -1,9 +1,8 @@
 module Page.Client exposing (main)
 
-import Array exposing (Array)
+import Array
 import Browser
 import ClientAction exposing (ClientAction(..))
-import Color
 import Dict exposing (Dict)
 import Effect exposing (Effect(..), Timeline)
 import HeliumGrid exposing (HeliumGrid)
@@ -12,16 +11,13 @@ import Html.Attributes exposing (style)
 import Html.Events exposing (onClick)
 import Json.Decode exposing (Error)
 import List
-import List.Extra
 import Matrix
 import Maybe.Extra
 import Message exposing (ServerMessage)
 import Players exposing (Player, PlayerIndex(..), Players)
 import Point exposing (Point)
-import Ports
 import Process
-import Random
-import Robot exposing (Robot, State, Tool(..))
+import Robot exposing (Robot, Tool(..))
 import ServerAction exposing (ServerAction)
 import Svg exposing (Svg, defs, g, rect, svg)
 import Svg.Attributes exposing (color, fill, height, stroke, viewBox, width, x, y)
@@ -105,6 +101,7 @@ type Msg
     | OnServerMessage ServerMessage
     | OnError Error
     | Countdown
+    | Noop
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -127,7 +124,9 @@ update msg model =
                                 |> Maybe.withDefault False
                     in
                     if isOwner then
-                        ( { model | selectedRobot = Just ( ChoosingAction, id ) }, Cmd.none )
+                        ( { model | selectedRobot = Just ( ChoosingAction, id ) }
+                        , Cmd.none
+                        )
 
                     else
                         ( model, Cmd.none )
@@ -198,7 +197,7 @@ update msg model =
                 Just ( ChoosingMineLocation, id ) ->
                     queueAction (Mine id point) model
 
-                Just ( ChoosingAction, id ) ->
+                Just ( ChoosingAction, _ ) ->
                     ( model, Cmd.none )
 
                 Nothing ->
@@ -227,6 +226,9 @@ update msg model =
 
         Countdown ->
             tickCountdown model
+
+        Noop ->
+            ( model, Cmd.none )
 
 
 queueActionAt : (Int -> Point -> ClientAction) -> Int -> Model -> ( Model, Cmd Msg )
@@ -484,7 +486,8 @@ viewActionPicker robots maybeSelection =
 viewActionPickerHelp : Robot -> Html Msg
 viewActionPickerHelp robot =
     View.RobotActions.view
-        { cancel = DeselectRobot
+        { noop = Noop
+        , cancel = DeselectRobot
         , move = ChooseAction ChoosingMoveLocation
         , armMissile = ChooseAction ChoosingArmMissileLocation
         , fireMissile =
@@ -581,6 +584,7 @@ viewRobot robot =
                 robot.location
                 robot.rotation
                 (Players.color robot.owner)
+                robot.id
 
         targetSvg =
             case Robot.getTarget robot of

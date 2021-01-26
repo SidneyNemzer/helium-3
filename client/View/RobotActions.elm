@@ -1,13 +1,14 @@
 module View.RobotActions exposing (..)
 
 import Html exposing (Html, div, text)
-import Html.Attributes exposing (disabled, style)
+import Html.Attributes exposing (style)
 import Html.Events
 import Json.Decode as Decode
 
 
 type alias OnClick msg =
-    { cancel : msg
+    { noop : msg
+    , cancel : msg
     , move : msg
     , shield : msg
     , mine : msg
@@ -30,36 +31,74 @@ view onClick =
         , Html.Events.onClick onClick.cancel
         ]
         [ div
-            [ style "background" "gray"
-            , style "border-radius" "3px"
-            , style "padding" "10px"
+            [ -- Prevent clicking the dialog box from triggering the `cancel`
+              stopPropagationOn "click" onClick.noop
+            , style "background" "#3A3A3A"
+            , style "border-radius" "5px"
+            , style "width" "150px"
+            , style "text-align" "center"
             ]
-            [ button "Arm Missile" (Just onClick.armMissile)
-            , button "Fire Missile" onClick.fireMissile
-            , button "Shield" (Just onClick.shield)
-            , button "Mine" (Just onClick.mine)
-            , button "Move" (Just onClick.move)
-            , button "Cancel" (Just onClick.cancel)
+            [ title
+            , button "ARM MISSILE" onClick.armMissile
+            , buttonMaybe "FIRE MISSILE" onClick.fireMissile
+            , button "SHIELD" onClick.shield
+            , button "MINE" onClick.mine
+            , button "MOVE" onClick.move
+            , separator
+            , button "CANCEL" onClick.cancel
             ]
         ]
 
 
-button : String -> Maybe msg -> Html msg
+title : Html msg
+title =
+    div
+        [ style "background" "#666666"
+        , style "color" "white"
+        , style "padding" "4px 0"
+        , style "font-size" "12px"
+        ]
+        [ text "ACTIONS" ]
+
+
+separator : Html msg
+separator =
+    div
+        [ style "margin" "0 6px"
+        , style "background" "#666666"
+        , style "height" "4px"
+        ]
+        []
+
+
+buttonMaybe : String -> Maybe msg -> Html msg
+buttonMaybe label maybeOnClick =
+    case maybeOnClick of
+        Just onClick ->
+            button label onClick
+
+        Nothing ->
+            text ""
+
+
+button : String -> msg -> Html msg
 button label onClick =
-    let
-        attributes =
-            case onClick of
-                Just msg ->
-                    [ Html.Events.stopPropagationOn
-                        "click"
-                        (Decode.succeed ( msg, True ))
-                    ]
-
-                Nothing ->
-                    [ disabled True ]
-    in
     div []
-        [ Html.button attributes
-            [ text label
+        [ Html.button
+            [ stopPropagationOn "click" onClick
+            , style "width" "100%"
+            , style "background" "#3A3A3A"
+            , style "border" "none"
+            , style "color" "white"
+            , style "font-size" "16px"
+            , style "padding" "6px 0"
+            , style "cursor" "pointer"
             ]
+            [ text label ]
         ]
+
+
+stopPropagationOn : String -> msg -> Html.Attribute msg
+stopPropagationOn event msg =
+    Html.Events.stopPropagationOn event <|
+        Decode.succeed ( msg, True )

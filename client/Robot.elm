@@ -41,6 +41,11 @@ type alias Robot =
     }
 
 
+domId : Int -> String
+domId id =
+    "robot-" ++ String.fromInt id
+
+
 initAll : Dict Int Robot
 initAll =
     Dict.fromList

@@ -33,7 +33,7 @@ const appsByPlayerId = {
 
 const subscribeApp = (app) => {
   app.ports.messageOut.subscribe(([action]) => {
-    console.log("client -> server:", action);
+    console.debug("client -> server:", action);
     server.ports.messageIn.send(action);
   });
 };
@@ -48,7 +48,7 @@ server.ports.log.subscribe((data) => {
 });
 
 server.ports.messageOut.subscribe(([data, players]) => {
-  console.log("server -> client:", data, players);
+  console.debug("server -> client:", data, players);
   if (players.length === 0) {
     app1.ports.messageIn.send(data);
     app2.ports.messageIn.send(data);

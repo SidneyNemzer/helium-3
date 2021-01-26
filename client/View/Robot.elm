@@ -1,15 +1,14 @@
 module View.Robot exposing (def, use)
 
 import Html.Attributes as HA
-import Html.Events exposing (onClick)
 import Point exposing (Point)
+import Robot
 import Svg exposing (..)
 import Svg.Attributes exposing (..)
-import Svg.Events
 
 
-use : Point -> Float -> String -> Svg msg
-use point rotation colorString =
+use : Point -> Float -> String -> Int -> Svg msg
+use point rotation colorString id_ =
     let
         ( x_, y_ ) =
             Point.toXY point
@@ -36,6 +35,7 @@ use point rotation colorString =
         , color colorString
         , HA.style "cursor" "pointer"
         , HA.style "transition" "x 1s, y 1s, transform 1s"
+        , id <| Robot.domId id_
         ]
         []
 
