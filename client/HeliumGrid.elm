@@ -1,4 +1,4 @@
-module HeliumGrid exposing (HeliumGrid, codec, drop, generator, mine)
+module HeliumGrid exposing (HeliumGrid, codec, drop, empty, generator, mine)
 
 import Codec exposing (Codec)
 import Matrix exposing (Matrix)
@@ -134,20 +134,22 @@ get point matrix =
     Matrix.get x y matrix |> Maybe.withDefault 0
 
 
+update : Point -> (Int -> Int) -> HeliumGrid -> HeliumGrid
+update point fn grid =
+    get point grid |> fn |> (\value -> set point value grid)
+
+
 {-| Simulates mining at the given point, returns the updated grid and amount
 mined.
 -}
 mine : Point -> HeliumGrid -> ( HeliumGrid, Int )
 mine location matrix =
-    Point.around location 1 True
-        |> List.map (\point -> ( point, get point matrix ))
+    Point.around location 1 False
+        |> List.map (\point -> ( point, min 250 <| get point matrix ))
+        |> (::) ( location, min 500 <| get location matrix )
         |> List.foldl
-            (\( point, amount ) ( matrix_, total ) ->
-                let
-                    mined =
-                        min 100 amount
-                in
-                ( set point (amount - mined) matrix_
+            (\( point, mined ) ( matrix_, total ) ->
+                ( update point (\value -> value - mined) matrix_
                 , total + mined
                 )
             )

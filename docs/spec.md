@@ -11,7 +11,7 @@
 
 Four players compete in a ten minute battle. The battle takes place on the moon in a 20x20 grid. Players take turns moving two of their five robots to mine Helium 3 or attack other robots. The winner is the player with the most money and at least one X-TRACT robot at the end of the game.
 
-\$40,000 of Helium 3 is randomly distributed over the moon's surface before the game starts. Helium 3 tends to concentrate in clumps.
+Helium 3 is randomly distributed over the moon's surface before the game starts. Helium 3 tends to concentrate in clumps.
 
 The match starts with a player in each corner of the map with their X-TRACT Robots in an "L" shape:
 

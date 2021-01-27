@@ -4,6 +4,7 @@ import Codec
 import Expect
 import Fuzz exposing (Fuzzer)
 import HeliumGrid exposing (HeliumGrid)
+import Point
 import Shrink
 import Test exposing (..)
 
@@ -24,5 +25,24 @@ suite =
                     Codec.encodeToValue HeliumGrid.codec helium
                         |> Codec.decodeValue HeliumGrid.codec
                         |> Expect.equal (Ok helium)
+            ]
+        , describe "mine"
+            [ describe "empty" <|
+                let
+                    ( grid, amount ) =
+                        HeliumGrid.empty
+                            |> HeliumGrid.mine (Point.fromXY 5 5)
+                in
+                [ test "mines nothing on empty grids" <|
+                    \_ ->
+                        Expect.equal 0 amount
+                , test "doesn't change empty grids" <|
+                    \_ -> Expect.equal HeliumGrid.empty grid
+                ]
+            , fuzz fuzzer "mines up to 2500" <|
+                \helium ->
+                    HeliumGrid.mine (Point.fromXY 5 5) helium
+                        |> Tuple.second
+                        |> Expect.all [ Expect.atMost 2500, Expect.atLeast 0 ]
             ]
         ]
