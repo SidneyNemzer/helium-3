@@ -1,12 +1,13 @@
 module Point exposing
     ( Point
     , angle
-    , around
+    , area
     , decoder
     , encoder
     , fromTuple
     , fromXY
     , generator
+    , ring
     , toScreen
     , toScreenOffset
     , toScreenOffset2
@@ -50,8 +51,11 @@ generator =
         |> Random.map fromTuple
 
 
-around : Point -> Int -> Bool -> List Point
-around ((Point x y) as point) radius includeCenter =
+{-| Given a center point and a radius, returns the points that are inside
+the area. Only returns points that fall on the board.
+-}
+area : Point -> Int -> Bool -> List Point
+area ((Point x y) as point) radius includeCenter =
     let
         points =
             List.Extra.lift2 fromXY
@@ -64,6 +68,22 @@ around ((Point x y) as point) radius includeCenter =
     else
         List.Extra.remove point points
             |> List.filter isInsideGrid
+
+
+{-| Similar to `area`, but only returns points on the outer edge of
+the area.
+-}
+ring : Point -> Int -> List Point
+ring (Point cX cY) radius =
+    List.Extra.lift2 Tuple.pair
+        (List.range (cX - radius) (cX + radius))
+        (List.range (cY - radius) (cY + radius))
+        |> List.filter
+            (\( x, y ) ->
+                (x > cX + radius - 1 || x < cX - radius + 1)
+                    || (y > cY + radius - 1 || y < cY - radius + 1)
+            )
+        |> List.map fromTuple
 
 
 toScreen : Point -> Int -> ( Int, Int )

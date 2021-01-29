@@ -83,15 +83,14 @@ distribute deposit matrix =
                         List.foldl
                             (\point -> set point amountInner)
                             updatedMatrix
-                            (Point.around center 1 False)
+                            (Point.area center 1 False)
                    )
                 |> (\updatedMatrix ->
                         List.foldl
                             (\point -> set point ammountOuter)
                             updatedMatrix
                             -- TODO
-                            (Point.around center 2 False)
-                    -- (Cell.ring5 center)
+                            (Point.area center 2 False)
                    )
 
         Small helium3 center ->
@@ -107,7 +106,7 @@ distribute deposit matrix =
                         List.foldl
                             (\point -> set point amountOuter)
                             updatedMatrix
-                            (Point.around center 1 False)
+                            (Point.area center 1 False)
                    )
 
 
@@ -144,7 +143,7 @@ mined.
 -}
 mine : Point -> HeliumGrid -> ( HeliumGrid, Int )
 mine location matrix =
-    Point.around location 1 False
+    Point.area location 1 False
         |> List.map (\point -> ( point, min 250 <| get point matrix ))
         |> (::) ( location, min 500 <| get location matrix )
         |> List.foldl

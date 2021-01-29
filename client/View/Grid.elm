@@ -159,7 +159,7 @@ highlightAround :
 highlightAround point radius onClickMsg includeCenter =
     let
         ( highlights, hovers ) =
-            Point.around point radius includeCenter
+            Point.area point radius includeCenter
                 |> List.map
                     (highlightClickable onClickMsg
                         >> (\svg -> ( svg.highlight, svg.hover ))
