@@ -5,7 +5,7 @@ import Html exposing (Html)
 import Html.Attributes as HA
 import Html.Events exposing (onClick)
 import Point exposing (Point)
-import Svg exposing (Svg, g, rect, svg, text, text_)
+import Svg exposing (Svg, defs, feComposite, feFlood, g, rect, svg, text, text_)
 import Svg.Attributes exposing (..)
 
 
@@ -261,11 +261,25 @@ fillCellDebug point amount =
             , fill <| Color.blueShade lightness
             ]
             []
+        , defs []
+            [ Svg.filter [ x "0", y "0", width "1", height "1", id "text-bg" ]
+                [ feFlood [ floodColor "white" ] []
+                , feComposite [ in_ "SourceGraphic", operator "xor" ] []
+                ]
+            ]
         , text_
             [ x <| String.fromFloat <| toFloat topX + lineStrokeWidth / 2
             , y <| String.fromFloat <| toFloat topY + lineStrokeWidth / 2 + 0.35
-            , HA.style "font-size" "0.35px"
-            , fill "white"
+            , HA.style "font-size" "0.40px"
+            , fill "black"
+            , filter "url(#text-bg)"
+            ]
+            [ text <| String.fromInt amount, text ",", text <| String.fromInt lightness ]
+        , text_
+            [ x <| String.fromFloat <| toFloat topX + lineStrokeWidth / 2
+            , y <| String.fromFloat <| toFloat topY + lineStrokeWidth / 2 + 0.35
+            , HA.style "font-size" "0.40px"
+            , fill "black"
             ]
             [ text <| String.fromInt amount, text ",", text <| String.fromInt lightness ]
         ]
