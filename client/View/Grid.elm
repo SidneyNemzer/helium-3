@@ -224,7 +224,7 @@ fillCell : Point -> Int -> Svg msg
 fillCell point amount =
     let
         lightness =
-            100 - round (toFloat amount * 0.033)
+            100 - round (toFloat (Basics.min 1600 amount) * 0.033)
 
         ( topX, topY ) =
             Point.toScreen point 2
@@ -246,9 +246,8 @@ fillCellDebug : Point -> Int -> Svg msg
 fillCellDebug point amount =
     let
         lightness =
-            100 - round (toFloat amount * 0.033)
+            100 - round (toFloat (Basics.min 1600 amount) * 0.033)
 
-        -- 100 - Basics.min 50 (round (toFloat amount * 0.033))
         ( topX, topY ) =
             Point.toScreen point 2
     in
