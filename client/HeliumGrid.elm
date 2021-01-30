@@ -1,5 +1,16 @@
-module HeliumGrid exposing (HeliumGrid, codec, drop, empty, generator, mine)
+module HeliumGrid exposing
+    ( HeliumGrid
+    , codec
+    , depositLarge
+    , depositSmall
+    , drop
+    , empty
+    , generator
+    , mine
+    , total
+    )
 
+import Array
 import Codec exposing (Codec)
 import Matrix exposing (Matrix)
 import Point exposing (Point)
@@ -10,104 +21,72 @@ type alias HeliumGrid =
     Matrix Int
 
 
-{-| Amount of Helium 3 to distribute on a new grid.
--}
-startingHelium : Float
-startingHelium =
-    40000
+lowDensity : Int
+lowDensity =
+    350
 
 
-{-| Amount of Helium 3 in a large deposit
--}
-largeDeposit : Float
-largeDeposit =
-    startingHelium * 0.2
+mediumDensity : Int
+mediumDensity =
+    750
 
 
-type Deposit
-    = Large Point
-    | Small Int Point
+highDensity : Int
+highDensity =
+    1200
 
 
-{-| Creates a randomized helium 3 grid.
-
-1.  Randomizes number of large and small deposits
-2.  Randomizes location of each deposit
-3.  Amount of helium in large deposits is constant. The remaining helium is
-    distributed to the small deposits.
-
-TODO maybe H3 should be distributed randomly without a "starting helium"
-
+{-| Creates a randomized grid of helium. See docs/spec.md.
 -}
 generator : Random.Generator HeliumGrid
 generator =
     Random.pair (Random.int 2 3) (Random.int 3 5)
         |> Random.andThen
             (\( largeDepositCount, smallCount ) ->
-                let
-                    heliumPerSmallDeposit =
-                        (startingHelium
-                            - (largeDeposit * toFloat largeDepositCount)
+                Random.list
+                    (largeDepositCount + smallCount)
+                    validPointGenerator
+                    |> Random.map
+                        (\points ->
+                            let
+                                largDepositPoints =
+                                    List.take largeDepositCount points
+
+                                smallDepositPoints =
+                                    List.drop largeDepositCount points
+                            in
+                            List.foldl depositLarge empty largDepositPoints
+                                |> (\helium -> List.foldl depositSmall helium smallDepositPoints)
                         )
-                            / toFloat smallCount
-                            |> round
-                in
-                Random.map2
-                    List.append
-                    (Random.list largeDepositCount
-                        (Point.generator |> Random.map Large)
-                    )
-                    (Random.list smallCount
-                        (Point.generator |> Random.map (Small heliumPerSmallDeposit))
-                    )
             )
-        |> Random.map (List.foldl distribute empty)
 
 
-distribute : Deposit -> HeliumGrid -> HeliumGrid
-distribute deposit matrix =
-    case deposit of
-        Large center ->
-            let
-                amountCenter =
-                    largeDeposit * 0.8 |> round
+{-| In order to avoid generating points too close to the spawns, this generator
+discards points until it generates one sufficiently far from each spawn.
+-}
+validPointGenerator : Random.Generator Point
+validPointGenerator =
+    Point.generator
+        |> Random.andThen
+            (\point ->
+                if List.member point invalidDepositPoints then
+                    validPointGenerator
 
-                amountInner =
-                    largeDeposit * 0.0575 |> round
+                else
+                    Random.constant point
+            )
 
-                ammountOuter =
-                    largeDeposit * 0.02875 |> round
-            in
-            set center amountCenter matrix
-                |> (\updatedMatrix ->
-                        List.foldl
-                            (\point -> set point amountInner)
-                            updatedMatrix
-                            (Point.area center 1 False)
-                   )
-                |> (\updatedMatrix ->
-                        List.foldl
-                            (\point -> set point ammountOuter)
-                            updatedMatrix
-                            -- TODO
-                            (Point.area center 2 False)
-                   )
 
-        Small helium3 center ->
-            let
-                amountCenter =
-                    toFloat helium3 * 0.15 |> round
-
-                amountOuter =
-                    toFloat helium3 * 0.10625 |> round
-            in
-            set center amountCenter matrix
-                |> (\updatedMatrix ->
-                        List.foldl
-                            (\point -> set point amountOuter)
-                            updatedMatrix
-                            (Point.area center 1 False)
-                   )
+{-| The center of a deposit shouldn't generate at any of these points.
+-}
+invalidDepositPoints : List Point
+invalidDepositPoints =
+    List.concat
+        [ Point.area (Point.fromXY 0 0) 5 True
+        , Point.area (Point.fromXY 0 19) 5 True
+        , Point.area (Point.fromXY 19 0) 5 True
+        , Point.area (Point.fromXY 19 19) 5 True
+        ]
 
 
 empty : HeliumGrid
@@ -133,9 +112,9 @@ get point matrix =
     Matrix.get x y matrix |> Maybe.withDefault 0
 
 
-update : Point -> (Int -> Int) -> HeliumGrid -> HeliumGrid
-update point fn grid =
-    get point grid |> fn |> (\value -> set point value grid)
+add : Point -> Int -> HeliumGrid -> HeliumGrid
+add point amount grid =
+    get point grid |> (+) amount |> (\value -> set point value grid)
 
 
 {-| Simulates mining at the given point, returns the updated grid and amount
@@ -147,17 +126,53 @@ mine location matrix =
         |> List.map (\point -> ( point, min 250 <| get point matrix ))
         |> (::) ( location, min 500 <| get location matrix )
         |> List.foldl
-            (\( point, mined ) ( matrix_, total ) ->
-                ( update point (\value -> value - mined) matrix_
-                , total + mined
+            (\( point, minedFromPoint ) ( matrix_, totalMined ) ->
+                ( add point -minedFromPoint matrix_
+                , totalMined + minedFromPoint
                 )
             )
             ( matrix, 0 )
 
 
+total : HeliumGrid -> Int
+total =
+    .data >> Array.foldl (+) 0
+
+
 drop : Point -> Int -> HeliumGrid -> HeliumGrid
-drop location amount =
-    distribute (Small amount location)
+drop center amount =
+    let
+        -- These formulas are based on "Helium Distribution" in doc/specs.md
+        inner =
+            amount * 75 // 355
+
+        outer =
+            (amount - inner) // 8
+    in
+    add center inner
+        >> addRing center 1 outer
+
+
+depositSmall : Point -> HeliumGrid -> HeliumGrid
+depositSmall center =
+    add center mediumDensity
+        >> addRing center 1 lowDensity
+
+
+depositLarge : Point -> HeliumGrid -> HeliumGrid
+depositLarge center =
+    add center highDensity
+        >> addRing center 1 mediumDensity
+        >> addRing center 2 lowDensity
+
+
+{-| Adds helium to each cell in a ring centered on the given point. Each cell
+receives the specified amount, it is not split between them.
+-}
+addRing : Point -> Int -> Int -> HeliumGrid -> HeliumGrid
+addRing center radius amount helium =
+    Point.ring center radius
+        |> List.foldl (\point -> add point amount) helium
 
 
 codec : Codec HeliumGrid

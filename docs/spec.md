@@ -30,6 +30,14 @@ xxx        xxx
 
 Not to scale. X = X-TRACT Robot. number = player number.
 
+## Helium Distribution
+
+Helium is distributed in randomly placed "large" and "small" deposits. There are randomly between two and three large deposits, and between three and five small deposits. If deposits overlap, cells are added together.
+
+The center of a deposit must be at least five cells away from each spawn, and it must be on the board. This encourages robots to move before mining. Otherwise, the location of each deposit is random. Any helium off the edge of the map is inaccessible.
+
+Large deposits are 5x5, with 1200 in the center, 750 in each cell in the 9x9 around the center, and 350 in each cell in the outer 5x5 ring. Small deposits are 3x3 with 750 in the center and 350 in the outer 3x3 ring.
+
 ## X-TRACT Robots
 
 Each player starts with five X-TRACT robots. Players may move up to two robots on their turn.
@@ -50,6 +58,19 @@ An X-TRACT robot can preform one of the following actions per turn:
 | Move         | 6          |                                                             |
 
 "Move" obviously allows X-TRACT robots to move around the map. Some other actions allow the robots to move, but not as far as a dedicated move.
+
+When a robot is destroyed, it drops half of the helium it mined (and the player loses that amount). Helium is dropped in a 3x3 area, with more in the center. The distribution uses a ratio of 350 to 750, matching the ratio of a generated small deposit. The forumla is:
+
+```
+x = amount in outer 3x3
+y = amount in center
+
+8x + y = amount dropped
+
+x / y = 350 / 750
+```
+
+For example, if 5000 helium needs to be dropped, 1056 would land in the center and 493 would land in the 3x3 ring. Values are rounded down.
 
 ### Mining
 
