@@ -28,7 +28,7 @@ suite : Test
 suite =
     describe "Point"
         [ describe "ring"
-            [ test "1" <|
+            [ test "radius 1" <|
                 \_ ->
                     Point.ring (Point.fromXY 5 5) 1
                         |> Expect.equalLists [ Point.fromXY 4 4, Point.fromXY 4 5, Point.fromXY 4 6, Point.fromXY 5 4, Point.fromXY 5 6, Point.fromXY 6 4, Point.fromXY 6 5, Point.fromXY 6 6 ]
@@ -36,17 +36,17 @@ suite =
                 \point radius ->
                     let
                         outerArea =
-                            power2 <| (radius * 2 + 1)
+                            power2 (radius * 2 + 1)
 
                         innerArea =
-                            power2 <| ((radius - 1) * 2 + 1)
+                            power2 ((radius - 1) * 2 + 1)
                     in
                     Point.ring point radius
                         |> List.length
                         |> Expect.equal (outerArea - innerArea)
             ]
         , describe "area"
-            [ test "1" <|
+            [ test "radius 1" <|
                 \_ ->
                     Point.area (Point.fromXY 5 5) 1 True
                         |> Expect.equalLists [ Point.fromXY 4 4, Point.fromXY 4 5, Point.fromXY 4 6, Point.fromXY 5 4, Point.fromXY 5 5, Point.fromXY 5 6, Point.fromXY 6 4, Point.fromXY 6 5, Point.fromXY 6 6 ]
@@ -54,7 +54,7 @@ suite =
                 \point radius ->
                     let
                         area =
-                            power2 <| (radius * 2 + 1)
+                            power2 (radius * 2 + 1)
                     in
                     Point.area point radius True
                         |> List.length
