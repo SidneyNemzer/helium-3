@@ -370,7 +370,7 @@ animateHelp effect model =
                                 | helium = ground
                                 , players = Players.addScore robot.owner mined model.players
                             }
-                                |> updateRobot id (\r -> { r | mined = robot.mined + mined })
+                                |> updateRobot id (\r -> { r | mined = r.mined + mined })
                                 |> createScoreAnimation robot.location mined
                     in
                     ( newModel, 0, cmd )
