@@ -27,6 +27,7 @@ import View.Miner
 import View.Missile
 import View.Robot
 import View.RobotActions
+import View.ScoreText
 import View.Shield
 
 
@@ -53,12 +54,17 @@ type alias Model =
     , player : PlayerIndex
     , turn : PlayerIndex
     , countdownSeconds : Int
+    , scoreAnimations : ScoreAnimations
 
     -- TODO probably should use a union type around model instead of a bool here,
     -- but that will likely require moving most of the code into a sub module,
     -- where the parent waits for the game to start.
     , waitingForStart : Bool
     }
+
+
+type alias ScoreAnimations =
+    Dict Int ( Point, Int )
 
 
 type Selection
@@ -87,6 +93,7 @@ init { player } =
       , turn = Player1
       , countdownSeconds = 0
       , waitingForStart = True
+      , scoreAnimations = Dict.empty
       }
     , Cmd.none
     )
@@ -101,6 +108,7 @@ type Msg
     | OnServerMessage ServerMessage
     | OnError Error
     | Countdown
+    | DeleteScoreAnimation Int
     | Noop
 
 
@@ -227,6 +235,11 @@ update msg model =
         Countdown ->
             tickCountdown model
 
+        DeleteScoreAnimation key ->
+            ( { model | scoreAnimations = Dict.remove key model.scoreAnimations }
+            , Cmd.none
+            )
+
         Noop ->
             ( model, Cmd.none )
 
@@ -317,48 +330,56 @@ animate model =
 
         next :: rest ->
             let
-                ( newModel, sleepMs ) =
+                ( newModel, sleepMs, cmd1 ) =
                     animateHelp next { model | timeline = rest }
             in
             if sleepMs == 0 then
-                animate newModel
+                animate newModel |> Tuple.mapSecond (\cmd2 -> Cmd.batch [ cmd1, cmd2 ])
 
             else
                 ( newModel
-                , Process.sleep (toFloat sleepMs) |> Task.perform (\() -> NextAnimation)
+                , Cmd.batch
+                    [ Process.sleep (toFloat sleepMs) |> Task.perform (\() -> NextAnimation)
+                    , cmd1
+                    ]
                 )
 
 
-animateHelp : Effect -> Model -> ( Model, Int )
+animateHelp : Effect -> Model -> ( Model, Int, Cmd Msg )
 animateHelp effect model =
     case effect of
         SetLocation id point ->
-            ( updateRobot id (Robot.setLocation point) model, 0 )
+            ( updateRobot id (Robot.setLocation point) model, 0, Cmd.none )
 
         SetRotation id rotation ->
-            ( updateRobot id (Robot.setRotation rotation) model, 0 )
+            ( updateRobot id (Robot.setRotation rotation) model, 0, Cmd.none )
 
         SetMinerActive id ->
-            ( updateRobot id Robot.setMinerActive model, 0 )
+            ( updateRobot id Robot.setMinerActive model, 0, Cmd.none )
 
         MineAt id point ->
             let
                 ( ground, mined ) =
                     HeliumGrid.mine point model.helium
             in
-            ( { model
-                | helium = ground
-                , players =
-                    Dict.get id model.robots
-                        |> Maybe.map (\robot -> Players.addScore robot.owner mined model.players)
-                        |> Maybe.withDefault model.players
-              }
-                |> updateRobot id (\robot -> { robot | mined = robot.mined + mined })
-            , 0
-            )
+            case Dict.get id model.robots of
+                Just robot ->
+                    let
+                        ( newModel, cmd ) =
+                            { model
+                                | helium = ground
+                                , players = Players.addScore robot.owner mined model.players
+                            }
+                                |> updateRobot id (\r -> { r | mined = robot.mined + mined })
+                                |> createScoreAnimation robot.location mined
+                    in
+                    ( newModel, 0, cmd )
+
+                Nothing ->
+                    ( model, 0, Cmd.none )
 
         SetState id state ->
-            ( updateRobot id (Robot.setState state) model, 0 )
+            ( updateRobot id (Robot.setState state) model, 0, Cmd.none )
 
         Impact point forceShield ->
             case Robot.getRobotAt point model.robots of
@@ -367,8 +388,11 @@ animateHelp effect model =
                         impacted =
                             Robot.impact forceShield robot
 
+                        destroyed =
+                            impacted.state == Robot.Destroyed
+
                         animation =
-                            if impacted.state /= Robot.Destroyed then
+                            if not destroyed then
                                 [ Wait 1000
                                 , SetState robot.id (Robot.removeShield impacted).state
                                 ]
@@ -377,33 +401,55 @@ animateHelp effect model =
                                 []
 
                         helium =
-                            if impacted.state /= Robot.Destroyed then
+                            if not destroyed then
                                 model.helium
 
                             else
                                 HeliumGrid.drop robot.location (robot.mined // 2) model.helium
 
                         players =
-                            if impacted.state /= Robot.Destroyed then
+                            if not destroyed then
                                 model.players
 
                             else
                                 Players.addScore robot.owner (-robot.mined // 2) model.players
+
+                        newModel =
+                            { model
+                                | timeline = animation ++ model.timeline
+                                , players = players
+                                , helium = helium
+                            }
+                                |> updateRobot robot.id (\_ -> impacted)
                     in
-                    ( { model
-                        | timeline = animation ++ model.timeline
-                        , players = players
-                        , helium = helium
-                      }
-                        |> updateRobot robot.id (\_ -> impacted)
-                    , 0
-                    )
+                    if destroyed then
+                        let
+                            ( newModel2, cmd ) =
+                                createScoreAnimation robot.location (-robot.mined // 2) newModel
+                        in
+                        ( newModel2, 0, cmd )
+
+                    else
+                        ( newModel, 0, Cmd.none )
 
                 Nothing ->
-                    ( model, 0 )
+                    ( model, 0, Cmd.none )
 
         Wait ms ->
-            ( model, ms )
+            ( model, ms, Cmd.none )
+
+
+createScoreAnimation : Point -> Int -> { a | scoreAnimations : ScoreAnimations } -> ( { a | scoreAnimations : ScoreAnimations }, Cmd Msg )
+createScoreAnimation point amount model =
+    let
+        nextKey =
+            Dict.keys model.scoreAnimations
+                |> List.foldl max 0
+    in
+    ( { model | scoreAnimations = Dict.insert nextKey ( point, amount ) model.scoreAnimations }
+    , Process.sleep (toFloat View.ScoreText.durationSeconds * 1000)
+        |> Task.perform (\_ -> DeleteScoreAnimation nextKey)
+    )
 
 
 
@@ -427,6 +473,7 @@ view model =
         [ View.Missile.style
         , View.Grid.style
         , View.Shield.style
+        , View.ScoreText.style
         , viewActionPicker model.robots model.selectedRobot
         , div
             [ style "display" "flex"
@@ -463,6 +510,7 @@ view model =
                  , viewSelection model
                  ]
                     ++ (Dict.values model.robots |> List.map viewRobot)
+                    ++ [ viewScoreTexts model.scoreAnimations ]
                 )
             ]
         ]
@@ -527,6 +575,13 @@ viewPlayer player isSelf =
             ]
         , div [] [ text "$", text (String.fromInt player.score) ]
         ]
+
+
+viewScoreTexts : ScoreAnimations -> Svg msg
+viewScoreTexts =
+    Dict.values
+        >> List.map (\( point, score ) -> View.ScoreText.view point score)
+        >> g []
 
 
 viewSelection : Model -> Svg Msg
@@ -607,8 +662,12 @@ viewRobot robot =
     else
         g []
             [ g [] targetSvg
-            , g [ onClick (ClickRobot robot.id) ]
-                ([ robotSvg ] ++ toolSvg ++ [ viewMiner robot ])
+            , g [ onClick (ClickRobot robot.id) ] <|
+                List.concat
+                    [ [ robotSvg ]
+                    , toolSvg
+                    , [ viewMiner robot ]
+                    ]
             ]
 
 
