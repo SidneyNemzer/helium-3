@@ -1,6 +1,6 @@
 module ClientAction exposing (ClientAction(..), decoder, encoder, id)
 
-import Json.Decode as Decode exposing (Decoder, Error)
+import Json.Decode as Decode exposing (Decoder)
 import Json.Decode.Extra as Decode
 import Json.Encode as Encode exposing (Value)
 import Point exposing (Point)

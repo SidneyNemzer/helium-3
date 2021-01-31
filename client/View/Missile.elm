@@ -15,12 +15,8 @@ import Svg
         , feGaussianBlur
         , feOffset
         , g
-        , linearGradient
-        , radialGradient
         , rect
-        , stop
         , text
-        , text_
         )
 import Svg.Attributes exposing (..)
 
@@ -36,11 +32,6 @@ use point rotation =
                 ++ "px "
                 ++ (toFloat y_ + 1 |> String.fromFloat)
                 ++ "px"
-
-        center =
-            (toFloat x_ + 1 |> String.fromFloat)
-                ++ " "
-                ++ (toFloat y_ + 1 |> String.fromFloat)
 
         rotate =
             "rotate("

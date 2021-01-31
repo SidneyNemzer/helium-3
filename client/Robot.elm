@@ -142,7 +142,7 @@ queueMine point robot =
 hasAction : Robot -> Bool
 hasAction robot =
     case robot.state of
-        Idle currentTool ->
+        Idle _ ->
             False
 
         Destroyed ->
@@ -164,13 +164,13 @@ getTarget robot =
         FireMissile target _ ->
             Just target
 
-        FireLaser target _ ->
+        FireLaser _ _ ->
             Nothing
 
         Mine { target } ->
             Just target
 
-        Idle currentTool ->
+        Idle _ ->
             Nothing
 
         Destroyed ->
@@ -354,7 +354,7 @@ toServerAction robots robot =
                             |> Maybe.withDefault False
                     }
 
-        FireLaser angle _ ->
+        FireLaser _ _ ->
             Debug.todo "laser"
 
         Mine { target } ->
@@ -366,7 +366,7 @@ toServerAction robots robot =
 
 getRobotAt : Point -> Dict Int Robot -> Maybe Robot
 getRobotAt point =
-    Dict.filter (\id robot -> robot.location == point)
+    Dict.filter (\_ robot -> robot.location == point)
         >> Dict.toList
         >> List.head
         >> Maybe.map Tuple.second

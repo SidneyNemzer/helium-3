@@ -4,18 +4,16 @@ import ClientAction exposing (ClientAction)
 import Dict exposing (Dict)
 import Effect exposing (Effect(..), Timeline)
 import HeliumGrid exposing (HeliumGrid)
-import Html exposing (Html, div)
 import Json.Decode as Decode exposing (Error)
 import Maybe.Extra
 import Message exposing (ClientMessage)
 import Platform
-import Players exposing (Player, PlayerIndex(..), Players)
-import Point exposing (Point)
+import Players exposing (PlayerIndex(..), Players)
 import Ports
 import Process
 import Random
 import Robot exposing (Robot, State(..), Tool(..))
-import ServerAction exposing (ServerAction, obfuscate)
+import ServerAction exposing (ServerAction)
 import Task
 
 
@@ -29,8 +27,7 @@ main =
 
 
 type alias Flags =
-    { seed : Int
-    }
+    { seed : Int }
 
 
 type alias Model =

@@ -130,7 +130,7 @@ fromRobot robot =
         Mine { target } ->
             mine robot target
 
-        SelfDestruct currentTool ->
+        SelfDestruct _ ->
             Debug.todo "SelfDestruct"
 
         FireMissile target _ ->
@@ -152,7 +152,7 @@ fromServer action robot =
         ServerAction.ArmMissile _ target ->
             moveWithTool robot target (Just ToolMissile)
 
-        ServerAction.SelfDestruct args ->
+        ServerAction.SelfDestruct _ ->
             Debug.todo "SelfDestruct"
 
         ServerAction.Move _ target ->

@@ -1,8 +1,6 @@
 module View.Miner exposing (def, use)
 
-import Html exposing (Html)
 import Html.Attributes as HA
-import Html.Events exposing (onClick)
 import Point exposing (Point)
 import Svg exposing (Svg, defs, feBlend, feColorMatrix, feComposite, feFlood, feGaussianBlur, feOffset, g, rect, svg)
 import Svg.Attributes exposing (..)
@@ -19,11 +17,6 @@ use point rotation =
                 ++ "px "
                 ++ (toFloat y_ + 1 |> String.fromFloat)
                 ++ "px"
-
-        center =
-            (toFloat x_ + 1 |> String.fromFloat)
-                ++ " "
-                ++ (toFloat y_ + 1 |> String.fromFloat)
 
         rotate =
             "rotate("
