@@ -33,7 +33,6 @@ use point rotation colorString id_ =
         , height "3"
         , transform rotate
         , color colorString
-        , HA.style "cursor" "pointer"
         , HA.style "transition" "x 1s, y 1s, transform 1s"
         , id <| Robot.domId id_
         ]

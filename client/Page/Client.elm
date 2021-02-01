@@ -122,7 +122,6 @@ update msg model =
             ( { model | selectedRobot = Nothing }, Cmd.none )
 
         ClickRobot id ->
-            -- TODO Show error/message when selecting an invalid move location?
             case model.selectedRobot of
                 Nothing ->
                     let
@@ -318,6 +317,16 @@ updateRobot id fn model =
     { model | robots = Dict.update id (Maybe.map fn) model.robots }
 
 
+getSelection : Model -> Maybe ( Selection, Robot )
+getSelection model =
+    model.selectedRobot
+        |> Maybe.andThen
+            (\( selection, id ) ->
+                Dict.get id model.robots
+                    |> Maybe.map (Tuple.pair selection)
+            )
+
+
 
 -- ANIMATION
 
@@ -509,7 +518,7 @@ view model =
                  , viewHeliumGrid model.helium
                  , viewSelection model
                  ]
-                    ++ (Dict.values model.robots |> List.map viewRobot)
+                    ++ (Dict.values model.robots |> List.map (viewRobot model))
                     ++ [ viewScoreTexts model.scoreAnimations ]
                 )
             ]
@@ -631,8 +640,8 @@ viewSelectionHelp ( selection, robot ) =
             text ""
 
 
-viewRobot : Robot -> Svg Msg
-viewRobot robot =
+viewRobot : Model -> Robot -> Svg Msg
+viewRobot model robot =
     let
         robotSvg =
             View.Robot.use
@@ -655,6 +664,13 @@ viewRobot robot =
             Robot.getTool robot
                 |> Maybe.map (viewTool robot)
                 |> Maybe.Extra.toList
+
+        cursor =
+            if clickable (getSelection model) model.player robot then
+                [ style "cursor" "pointer" ]
+
+            else
+                []
     in
     if robot.state == Robot.Destroyed then
         text ""
@@ -662,13 +678,38 @@ viewRobot robot =
     else
         g []
             [ g [] targetSvg
-            , g [ onClick (ClickRobot robot.id) ] <|
+            , g (onClick (ClickRobot robot.id) :: cursor) <|
                 List.concat
                     [ [ robotSvg ]
                     , toolSvg
                     , [ viewMiner robot ]
                     ]
             ]
+
+
+clickable : Maybe ( Selection, Robot ) -> PlayerIndex -> Robot -> Bool
+clickable selection player target =
+    case selection of
+        Nothing ->
+            player == target.owner
+
+        Just ( ChoosingAction, _ ) ->
+            False
+
+        Just ( ChoosingMoveLocation, _ ) ->
+            False
+
+        Just ( ChoosingArmMissileLocation, selectedRobot ) ->
+            selectedRobot.id == target.id
+
+        Just ( ChoosingShieldLocation, selectedRobot ) ->
+            selectedRobot.id == target.id
+
+        Just ( ChoosingFireMissileLocation, _ ) ->
+            True
+
+        Just ( ChoosingMineLocation, selectedRobot ) ->
+            selectedRobot.id == target.id
 
 
 viewTool : Robot -> Robot.Tool -> Svg msg
