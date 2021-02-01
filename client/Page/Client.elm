@@ -122,61 +122,12 @@ update msg model =
             ( { model | selectedRobot = Nothing }, Cmd.none )
 
         ClickRobot id ->
-            case model.selectedRobot of
+            case Dict.get id model.robots of
+                Just robot ->
+                    onClickRobot robot model
+
                 Nothing ->
-                    let
-                        isOwner =
-                            Dict.get id model.robots
-                                |> Maybe.map (.owner >> (==) model.player)
-                                |> Maybe.withDefault False
-                    in
-                    if isOwner then
-                        ( { model | selectedRobot = Just ( ChoosingAction, id ) }
-                        , Cmd.none
-                        )
-
-                    else
-                        ( model, Cmd.none )
-
-                Just ( ChoosingAction, _ ) ->
                     ( model, Cmd.none )
-
-                Just ( ChoosingMoveLocation, _ ) ->
-                    ( model, Cmd.none )
-
-                Just ( ChoosingArmMissileLocation, otherId ) ->
-                    if otherId == id then
-                        queueActionAt ArmMissile id model
-
-                    else
-                        ( model, Cmd.none )
-
-                Just ( ChoosingShieldLocation, otherId ) ->
-                    if otherId == id then
-                        queueActionAt Shield id model
-
-                    else
-                        ( model, Cmd.none )
-
-                Just ( ChoosingFireMissileLocation, selectedId ) ->
-                    let
-                        maybeTarget =
-                            Dict.get id model.robots
-                                |> Maybe.map .location
-                    in
-                    case maybeTarget of
-                        Just target ->
-                            queueAction (FireMissile selectedId target) model
-
-                        Nothing ->
-                            ( model, Cmd.none )
-
-                Just ( ChoosingMineLocation, otherId ) ->
-                    if otherId == id then
-                        queueActionAt Mine id model
-
-                    else
-                        ( model, Cmd.none )
 
         ChooseAction selection ->
             ( { model
@@ -241,6 +192,80 @@ update msg model =
 
         Noop ->
             ( model, Cmd.none )
+
+
+onClickRobot : Robot -> Model -> ( Model, Cmd Msg )
+onClickRobot target model =
+    let
+        maybeSelection =
+            getSelection model
+    in
+    if isValidTarget maybeSelection model.player target then
+        case maybeSelection of
+            Just ( selection, selected ) ->
+                queueFromSelection selection selected target model
+
+            Nothing ->
+                ( { model | selectedRobot = Just ( ChoosingAction, target.id ) }
+                , Cmd.none
+                )
+
+    else
+        ( model, Cmd.none )
+
+
+queueFromSelection : Selection -> Robot -> Robot -> Model -> ( Model, Cmd Msg )
+queueFromSelection selection selected target model =
+    case selection of
+        ChoosingAction ->
+            ( model, Cmd.none )
+
+        ChoosingMoveLocation ->
+            -- Player clicked another robot, but robots can't occupy the same
+            -- cell.
+            ( model, Cmd.none )
+
+        ChoosingArmMissileLocation ->
+            queueActionAt ArmMissile selected.id model
+
+        ChoosingShieldLocation ->
+            queueActionAt Shield selected.id model
+
+        ChoosingFireMissileLocation ->
+            queueAction (FireMissile selected.id target.location) model
+
+        ChoosingMineLocation ->
+            queueActionAt Mine selected.id model
+
+
+isValidTarget : Maybe ( Selection, Robot ) -> PlayerIndex -> Robot -> Bool
+isValidTarget selection player target =
+    let
+        properties =
+            selection
+                |> Maybe.andThen
+                    (\( selection_, robot ) ->
+                        selectionArea selection_
+                            |> Maybe.map
+                                (\( range, canTargetSelf ) ->
+                                    { range = range
+                                    , canTargetSelf = canTargetSelf
+                                    , selectedRobot = robot
+                                    }
+                                )
+                    )
+    in
+    case properties of
+        Just { range, canTargetSelf, selectedRobot } ->
+            if selectedRobot.id == target.id then
+                canTargetSelf
+
+            else
+                Point.distance selectedRobot.location target.location <= range
+
+        Nothing ->
+            -- Nothing is selected. Players can only select their own robots.
+            player == target.owner
 
 
 queueActionAt : (Int -> Point -> ClientAction) -> Int -> Model -> ( Model, Cmd Msg )
@@ -325,6 +350,32 @@ getSelection model =
                 Dict.get id model.robots
                     |> Maybe.map (Tuple.pair selection)
             )
+
+
+{-| Returns the range of each type of action. `ChoosingAction` is a special
+case that renders a menu instead of a selection area. The `Bool` indicates
+if the selected robot can be targeted.
+-}
+selectionArea : Selection -> Maybe ( Int, Bool )
+selectionArea selection =
+    case selection of
+        ChoosingAction ->
+            Nothing
+
+        ChoosingMoveLocation ->
+            Just ( 4, False )
+
+        ChoosingArmMissileLocation ->
+            Just ( 4, True )
+
+        ChoosingFireMissileLocation ->
+            Just ( 3, True )
+
+        ChoosingShieldLocation ->
+            Just ( 4, True )
+
+        ChoosingMineLocation ->
+            Just ( 3, True )
 
 
 
@@ -606,29 +657,8 @@ viewSelection model =
 
 viewSelectionHelp : ( Selection, Robot ) -> Svg Msg
 viewSelectionHelp ( selection, robot ) =
-    let
-        maybeSize =
-            case selection of
-                ChoosingAction ->
-                    -- Rendered outside of the SVG by `viewActionPicker`
-                    Nothing
-
-                ChoosingMoveLocation ->
-                    Just ( 4, False )
-
-                ChoosingArmMissileLocation ->
-                    Just ( 4, True )
-
-                ChoosingFireMissileLocation ->
-                    Just ( 3, True )
-
-                ChoosingShieldLocation ->
-                    Just ( 4, True )
-
-                ChoosingMineLocation ->
-                    Just ( 3, True )
-    in
-    case maybeSize of
+    -- ChooseAction is rendered outside of the SVG by `viewActionPicker`
+    case selectionArea selection of
         Just ( size, center ) ->
             let
                 { highlight, hover } =
@@ -666,7 +696,7 @@ viewRobot model robot =
                 |> Maybe.Extra.toList
 
         cursor =
-            if clickable (getSelection model) model.player robot then
+            if isValidTarget (getSelection model) model.player robot then
                 [ style "cursor" "pointer" ]
 
             else
@@ -685,31 +715,6 @@ viewRobot model robot =
                     , [ viewMiner robot ]
                     ]
             ]
-
-
-clickable : Maybe ( Selection, Robot ) -> PlayerIndex -> Robot -> Bool
-clickable selection player target =
-    case selection of
-        Nothing ->
-            player == target.owner
-
-        Just ( ChoosingAction, _ ) ->
-            False
-
-        Just ( ChoosingMoveLocation, _ ) ->
-            False
-
-        Just ( ChoosingArmMissileLocation, selectedRobot ) ->
-            selectedRobot.id == target.id
-
-        Just ( ChoosingShieldLocation, selectedRobot ) ->
-            selectedRobot.id == target.id
-
-        Just ( ChoosingFireMissileLocation, _ ) ->
-            True
-
-        Just ( ChoosingMineLocation, selectedRobot ) ->
-            selectedRobot.id == target.id
 
 
 viewTool : Robot -> Robot.Tool -> Svg msg

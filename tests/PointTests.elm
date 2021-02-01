@@ -24,6 +24,13 @@ fuzzer ( x1, y1 ) ( x2, y2 ) =
         )
 
 
+{-| Fuzzes points on the board
+-}
+boardFuzzer : Fuzzer Point
+boardFuzzer =
+    fuzzer ( 0, 0 ) ( 19, 19 )
+
+
 suite : Test
 suite =
     describe "Point"
@@ -59,6 +66,16 @@ suite =
                     Point.area point radius True
                         |> List.length
                         |> Expect.equal area
+            ]
+        , describe "distance"
+            [ fuzz2 boardFuzzer boardFuzzer "cannot be negative" <|
+                \p1 p2 ->
+                    Point.distance p1 p2
+                        |> Expect.atLeast 0
+            , test "static" <|
+                \_ ->
+                    Point.distance (Point.fromXY 3 4) (Point.fromXY 10 12)
+                        |> Expect.equal 8
             ]
         ]
 

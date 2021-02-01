@@ -3,6 +3,7 @@ module Point exposing
     , angle
     , area
     , decoder
+    , distance
     , encoder
     , fromTuple
     , fromXY
@@ -123,6 +124,17 @@ decoder =
 encoder : Point -> Value
 encoder (Point x y) =
     Encode.object [ ( "x", Encode.int x ), ( "y", Encode.int y ) ]
+
+
+{-| Note this is not true distance, but it's used to check if the points are
+in range of each other.
+
+It calculates the distance on the x and y axis, and returns the larger number.
+
+-}
+distance : Point -> Point -> Int
+distance (Point x1 y1) (Point x2 y2) =
+    max (abs (x2 - x1)) (abs (y2 - y1))
 
 
 toSvgOffset : Point -> Float -> Float -> List (Svg.Attribute msg)
