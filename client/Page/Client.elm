@@ -79,7 +79,6 @@ type Selection
 
 -- | ChoosingLaserTarget
 -- | ChoosingArmLaserLocation
--- | ChoosingSelfDestructLocation
 
 
 init : Flags -> ( Model, Cmd Msg )

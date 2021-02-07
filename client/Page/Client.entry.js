@@ -43,6 +43,12 @@ subscribeApp(app2);
 subscribeApp(app3);
 subscribeApp(app4);
 
+// Simulate all four clients connecting
+server.ports.messageIn.send({ type: "connect" });
+server.ports.messageIn.send({ type: "connect" });
+server.ports.messageIn.send({ type: "connect" });
+server.ports.messageIn.send({ type: "connect" });
+
 server.ports.log.subscribe((data) => {
   console.log("[Server]", data);
 });

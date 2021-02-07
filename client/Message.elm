@@ -1,8 +1,10 @@
 port module Message exposing
     ( ClientMessage(..)
+    , ClientMessageLobby(..)
     , ServerMessage(..)
     , ServerMessageLobby(..)
     , receiveClientMessage
+    , receiveClientMessageLobby
     , receiveServerMessage
     , receiveServerMessageLobby
     , sendClientMessage
@@ -22,6 +24,11 @@ import ServerAction exposing (ServerAction)
 
 type ClientMessage
     = Queue ClientAction
+
+
+type ClientMessageLobby
+    = Connect
+    | Disconnect
 
 
 {-| When a client connects to the server, it is placed in the lobby. The server
@@ -53,6 +60,11 @@ sendServerMessage receivers message =
 sendServerMessageLobby : ServerMessageLobby -> List PlayerIndex -> Cmd msg
 sendServerMessageLobby message receivers =
     messageOut ( lobbyEncoder message, List.map Players.toNumber receivers )
+
+
+receiveClientMessageLobby : (ClientMessageLobby -> msg) -> (Error -> msg) -> Sub msg
+receiveClientMessageLobby =
+    receive clientLobbyDecoder
 
 
 receiveServerMessage : (ServerMessage -> msg) -> (Error -> msg) -> Sub msg
@@ -115,6 +127,25 @@ clientDecoderWithType messageType =
         "queue" ->
             Decode.succeed Queue
                 |> Decode.andMap (Decode.field "action" ClientAction.decoder)
+
+        _ ->
+            Decode.fail <| "Unknown type:" ++ messageType
+
+
+clientLobbyDecoder : Decoder ClientMessageLobby
+clientLobbyDecoder =
+    typeDecoder
+        |> Decode.andThen clientLobbyDecoderWithType
+
+
+clientLobbyDecoderWithType : String -> Decoder ClientMessageLobby
+clientLobbyDecoderWithType messageType =
+    case messageType of
+        "connect" ->
+            Decode.succeed Connect
+
+        "disconnect" ->
+            Decode.succeed Disconnect
 
         _ ->
             Decode.fail <| "Unknown type:" ++ messageType
