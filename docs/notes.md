@@ -1,5 +1,44 @@
 NOTES
 
+# File Structure
+
+```
+public/
+  index.html
+
+client/
+  Page/
+    Client.elm
+    Client.entry.js
+    GameClient.elm
+    LobbyClient.elm
+  View/
+    Grid.elm
+    Miner.elm
+    Robot.elm
+    ...
+  Color.elm
+
+server/
+  Server.elm
+  GameServer.elm
+  LobbyServer.elm
+  ... typescript ...
+
+core/
+  ClientAction.elm
+  ServerAction.elm
+  Effect.elm
+  HeliumGrid.elm
+  HeliumGridTests.elm
+  Matrix.elm
+  MatrixTests.elm
+  Players.elm
+  Point.elm
+  Ports.elm
+  Robot.elm
+```
+
 # Animation
 
 - Animations could be per robot. By default, they are independant. Settings scores affects the same state

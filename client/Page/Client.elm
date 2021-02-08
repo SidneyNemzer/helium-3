@@ -1,37 +1,12 @@
-module Page.Client exposing (main)
+module Page.Client exposing (..)
 
-import Array
 import Browser
-import ClientAction exposing (ClientAction(..))
-import Dict exposing (Dict)
-import Effect exposing (Effect(..), Timeline)
-import HeliumGrid exposing (HeliumGrid)
-import Html exposing (Html, button, div, span, text)
-import Html.Attributes exposing (style)
-import Html.Events exposing (onClick)
-import Json.Decode exposing (Error)
-import List
-import Matrix
-import Maybe.Extra
-import Message exposing (ServerMessage)
-import Players exposing (Player, PlayerIndex(..), Players)
-import Point exposing (Point)
-import Process
-import Robot exposing (Robot, Tool(..))
-import ServerAction exposing (ServerAction)
-import Svg exposing (Svg, defs, g, rect, svg)
-import Svg.Attributes exposing (color, fill, height, stroke, viewBox, width, x, y)
-import Task
-import View.Grid
-import View.Miner
-import View.Missile
-import View.Robot
-import View.RobotActions
-import View.ScoreText
-import View.Shield
+import Html exposing (Html)
+import Page.GameClient as GameClient
+import Page.LobbyClient as LobbyClient
 
 
-main : Program Flags Model Msg
+main : Program () Model Msg
 main =
     Browser.element
         { init = init
@@ -41,727 +16,78 @@ main =
         }
 
 
-type alias Flags =
-    { player : Int }
+init : () -> ( Model, Cmd Msg )
+init () =
+    let
+        ( lModel, lCmd ) =
+            LobbyClient.init ()
+    in
+    ( Lobby lModel, Cmd.map LobbyMsg lCmd )
 
 
-type alias Model =
-    { robots : Dict Int Robot
-    , timeline : Timeline
-    , selectedRobot : Maybe ( Selection, Int )
-    , helium : HeliumGrid
-    , players : Players
-    , player : PlayerIndex
-    , turn : PlayerIndex
-    , countdownSeconds : Int
-    , scoreAnimations : ScoreAnimations
-
-    -- TODO probably should use a union type around model instead of a bool here,
-    -- but that will likely require moving most of the code into a sub module,
-    -- where the parent waits for the game to start.
-    , waitingForStart : Bool
-    }
-
-
-type alias ScoreAnimations =
-    Dict Int ( Point, Int )
-
-
-type Selection
-    = ChoosingAction
-    | ChoosingMoveLocation
-    | ChoosingArmMissileLocation
-    | ChoosingFireMissileLocation
-    | ChoosingShieldLocation
-    | ChoosingMineLocation
-
-
-
--- | ChoosingLaserTarget
--- | ChoosingArmLaserLocation
-
-
-init : Flags -> ( Model, Cmd Msg )
-init { player } =
-    ( { robots = Robot.initAll
-      , timeline = []
-      , selectedRobot = Nothing
-      , helium = Matrix.empty
-      , players = Players.init
-      , player = Players.fromNumber player
-      , turn = Player1
-      , countdownSeconds = 0
-      , waitingForStart = True
-      , scoreAnimations = Dict.empty
-      }
-    , Cmd.none
-    )
+type Model
+    = Lobby LobbyClient.Model
+    | Game GameClient.Model
 
 
 type Msg
-    = NextAnimation
-    | DeselectRobot
-    | ClickRobot Int
-    | ChooseAction Selection
-    | ClickPoint Point
-    | OnServerMessage ServerMessage
-    | OnError Error
-    | Countdown
-    | DeleteScoreAnimation Int
-    | Noop
+    = LobbyMsg LobbyClient.Msg
+    | GameMsg GameClient.Msg
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
     case msg of
-        NextAnimation ->
-            animate model
-
-        DeselectRobot ->
-            ( { model | selectedRobot = Nothing }, Cmd.none )
-
-        ClickRobot id ->
-            case Dict.get id model.robots of
-                Just robot ->
-                    onClickRobot robot model
-
-                Nothing ->
-                    ( model, Cmd.none )
-
-        ChooseAction selection ->
-            ( { model
-                | selectedRobot =
-                    model.selectedRobot
-                        |> Maybe.map (Tuple.mapFirst (\_ -> selection))
-              }
-            , Cmd.none
-            )
-
-        ClickPoint point ->
-            case model.selectedRobot of
-                Just ( ChoosingMoveLocation, id ) ->
-                    queueAction (Move id point) model
-
-                Just ( ChoosingArmMissileLocation, id ) ->
-                    queueAction (ArmMissile id point) model
-
-                Just ( ChoosingFireMissileLocation, id ) ->
-                    queueAction (FireMissile id point) model
-
-                Just ( ChoosingShieldLocation, id ) ->
-                    queueAction (Shield id point) model
-
-                Just ( ChoosingMineLocation, id ) ->
-                    queueAction (Mine id point) model
-
-                Just ( ChoosingAction, _ ) ->
-                    ( model, Cmd.none )
-
-                Nothing ->
-                    ( model, Cmd.none )
-
-        OnServerMessage message ->
-            case message of
-                Message.Actions player actions ->
-                    onActionRecieved model actions
-
-                -- TODO time
-                Message.Start _ helium ->
-                    ( { model
-                        | helium = helium
-                        , waitingForStart = False
-                      }
-                    , Cmd.none
-                    )
-
-                Message.Countdown player ->
-                    startCountdown player model
-
-        OnError _ ->
-            -- TODO log or something
-            ( model, Cmd.none )
-
-        Countdown ->
-            tickCountdown model
-
-        DeleteScoreAnimation key ->
-            ( { model | scoreAnimations = Dict.remove key model.scoreAnimations }
-            , Cmd.none
-            )
-
-        Noop ->
-            ( model, Cmd.none )
-
-
-onClickRobot : Robot -> Model -> ( Model, Cmd Msg )
-onClickRobot target model =
-    let
-        maybeSelection =
-            getSelection model
-    in
-    if isValidTarget maybeSelection model.player target then
-        case maybeSelection of
-            Just ( selection, selected ) ->
-                queueFromSelection selection selected target model
-
-            Nothing ->
-                ( { model | selectedRobot = Just ( ChoosingAction, target.id ) }
-                , Cmd.none
-                )
-
-    else
-        ( model, Cmd.none )
-
-
-queueFromSelection : Selection -> Robot -> Robot -> Model -> ( Model, Cmd Msg )
-queueFromSelection selection selected target model =
-    case selection of
-        ChoosingAction ->
-            ( model, Cmd.none )
-
-        ChoosingMoveLocation ->
-            -- Player clicked another robot, but robots can't occupy the same
-            -- cell.
-            ( model, Cmd.none )
-
-        ChoosingArmMissileLocation ->
-            queueActionAt ArmMissile selected.id model
-
-        ChoosingShieldLocation ->
-            queueActionAt Shield selected.id model
-
-        ChoosingFireMissileLocation ->
-            queueAction (FireMissile selected.id target.location) model
-
-        ChoosingMineLocation ->
-            queueActionAt Mine selected.id model
-
-
-isValidTarget : Maybe ( Selection, Robot ) -> PlayerIndex -> Robot -> Bool
-isValidTarget selection player target =
-    let
-        properties =
-            selection
-                |> Maybe.andThen
-                    (\( selection_, robot ) ->
-                        selectionArea selection_
-                            |> Maybe.map
-                                (\( range, canTargetSelf ) ->
-                                    { range = range
-                                    , canTargetSelf = canTargetSelf
-                                    , selectedRobot = robot
-                                    }
-                                )
-                    )
-    in
-    case properties of
-        Just { range, canTargetSelf, selectedRobot } ->
-            if selectedRobot.id == target.id then
-                canTargetSelf
-
-            else
-                Point.distance selectedRobot.location target.location <= range
-
-        Nothing ->
-            -- Nothing is selected. Players can only select their own robots.
-            player == target.owner
-
-
-queueActionAt : (Int -> Point -> ClientAction) -> Int -> Model -> ( Model, Cmd Msg )
-queueActionAt action id model =
-    case Dict.get id model.robots of
-        Just robot ->
-            queueAction (action id robot.location) model
-
-        Nothing ->
-            ( model, Cmd.none )
-
-
-queueAction : ClientAction -> Model -> ( Model, Cmd Msg )
-queueAction action model =
-    ( updateRobot
-        (ClientAction.id action)
-        (Robot.queueAction action)
-        { model | selectedRobot = Nothing }
-    , Message.sendClientMessage <| Message.Queue action
-    )
-
-
-onActionRecieved : Model -> List ServerAction -> ( Model, Cmd Msg )
-onActionRecieved model actions =
-    animate
-        { model
-            | countdownSeconds = 0
-            , timeline =
-                List.foldl
-                    (\action timeline ->
-                        case Dict.get (ServerAction.id action) model.robots of
-                            Just robot ->
-                                Effect.fromServer action robot ++ timeline
-
-                            Nothing ->
-                                timeline
-                    )
-                    []
-                    actions
-        }
-
-
-startCountdown : PlayerIndex -> Model -> ( Model, Cmd Msg )
-startCountdown player model =
-    ( { model
-        | turn = player
-        , countdownSeconds = 5
-      }
-    , if model.countdownSeconds == 0 then
-        Process.sleep 1000 |> Task.perform (\() -> Countdown)
-
-      else
-        Cmd.none
-    )
-
-
-tickCountdown : Model -> ( Model, Cmd Msg )
-tickCountdown model =
-    let
-        remaining =
-            max (model.countdownSeconds - 1) 0
-    in
-    ( { model | countdownSeconds = remaining }
-    , if remaining > 0 then
-        Process.sleep 1000 |> Task.perform (\() -> Countdown)
-
-      else
-        Cmd.none
-    )
-
-
-updateRobot : Int -> (Robot -> Robot) -> Model -> Model
-updateRobot id fn model =
-    { model | robots = Dict.update id (Maybe.map fn) model.robots }
-
-
-getSelection : Model -> Maybe ( Selection, Robot )
-getSelection model =
-    model.selectedRobot
-        |> Maybe.andThen
-            (\( selection, id ) ->
-                Dict.get id model.robots
-                    |> Maybe.map (Tuple.pair selection)
-            )
-
-
-{-| Returns the range of each type of action. `ChoosingAction` is a special
-case that renders a menu instead of a selection area. The `Bool` indicates
-if the selected robot can be targeted.
--}
-selectionArea : Selection -> Maybe ( Int, Bool )
-selectionArea selection =
-    case selection of
-        ChoosingAction ->
-            Nothing
-
-        ChoosingMoveLocation ->
-            Just ( 4, False )
-
-        ChoosingArmMissileLocation ->
-            Just ( 4, True )
-
-        ChoosingFireMissileLocation ->
-            Just ( 3, True )
-
-        ChoosingShieldLocation ->
-            Just ( 4, True )
-
-        ChoosingMineLocation ->
-            Just ( 3, True )
-
-
-
--- ANIMATION
-
-
-animate : Model -> ( Model, Cmd Msg )
-animate model =
-    case model.timeline of
-        [] ->
-            ( model, Cmd.none )
-
-        next :: rest ->
-            let
-                ( newModel, sleepMs, cmd1 ) =
-                    animateHelp next { model | timeline = rest }
-            in
-            if sleepMs == 0 then
-                animate newModel |> Tuple.mapSecond (\cmd2 -> Cmd.batch [ cmd1, cmd2 ])
-
-            else
-                ( newModel
-                , Cmd.batch
-                    [ Process.sleep (toFloat sleepMs) |> Task.perform (\() -> NextAnimation)
-                    , cmd1
-                    ]
-                )
-
-
-animateHelp : Effect -> Model -> ( Model, Int, Cmd Msg )
-animateHelp effect model =
-    case effect of
-        SetLocation id point ->
-            ( updateRobot id (Robot.setLocation point) model, 0, Cmd.none )
-
-        SetRotation id rotation ->
-            ( updateRobot id (Robot.setRotation rotation) model, 0, Cmd.none )
-
-        SetMinerActive id ->
-            ( updateRobot id Robot.setMinerActive model, 0, Cmd.none )
-
-        MineAt id point ->
-            let
-                ( ground, mined ) =
-                    HeliumGrid.mine point model.helium
-            in
-            case Dict.get id model.robots of
-                Just robot ->
+        LobbyMsg lMsg ->
+            case model of
+                Lobby oldLModel ->
                     let
-                        ( newModel, cmd ) =
-                            { model
-                                | helium = ground
-                                , players = Players.addScore robot.owner mined model.players
-                            }
-                                |> updateRobot id (\r -> { r | mined = r.mined + mined })
-                                |> createScoreAnimation robot.location mined
+                        ( lModel, lCmd, maybeGame ) =
+                            LobbyClient.update lMsg oldLModel
+
+                        ( page, cmd ) =
+                            case maybeGame of
+                                Just game ->
+                                    GameClient.init { player = game.playerId }
+                                        |> Tuple.mapBoth Game (Cmd.map GameMsg)
+
+                                Nothing ->
+                                    ( Lobby lModel, Cmd.none )
                     in
-                    ( newModel, 0, cmd )
+                    ( page, Cmd.batch [ cmd, Cmd.map LobbyMsg lCmd ] )
 
-                Nothing ->
-                    ( model, 0, Cmd.none )
+                _ ->
+                    ( model, Cmd.none )
 
-        SetState id state ->
-            ( updateRobot id (Robot.setState state) model, 0, Cmd.none )
+        GameMsg gMsg ->
+            case model of
+                Game oldGModel ->
+                    GameClient.update gMsg oldGModel
+                        |> Tuple.mapBoth Game (Cmd.map GameMsg)
 
-        Impact point forceShield ->
-            case Robot.getRobotAt point model.robots of
-                Just robot ->
-                    let
-                        impacted =
-                            Robot.impact forceShield robot
-
-                        destroyed =
-                            impacted.state == Robot.Destroyed
-
-                        animation =
-                            if not destroyed then
-                                [ Wait 1000
-                                , SetState robot.id (Robot.removeShield impacted).state
-                                ]
-
-                            else
-                                []
-
-                        helium =
-                            if not destroyed then
-                                model.helium
-
-                            else
-                                HeliumGrid.drop robot.location (robot.mined // 2) model.helium
-
-                        players =
-                            if not destroyed then
-                                model.players
-
-                            else
-                                Players.addScore robot.owner (-robot.mined // 2) model.players
-
-                        newModel =
-                            { model
-                                | timeline = animation ++ model.timeline
-                                , players = players
-                                , helium = helium
-                            }
-                                |> updateRobot robot.id (\_ -> impacted)
-                    in
-                    if destroyed then
-                        let
-                            ( newModel2, cmd ) =
-                                createScoreAnimation robot.location (-robot.mined // 2) newModel
-                        in
-                        ( newModel2, 0, cmd )
-
-                    else
-                        ( newModel, 0, Cmd.none )
-
-                Nothing ->
-                    ( model, 0, Cmd.none )
-
-        Wait ms ->
-            ( model, ms, Cmd.none )
-
-
-createScoreAnimation : Point -> Int -> { a | scoreAnimations : ScoreAnimations } -> ( { a | scoreAnimations : ScoreAnimations }, Cmd Msg )
-createScoreAnimation point amount model =
-    let
-        nextKey =
-            Dict.keys model.scoreAnimations
-                |> List.foldl max 0
-    in
-    ( { model | scoreAnimations = Dict.insert nextKey ( point, amount ) model.scoreAnimations }
-    , Process.sleep (toFloat View.ScoreText.durationSeconds * 1000)
-        |> Task.perform (\_ -> DeleteScoreAnimation nextKey)
-    )
-
-
-
--- SUBSCRIPTIONS
+                _ ->
+                    ( model, Cmd.none )
 
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.batch
-        [ Message.receiveServerMessage OnServerMessage OnError
-        ]
+    case model of
+        Lobby m ->
+            LobbyClient.subscriptions m
+                |> Sub.map LobbyMsg
 
-
-
--- VIEW
+        Game m ->
+            GameClient.subscriptions m
+                |> Sub.map GameMsg
 
 
 view : Model -> Html Msg
 view model =
-    div []
-        [ View.Missile.style
-        , View.Grid.style
-        , View.Shield.style
-        , View.ScoreText.style
-        , viewActionPicker model.robots model.selectedRobot
-        , div
-            [ style "display" "flex"
-            ]
-            [ div [ style "flex-shrink" "0", style "padding" "20px" ]
-                [ viewPlayers model.players model.player
-                , div []
-                    [ text "Current Turn: "
-                    , span [ style "color" (Players.color model.turn) ]
-                        [ text "Player "
-                        , text <| String.fromInt <| Players.toNumber model.turn
-                        ]
-                    ]
-                , if model.countdownSeconds > 0 then
-                    div []
-                        [ text <| String.fromInt model.countdownSeconds
-                        ]
+    case model of
+        Lobby m ->
+            LobbyClient.view m
+                |> Html.map LobbyMsg
 
-                  else
-                    text ""
-                ]
-            , svg
-                [ style "flex" "1"
-                , viewBox View.Grid.viewBox
-                ]
-                ([ defs []
-                    [ View.Robot.def
-                    , View.Missile.def
-                    , View.Shield.def
-                    , View.Miner.def
-                    ]
-                 , View.Grid.grid
-                 , viewHeliumGrid model.helium
-                 , viewSelection model
-                 ]
-                    ++ (Dict.values model.robots |> List.map (viewRobot model))
-                    ++ [ viewScoreTexts model.scoreAnimations ]
-                )
-            ]
-        ]
-
-
-viewActionPicker : Dict Int Robot -> Maybe ( Selection, Int ) -> Html Msg
-viewActionPicker robots maybeSelection =
-    case maybeSelection of
-        Just ( ChoosingAction, id ) ->
-            case Dict.get id robots of
-                Just robot ->
-                    viewActionPickerHelp robot
-
-                Nothing ->
-                    text ""
-
-        _ ->
-            text ""
-
-
-viewActionPickerHelp : Robot -> Html Msg
-viewActionPickerHelp robot =
-    View.RobotActions.view
-        { noop = Noop
-        , cancel = DeselectRobot
-        , move = ChooseAction ChoosingMoveLocation
-        , armMissile = ChooseAction ChoosingArmMissileLocation
-        , fireMissile =
-            if Robot.getTool robot == Just ToolMissile then
-                Just (ChooseAction ChoosingFireMissileLocation)
-
-            else
-                Nothing
-        , shield = ChooseAction ChoosingShieldLocation
-        , mine = ChooseAction ChoosingMineLocation
-        }
-
-
-viewPlayers : Players -> PlayerIndex -> Html Msg
-viewPlayers players self =
-    div []
-        [ viewPlayer players.player1 (Player1 == self)
-        , viewPlayer players.player2 (Player2 == self)
-        , viewPlayer players.player3 (Player3 == self)
-        , viewPlayer players.player4 (Player4 == self)
-        ]
-
-
-viewPlayer : Player -> Bool -> Html Msg
-viewPlayer player isSelf =
-    div [ style "padding-bottom" "10px" ]
-        [ div []
-            [ span [ style "color" (Players.color player.id) ]
-                [ text "Player "
-                , text <| String.fromInt <| Players.toNumber player.id
-                ]
-            , if isSelf then
-                text " (you)"
-
-              else
-                text ""
-            ]
-        , div [] [ text "$", text (String.fromInt player.score) ]
-        ]
-
-
-viewScoreTexts : ScoreAnimations -> Svg msg
-viewScoreTexts =
-    Dict.values
-        >> List.map (\( point, score ) -> View.ScoreText.view point score)
-        >> g []
-
-
-viewSelection : Model -> Svg Msg
-viewSelection model =
-    model.selectedRobot
-        |> Maybe.andThen
-            (\( selection, id ) ->
-                Dict.get id model.robots |> Maybe.map (Tuple.pair selection)
-            )
-        |> Maybe.map viewSelectionHelp
-        |> Maybe.withDefault (text "")
-
-
-viewSelectionHelp : ( Selection, Robot ) -> Svg Msg
-viewSelectionHelp ( selection, robot ) =
-    -- ChooseAction is rendered outside of the SVG by `viewActionPicker`
-    case selectionArea selection of
-        Just ( size, center ) ->
-            let
-                { highlight, hover } =
-                    View.Grid.highlightAround robot.location size ClickPoint center
-            in
-            g [] [ highlight, hover ]
-
-        Nothing ->
-            text ""
-
-
-viewRobot : Model -> Robot -> Svg Msg
-viewRobot model robot =
-    let
-        robotSvg =
-            View.Robot.use
-                robot.location
-                robot.rotation
-                (Players.color robot.owner)
-                robot.id
-
-        targetSvg =
-            case Robot.getTarget robot of
-                Just target ->
-                    [ View.Grid.highlight target
-                    , View.Grid.dottedLine robot.location target
-                    ]
-
-                Nothing ->
-                    []
-
-        toolSvg =
-            Robot.getTool robot
-                |> Maybe.map (viewTool robot)
-                |> Maybe.Extra.toList
-
-        cursor =
-            if isValidTarget (getSelection model) model.player robot then
-                [ style "cursor" "pointer" ]
-
-            else
-                []
-    in
-    if robot.state == Robot.Destroyed then
-        text ""
-
-    else
-        g []
-            [ g [] targetSvg
-            , g (onClick (ClickRobot robot.id) :: cursor) <|
-                List.concat
-                    [ [ robotSvg ]
-                    , toolSvg
-                    , [ viewMiner robot ]
-                    ]
-            ]
-
-
-viewTool : Robot -> Robot.Tool -> Svg msg
-viewTool robot tool =
-    case tool of
-        ToolShield highlight ->
-            View.Shield.use robot.location robot.rotation highlight
-
-        ToolLaser ->
-            -- TODO
-            text ""
-
-        ToolMissile ->
-            let
-                location =
-                    case robot.state of
-                        Robot.FireMissile target True ->
-                            target
-
-                        _ ->
-                            robot.location
-            in
-            View.Missile.use location robot.rotation
-
-
-viewMiner : Robot -> Svg msg
-viewMiner robot =
-    case robot.state of
-        Robot.Mine { active } ->
-            if active then
-                View.Miner.use robot.location robot.rotation
-
-            else
-                text ""
-
-        _ ->
-            text ""
-
-
-viewHeliumGrid : HeliumGrid -> Svg msg
-viewHeliumGrid helium =
-    Matrix.toIndexedArray helium
-        |> Array.filter (\( _, amount ) -> amount > 0)
-        |> Array.map (Tuple.mapFirst Point.fromTuple >> viewHelium)
-        |> Array.toList
-        |> g []
-
-
-viewHelium : ( Point, Int ) -> Svg msg
-viewHelium ( point, amount ) =
-    View.Grid.fillCell point amount
+        Game m ->
+            GameClient.view m
+                |> Html.map GameMsg
