@@ -39,6 +39,37 @@ core/
   Robot.elm
 ```
 
+# Checkpoints
+
+The server syncronizes with clients after certain messages to ensure all clients are still connect. Clients that do not respond after a timeout are assumed to be disconnected. The server broadcasts a message when a client diconnects (from user action or inactivity).
+
+In order to sync, clients respond with:
+
+```
+{ type: 'ack', id: number }
+```
+
+All messages include a sequence number, which serves as an ID.
+
+```
+{ type: 'player-count', count: 1 }...
+(no sync)
+
+{ type: 'game-start', position: PlayerIndex, lenght: number, helium: HeliumGrid , end: Timestamp }
+- sync -
+
+{ type: 'action-countdown', player: PlayerIndex }
+- sync -
+
+// after countdown
+- sync -
+
+{ type: 'action', player: PlayerIndex, actions: ServerAction[] }
+- sync -
+
+// repeat countdown
+```
+
 # Animation
 
 - Animations could be per robot. By default, they are independant. Settings scores affects the same state
