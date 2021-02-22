@@ -94,15 +94,23 @@ update msg model =
                                 |> Message.Actions model.turn
                                 |> Message.sendServerMessage [ player ]
                     in
-                    ( { newModel | timer = Turn }
-                    , Cmd.batch
-                        [ Process.sleep (toFloat wait)
-                            |> Task.perform (\() -> Timer)
-                        , Players.order
-                            |> List.map messageForPlayer
-                            |> Cmd.batch
-                        ]
-                    )
+                    if List.length actions == 0 then
+                        -- TODO refactor `Turn` branch into function and call
+                        -- it here instead of triggering a command.
+                        ( { newModel | timer = Turn }
+                        , Task.succeed () |> Task.perform (\() -> Timer)
+                        )
+
+                    else
+                        ( { newModel | timer = Turn }
+                        , Cmd.batch
+                            [ Process.sleep (toFloat wait)
+                                |> Task.perform (\() -> Timer)
+                            , Players.order
+                                |> List.map messageForPlayer
+                                |> Cmd.batch
+                            ]
+                        )
 
                 Turn ->
                     let
