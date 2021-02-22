@@ -1,5 +1,6 @@
 module Page.LobbyClient exposing (..)
 
+import HeliumGrid exposing (HeliumGrid)
 import Html exposing (Html, div, h1, p, text)
 import Json.Decode as Decode exposing (Error)
 import Message exposing (ServerMessageLobby)
@@ -25,6 +26,7 @@ type Msg
 type alias GameInfo =
     { gameId : String
     , playerId : PlayerIndex
+    , helium : HeliumGrid
     }
 
 
@@ -48,10 +50,10 @@ onMessage message model =
         Message.PlayerCount count ->
             ( { model | playerCount = count }, Cmd.none, Nothing )
 
-        Message.GameJoin gameId playerId ->
+        Message.GameJoin gameId playerId helium ->
             ( { model | playerCount = model.playerCount - 1 }
             , Cmd.none
-            , Just { gameId = gameId, playerId = playerId }
+            , Just { gameId = gameId, playerId = playerId, helium = helium }
             )
 
 

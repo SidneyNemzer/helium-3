@@ -40,14 +40,7 @@ onMessage message model =
                     model.playerCount + 1
             in
             ( { model | playerCount = playerCount }
-            , Cmd.batch
-                [ Message.sendServerMessageLobby (Message.PlayerCount playerCount) []
-                , if playerCount == 4 then
-                    sendGameJoinMessage
-
-                  else
-                    Cmd.none
-                ]
+            , Message.sendServerMessageLobby (Message.PlayerCount playerCount) []
             , playerCount == 4
             )
 
@@ -56,17 +49,6 @@ onMessage message model =
             , Message.sendServerMessageLobby (Message.PlayerCount (model.playerCount - 1)) []
             , False
             )
-
-
-sendGameJoinMessage : Cmd Msg
-sendGameJoinMessage =
-    -- TODO game ID
-    Cmd.batch
-        [ Message.sendServerMessageLobby (Message.GameJoin "" Player1) [ Player1 ]
-        , Message.sendServerMessageLobby (Message.GameJoin "" Player2) [ Player2 ]
-        , Message.sendServerMessageLobby (Message.GameJoin "" Player3) [ Player3 ]
-        , Message.sendServerMessageLobby (Message.GameJoin "" Player4) [ Player4 ]
-        ]
 
 
 subscriptions : Model -> Sub Msg

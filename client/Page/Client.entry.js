@@ -2,6 +2,7 @@
 import { Elm } from "./Client.elm";
 
 // CLIENT PORTS
+// log
 // messageIn
 // messageOut
 
@@ -43,10 +44,6 @@ subscribeApp(app2);
 subscribeApp(app3);
 subscribeApp(app4);
 
-server.ports.log.subscribe((data) => {
-  console.log("[Server]", data);
-});
-
 server.ports.messageOut.subscribe(([data, players]) => {
   console.debug("server -> client:", data, players);
   if (players.length === 0) {
@@ -60,6 +57,16 @@ server.ports.messageOut.subscribe(([data, players]) => {
     });
   }
 });
+
+const createLogger = (prefix) => (data) => {
+  console.log(`[${prefix}]`, data);
+};
+
+server.ports.log.subscribe(createLogger("server"));
+app1.ports.log.subscribe(createLogger("app1"));
+app2.ports.log.subscribe(createLogger("app2"));
+app3.ports.log.subscribe(createLogger("app3"));
+app4.ports.log.subscribe(createLogger("app4"));
 
 // Simulate all four clients connecting
 server.ports.messageIn.send({ type: "connect" });

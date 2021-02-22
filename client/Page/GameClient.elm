@@ -31,7 +31,9 @@ import View.Shield
 
 
 type alias Flags =
-    { player : PlayerIndex }
+    { player : PlayerIndex
+    , helium : HeliumGrid
+    }
 
 
 type alias Model =
@@ -44,11 +46,6 @@ type alias Model =
     , turn : PlayerIndex
     , countdownSeconds : Int
     , scoreAnimations : ScoreAnimations
-
-    -- TODO probably should use a union type around model instead of a bool here,
-    -- but that will likely require moving most of the code into a sub module,
-    -- where the parent waits for the game to start.
-    , waitingForStart : Bool
     }
 
 
@@ -71,16 +68,15 @@ type Selection
 
 
 init : Flags -> ( Model, Cmd Msg )
-init { player } =
+init { player, helium } =
     ( { robots = Robot.initAll
       , timeline = []
       , selectedRobot = Nothing
-      , helium = Matrix.empty
+      , helium = helium
       , players = Players.init
       , player = player
       , turn = Player1
       , countdownSeconds = 0
-      , waitingForStart = True
       , scoreAnimations = Dict.empty
       }
     , Cmd.none
@@ -153,15 +149,6 @@ update msg model =
             case message of
                 Message.Actions player actions ->
                     onActionRecieved model actions
-
-                -- TODO time
-                Message.Start _ helium ->
-                    ( { model
-                        | helium = helium
-                        , waitingForStart = False
-                      }
-                    , Cmd.none
-                    )
 
                 Message.Countdown player ->
                     startCountdown player model

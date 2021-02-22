@@ -48,7 +48,7 @@ update msg model =
                         ( page, cmd ) =
                             case maybeGame of
                                 Just game ->
-                                    GameClient.init { player = game.playerId }
+                                    GameClient.init { player = game.playerId, helium = game.helium }
                                         |> Tuple.mapBoth Game (Cmd.map GameMsg)
 
                                 Nothing ->

@@ -59,10 +59,10 @@ type ClientAction =
 
 When a client connects to the server, it is placed in the lobby. The server waits for four players to join the lobby, then starts a new game.
 
-| Sender | Message                                                    |
-| ------ | ---------------------------------------------------------- |
-| Server | `{ type: 'player-count', count: 1 \| 2 \| 3 }`             |
-| Server | `{ type: 'game-join', id: string, position: PlayerIndex }` |
+| Sender | Message                                                                        |
+| ------ | ------------------------------------------------------------------------------ |
+| Server | `{ type: 'player-count', count: 1 \| 2 \| 3 }`                                 |
+| Server | `{ type: 'game-join', id: string, position: PlayerIndex, helium: HeliumGrid }` |
 
 # Game
 
@@ -74,10 +74,11 @@ While in a game:
 
 | Sender | Message                                                            | Notes                                                                                                           |
 | ------ | ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
-| Server | `{ type: 'game-start', helium: HeliumGrid , end: Timestamp }`      |                                                                                                                 |
 | Client | `{ type: 'queue', action: ClientAction }`                          |                                                                                                                 |
 | Server | `{ type: 'action-countdown', player: PlayerIndex }`                | The indicated player will move after the countdown. Clients must wait for the `action` message for the actions. |
 | Server | `{ type: 'action', player: PlayerIndex, actions: ServerAction[] }` | There may be 0, 1, or 2 moves.                                                                                  |
+
+_TODO:_ `game-end`
 
 # Errors
 

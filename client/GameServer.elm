@@ -45,19 +45,22 @@ init { seed } =
     ( { robots = Robot.initAll
       , helium = helium
       , players = Players.init
-      , turn = Player1
+      , turn = Player4
       , timer = Countdown
       }
     , Cmd.batch
-        [ Process.sleep 6000
-            |> Task.perform (\() -> Timer)
-        , Message.sendServerMessage [] <| Message.Countdown Player1
+        -- TODO this `sleep` delays the first turn countdown because clients
+        -- did not seem to process it when it was sent in the same batch as
+        -- the 'game join' messages.
+        [ Process.sleep 1000 |> Task.perform (\() -> Timer)
 
         -- Commands are processed in reverse order, so this message
         -- is sent first. Maybe this could be more explicit, like
         -- providing a "sequence" number
-        -- TODO start time
-        , Message.sendServerMessage [] <| Message.Start 0 helium
+        , Message.sendServerMessageLobby (Message.GameJoin "" Player1 helium) [ Player1 ]
+        , Message.sendServerMessageLobby (Message.GameJoin "" Player2 helium) [ Player2 ]
+        , Message.sendServerMessageLobby (Message.GameJoin "" Player3 helium) [ Player3 ]
+        , Message.sendServerMessageLobby (Message.GameJoin "" Player4 helium) [ Player4 ]
         ]
     )
 

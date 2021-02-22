@@ -31,24 +31,13 @@ type ClientMessageLobby
     | Disconnect
 
 
-{-| When a client connects to the server, it is placed in the lobby. The server
-waits for four players to join the lobby, then starts a new game.
--}
 type ServerMessageLobby
     = PlayerCount Int -- count
-    | GameJoin String PlayerIndex -- game ID
+    | GameJoin String PlayerIndex HeliumGrid -- game ID, player id, h3
 
 
-{-| While in a game:
-
-  - The server will broadcast events such as player turns or countdowns
-  - After the game starts, clients can queue actions. Actions may not be queued while a player is moving.
-  - Clients are automatically removed from the game after it ends
-
--}
 type ServerMessage
-    = Start Int HeliumGrid -- Allows user to queue actions
-    | Countdown PlayerIndex -- Countdown until turn ends and player will move
+    = Countdown PlayerIndex -- Countdown until turn ends and player will move
     | Actions PlayerIndex (List ServerAction)
 
 
@@ -168,6 +157,7 @@ lobbyDecoderWithType messageType =
             Decode.succeed GameJoin
                 |> Decode.andMap (Decode.field "id" Decode.string)
                 |> Decode.andMap (Decode.field "position" Players.indexDecoder)
+                |> Decode.andMap (Decode.field "helium" (Codec.decoder HeliumGrid.codec))
 
         _ ->
             Decode.fail <| "Unknown type:" ++ messageType
@@ -182,11 +172,6 @@ serverDecoder =
 serverDecoderWithType : String -> Decoder ServerMessage
 serverDecoderWithType messageType =
     case messageType of
-        "game-start" ->
-            Decode.succeed Start
-                |> Decode.andMap (Decode.field "end" Decode.int)
-                |> Decode.andMap (Decode.field "helium" (Codec.decoder HeliumGrid.codec))
-
         "action-countdown" ->
             Decode.succeed Countdown
                 |> Decode.andMap (Decode.field "player" Players.indexDecoder)
@@ -228,24 +213,18 @@ lobbyEncoder message =
                 , ( "count", Encode.int count )
                 ]
 
-        GameJoin id index ->
+        GameJoin id index helium ->
             Encode.object
                 [ ( "type", Encode.string "game-join" )
                 , ( "id", Encode.string id )
                 , ( "position", Players.indexEncoder index )
+                , ( "helium", Codec.encoder HeliumGrid.codec helium )
                 ]
 
 
 serverEncoder : ServerMessage -> Value
 serverEncoder message =
     case message of
-        Start endTime helium ->
-            Encode.object
-                [ ( "type", Encode.string "game-start" )
-                , ( "end", Encode.int endTime )
-                , ( "helium", Codec.encoder HeliumGrid.codec helium )
-                ]
-
         Countdown player ->
             Encode.object
                 [ ( "type", Encode.string "action-countdown" )
