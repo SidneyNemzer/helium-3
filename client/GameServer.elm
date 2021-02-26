@@ -26,12 +26,20 @@ type alias Model =
     , players : Players
     , timer : Timer
     , turn : PlayerIndex
+    , turns : Int
     }
 
 
 type Timer
     = Countdown
     | Turn
+
+
+{-| Number of turns each player has per game
+-}
+playerTurnsPerGame : Int
+playerTurnsPerGame =
+    20
 
 
 init : Flags -> ( Model, Cmd Msg )
@@ -45,22 +53,25 @@ init { seed } =
     ( { robots = Robot.initAll
       , helium = helium
       , players = Players.init
+
+      -- Turn and turns are modified for the TODO below
       , turn = Player4
+      , turns = playerTurnsPerGame + 1
       , timer = Countdown
       }
     , Cmd.batch
         -- TODO this `sleep` delays the first turn countdown because clients
         -- did not seem to process it when it was sent in the same batch as
         -- the 'game join' messages.
-        [ Process.sleep 1000 |> Task.perform (\() -> Timer)
+        [ sleep 1000 Timer
 
         -- Commands are processed in reverse order, so this message
         -- is sent first. Maybe this could be more explicit, like
         -- providing a "sequence" number
-        , Message.sendServerMessageLobby (Message.GameJoin "" Player1 helium) [ Player1 ]
-        , Message.sendServerMessageLobby (Message.GameJoin "" Player2 helium) [ Player2 ]
-        , Message.sendServerMessageLobby (Message.GameJoin "" Player3 helium) [ Player3 ]
-        , Message.sendServerMessageLobby (Message.GameJoin "" Player4 helium) [ Player4 ]
+        , Message.sendServerMessageLobby (Message.GameJoin "" Player1 helium playerTurnsPerGame) [ Player1 ]
+        , Message.sendServerMessageLobby (Message.GameJoin "" Player2 helium playerTurnsPerGame) [ Player2 ]
+        , Message.sendServerMessageLobby (Message.GameJoin "" Player3 helium playerTurnsPerGame) [ Player3 ]
+        , Message.sendServerMessageLobby (Message.GameJoin "" Player4 helium playerTurnsPerGame) [ Player4 ]
         ]
     )
 
@@ -98,17 +109,13 @@ update msg model =
                                 |> Message.sendServerMessage [ player ]
                     in
                     if List.length actions == 0 then
-                        -- TODO refactor `Turn` branch into function and call
-                        -- it here instead of triggering a command.
-                        ( { newModel | timer = Turn }
-                        , Task.succeed () |> Task.perform (\() -> Timer)
-                        )
+                        -- No actions to perform so the turn ends immediately
+                        onTurnEnd model
 
                     else
                         ( { newModel | timer = Turn }
                         , Cmd.batch
-                            [ Process.sleep (toFloat wait)
-                                |> Task.perform (\() -> Timer)
+                            [ sleep (toFloat wait) Timer
                             , Players.order
                                 |> List.map messageForPlayer
                                 |> Cmd.batch
@@ -116,18 +123,7 @@ update msg model =
                         )
 
                 Turn ->
-                    let
-                        turn =
-                            Players.next model.turn
-                    in
-                    ( { model | turn = turn, timer = Countdown }
-                    , Cmd.batch
-                        [ Process.sleep 6000
-                            -- server waits an extra second
-                            |> Task.perform (\() -> Timer)
-                        , Message.sendServerMessage [] <| Message.Countdown turn
-                        ]
-                    )
+                    onTurnEnd model
 
 
 onActionReceived : ClientAction -> Model -> ( Model, Cmd Msg )
@@ -244,9 +240,41 @@ animateHelp effect model =
             ( model, [], ms )
 
 
+onTurnEnd : Model -> ( Model, Cmd Msg )
+onTurnEnd model =
+    let
+        nextPlayer =
+            Players.next model.turn
+
+        remainingTurns =
+            if nextPlayer == Player1 then
+                model.turns - 1
+
+            else
+                model.turns
+    in
+    -- Start countdown timer
+    ( { model | turn = nextPlayer, timer = Countdown, turns = remainingTurns }
+    , if remainingTurns > 0 then
+        Cmd.batch
+            [ -- server waits an extra second
+              sleep 6000 Timer
+            , Message.sendServerMessage [] <| Message.Countdown nextPlayer
+            ]
+
+      else
+        Message.sendServerMessage [] <| Message.GameEnd
+    )
+
+
 updateRobot : Int -> (Robot -> Robot) -> Model -> Model
 updateRobot id fn model =
     { model | robots = Dict.update id (Maybe.map fn) model.robots }
+
+
+sleep : Float -> Msg -> Cmd Msg
+sleep ms msg =
+    Process.sleep ms |> Task.perform (\() -> msg)
 
 
 

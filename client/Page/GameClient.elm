@@ -33,6 +33,7 @@ import View.Shield
 type alias Flags =
     { player : PlayerIndex
     , helium : HeliumGrid
+    , turns : Int
     }
 
 
@@ -44,8 +45,10 @@ type alias Model =
     , players : Players
     , player : PlayerIndex
     , turn : PlayerIndex
+    , turns : Int
     , countdownSeconds : Int
     , scoreAnimations : ScoreAnimations
+    , gameOver : Bool
     }
 
 
@@ -68,7 +71,7 @@ type Selection
 
 
 init : Flags -> ( Model, Cmd Msg )
-init { player, helium } =
+init { player, helium, turns } =
     ( { robots = Robot.initAll
       , timeline = []
       , selectedRobot = Nothing
@@ -76,8 +79,10 @@ init { player, helium } =
       , players = Players.init
       , player = player
       , turn = Player1
+      , turns = turns
       , countdownSeconds = 0
       , scoreAnimations = Dict.empty
+      , gameOver = False
       }
     , Cmd.none
     )
@@ -153,6 +158,9 @@ update msg model =
                 Message.Countdown player ->
                     startCountdown player model
 
+                Message.GameEnd ->
+                    ( { model | gameOver = True }, Cmd.none )
+
         OnError _ ->
             -- TODO log or something
             ( model, Cmd.none )
@@ -175,7 +183,7 @@ onClickRobot target model =
         maybeSelection =
             getSelection model
     in
-    if isValidTarget maybeSelection model.player target then
+    if isValidTarget model maybeSelection model.player target then
         case maybeSelection of
             Just ( selection, selected ) ->
                 queueFromSelection selection selected target model
@@ -213,8 +221,8 @@ queueFromSelection selection selected target model =
             queueActionAt Mine selected.id model
 
 
-isValidTarget : Maybe ( Selection, Robot ) -> PlayerIndex -> Robot -> Bool
-isValidTarget selection player target =
+isValidTarget : Model -> Maybe ( Selection, Robot ) -> PlayerIndex -> Robot -> Bool
+isValidTarget model selection player target =
     let
         properties =
             selection
@@ -230,17 +238,21 @@ isValidTarget selection player target =
                                 )
                     )
     in
-    case properties of
-        Just { range, canTargetSelf, selectedRobot } ->
-            if selectedRobot.id == target.id then
-                canTargetSelf
+    if model.gameOver then
+        False
 
-            else
-                Point.distance selectedRobot.location target.location <= range
+    else
+        case properties of
+            Just { range, canTargetSelf, selectedRobot } ->
+                if selectedRobot.id == target.id then
+                    canTargetSelf
 
-        Nothing ->
-            -- Nothing is selected. Players can only select their own robots.
-            player == target.owner
+                else
+                    Point.distance selectedRobot.location target.location <= range
+
+            Nothing ->
+                -- Nothing is selected. Players can only select their own robots.
+                player == target.owner
 
 
 queueActionAt : (Int -> Point -> ClientAction) -> Int -> Model -> ( Model, Cmd Msg )
@@ -303,7 +315,18 @@ tickCountdown model =
         remaining =
             max (model.countdownSeconds - 1) 0
     in
-    ( { model | countdownSeconds = remaining }
+    ( { model
+        | countdownSeconds = remaining
+        , turns =
+            if remaining == 0 && model.player == model.turn then
+                -- A player's turns updates just before they move. This ensures
+                -- always updates since the server skips the `action` message
+                -- if the player has not queued any moves.
+                model.turns - 1
+
+            else
+                model.turns
+      }
     , if remaining > 0 then
         Process.sleep 1000 |> Task.perform (\() -> Countdown)
 
@@ -509,12 +532,17 @@ view model =
         , View.Grid.style
         , View.Shield.style
         , View.ScoreText.style
-        , viewActionPicker model.robots model.selectedRobot
+        , keyframesAppear
         , div
             [ style "display" "flex"
+            , style "position" "relative"
             ]
             [ div [ style "flex-shrink" "0", style "padding" "20px" ]
-                [ viewPlayers model.players model.player
+                [ div [ style "padding-bottom" "10px" ]
+                    [ text "Remaining Turns: "
+                    , text <| String.fromInt model.turns
+                    ]
+                , viewPlayers model.players model.player
                 , div []
                     [ text "Current Turn: "
                     , span [ style "color" (Players.color model.turn) ]
@@ -547,7 +575,65 @@ view model =
                     ++ (Dict.values model.robots |> List.map (viewRobot model))
                     ++ [ viewScoreTexts model.scoreAnimations ]
                 )
+            , viewActionPicker model.robots model.selectedRobot
+            , if model.gameOver then
+                viewGameOver
+
+              else
+                text ""
             ]
+        ]
+
+
+viewGameOver : Html Msg
+viewGameOver =
+    "Game Over"
+        |> String.split ""
+        |> List.indexedMap
+            (\i letter ->
+                let
+                    delay =
+                        String.fromFloat (toFloat i * 0.4) ++ "s"
+
+                    animation =
+                        "appear " ++ delay ++ " step-end"
+                in
+                span
+                    [ style "animation" animation
+                    ]
+                    [ text <|
+                        if letter == " " then
+                            -- non-breaking space
+                            Char.fromCode 160
+                                |> String.fromChar
+
+                        else
+                            letter
+                    ]
+            )
+        |> div
+            [ style "position" "absolute"
+            , style "top" "0"
+            , style "bottom" "0"
+            , style "right" "0"
+            , style "left" "0"
+            , style "display" "flex"
+            , style "align-items" "center"
+            , style "justify-content" "center"
+            , style "font-size" "100px"
+            ]
+
+
+keyframesAppear : Html msg
+keyframesAppear =
+    Html.node "style"
+        []
+        [ text """
+            @keyframes appear {
+                from { opacity: 0 }
+                to { opacity: 1 }
+            }
+          """
         ]
 
 
@@ -671,7 +757,7 @@ viewRobot model robot =
                 |> Maybe.Extra.toList
 
         cursor =
-            if isValidTarget (getSelection model) model.player robot then
+            if isValidTarget model (getSelection model) model.player robot then
                 [ style "cursor" "pointer" ]
 
             else

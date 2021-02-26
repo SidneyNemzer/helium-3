@@ -57,28 +57,28 @@ type ClientAction =
 
 # Lobby
 
-When a client connects to the server, it is placed in the lobby. The server waits for four players to join the lobby, then starts a new game.
+When a client connects to the server, it is placed in the lobby. The server waits for four players to join the lobby, then starts a new game. Games last for a limited number of turns, where each player gets the same number of turns. The server specifies this number in the `game-join` message.
 
-| Sender | Message                                                                        |
-| ------ | ------------------------------------------------------------------------------ |
-| Server | `{ type: 'player-count', count: 1 \| 2 \| 3 }`                                 |
-| Server | `{ type: 'game-join', id: string, position: PlayerIndex, helium: HeliumGrid }` |
+| Sender | Message                                                                                       |
+| ------ | --------------------------------------------------------------------------------------------- |
+| Server | `{ type: 'player-count', count: 1 \| 2 \| 3 }`                                                |
+| Server | `{ type: 'game-join', id: string, position: PlayerIndex, helium: HeliumGrid, turns: number }` |
 
 # Game
 
 While in a game:
 
-- The server will broadcast events such as player turns or countdowns
+- The server will broadcast events such as player turns or countdowns.
 - After the game starts, clients can queue actions. Actions may not be queued while a player is moving.
-- Clients are automatically removed from the game after it ends
+- Clients are automatically removed from the game after it ends.
+- After the `game-end` message, no more messages are accepted or sent by the server.
 
 | Sender | Message                                                            | Notes                                                                                                           |
 | ------ | ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
 | Client | `{ type: 'queue', action: ClientAction }`                          |                                                                                                                 |
 | Server | `{ type: 'action-countdown', player: PlayerIndex }`                | The indicated player will move after the countdown. Clients must wait for the `action` message for the actions. |
 | Server | `{ type: 'action', player: PlayerIndex, actions: ServerAction[] }` | There may be 0, 1, or 2 moves.                                                                                  |
-
-_TODO:_ `game-end`
+| Server | `{ type: 'game-end' }`                                             |                                                                                                                 |
 
 # Errors
 

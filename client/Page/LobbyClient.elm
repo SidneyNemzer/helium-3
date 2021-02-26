@@ -27,6 +27,7 @@ type alias GameInfo =
     { gameId : String
     , playerId : PlayerIndex
     , helium : HeliumGrid
+    , turns : Int
     }
 
 
@@ -50,10 +51,10 @@ onMessage message model =
         Message.PlayerCount count ->
             ( { model | playerCount = count }, Cmd.none, Nothing )
 
-        Message.GameJoin gameId playerId helium ->
+        Message.GameJoin gameId playerId helium turns ->
             ( { model | playerCount = model.playerCount - 1 }
             , Cmd.none
-            , Just { gameId = gameId, playerId = playerId, helium = helium }
+            , Just { gameId = gameId, playerId = playerId, helium = helium, turns = turns }
             )
 
 

@@ -33,12 +33,13 @@ type ClientMessageLobby
 
 type ServerMessageLobby
     = PlayerCount Int -- count
-    | GameJoin String PlayerIndex HeliumGrid -- game ID, player id, h3
+    | GameJoin String PlayerIndex HeliumGrid Int -- game ID, player id, h3, turns
 
 
 type ServerMessage
     = Countdown PlayerIndex -- Countdown until turn ends and player will move
     | Actions PlayerIndex (List ServerAction)
+    | GameEnd
 
 
 sendServerMessage : List PlayerIndex -> ServerMessage -> Cmd msg
@@ -158,6 +159,7 @@ lobbyDecoderWithType messageType =
                 |> Decode.andMap (Decode.field "id" Decode.string)
                 |> Decode.andMap (Decode.field "position" Players.indexDecoder)
                 |> Decode.andMap (Decode.field "helium" (Codec.decoder HeliumGrid.codec))
+                |> Decode.andMap (Decode.field "turns" Decode.int)
 
         _ ->
             Decode.fail <| "Unknown type:" ++ messageType
@@ -180,6 +182,9 @@ serverDecoderWithType messageType =
             Decode.succeed Actions
                 |> Decode.andMap (Decode.field "player" Players.indexDecoder)
                 |> Decode.andMap (Decode.field "actions" (Decode.list ServerAction.decoder))
+
+        "game-end" ->
+            Decode.succeed GameEnd
 
         _ ->
             Decode.fail <| "Unknown type:" ++ messageType
@@ -213,12 +218,13 @@ lobbyEncoder message =
                 , ( "count", Encode.int count )
                 ]
 
-        GameJoin id index helium ->
+        GameJoin id index helium turns ->
             Encode.object
                 [ ( "type", Encode.string "game-join" )
                 , ( "id", Encode.string id )
                 , ( "position", Players.indexEncoder index )
                 , ( "helium", Codec.encoder HeliumGrid.codec helium )
+                , ( "turns", Encode.int turns )
                 ]
 
 
@@ -237,3 +243,6 @@ serverEncoder message =
                 , ( "player", Players.indexEncoder player )
                 , ( "actions", Encode.list ServerAction.encoder actions )
                 ]
+
+        GameEnd ->
+            Encode.object [ ( "type", Encode.string "game-end" ) ]
