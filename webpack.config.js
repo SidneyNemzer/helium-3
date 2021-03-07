@@ -4,19 +4,12 @@ const HtmlWebpackPlugin = require("html-webpack-plugin");
 
 const ROOT = __dirname;
 const SOURCE = "client";
-const DEV_SERVER_DOMAIN = "http://localhost:8080/";
 
 module.exports = (env, args) => {
   const entries = fs
     .readdirSync(path.resolve(ROOT, SOURCE, "Page"))
     .filter((name) => name.endsWith(".entry.js"))
     .map((name) => name.replace(".entry.js", ""));
-
-  console.log("Building Pages:");
-  entries.forEach((name) => {
-    console.log(name, DEV_SERVER_DOMAIN + name + ".html");
-  });
-  console.log("");
 
   return {
     mode: args.mode || "development",
@@ -51,7 +44,7 @@ module.exports = (env, args) => {
         new HtmlWebpackPlugin({
           filename: name + ".html",
           chunks: [name],
-          template: "client/index.html",
+          template: path.resolve(ROOT, SOURCE, "Page", name + ".html"),
         })
     ),
   };

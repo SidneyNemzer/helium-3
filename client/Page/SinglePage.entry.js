@@ -19,10 +19,10 @@ const root2 = document.getElementById("root2");
 const root3 = document.getElementById("root3");
 const root4 = document.getElementById("root4");
 
-const app1 = Elm.Page.Client.init({ node: root1, flags: { player: 1 } });
-const app2 = Elm.Page.Client.init({ node: root2, flags: { player: 2 } });
-const app3 = Elm.Page.Client.init({ node: root3, flags: { player: 3 } });
-const app4 = Elm.Page.Client.init({ node: root4, flags: { player: 4 } });
+const app1 = Elm.Page.Client.init({ node: root1 });
+const app2 = Elm.Page.Client.init({ node: root2 });
+const app3 = Elm.Page.Client.init({ node: root3 });
+const app4 = Elm.Page.Client.init({ node: root4 });
 const server = Elm.Server.init({ flags: { seed } });
 
 const appsByPlayerId = {
