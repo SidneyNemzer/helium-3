@@ -1,10 +1,9 @@
 module Page.LobbyClient exposing (..)
 
-import HeliumGrid exposing (HeliumGrid)
 import Html exposing (Html, div, h1, p, text)
 import Json.Decode as Decode exposing (Error)
 import Message exposing (ServerMessageLobby)
-import Players exposing (PlayerIndex)
+import Page exposing (Page)
 import Ports
 
 
@@ -23,19 +22,11 @@ type Msg
     | DecodeError Error
 
 
-type alias GameInfo =
-    { gameId : String
-    , playerId : PlayerIndex
-    , helium : HeliumGrid
-    , turns : Int
-    }
-
-
 {-| The LobbyClient module is embeded in the Client.elm module. The
 `Maybe GameInfo` is returned when the game has started, and the
 client switches to the GameClient.
 -}
-update : Msg -> Model -> ( Model, Cmd Msg, Maybe GameInfo )
+update : Msg -> Model -> ( Model, Cmd Msg, Maybe Page )
 update msg model =
     case msg of
         Message message ->
@@ -45,7 +36,7 @@ update msg model =
             ( model, Ports.log (Decode.errorToString error), Nothing )
 
 
-onMessage : ServerMessageLobby -> Model -> ( Model, Cmd Msg, Maybe GameInfo )
+onMessage : ServerMessageLobby -> Model -> ( Model, Cmd Msg, Maybe Page )
 onMessage message model =
     case message of
         Message.PlayerCount count ->
@@ -54,7 +45,7 @@ onMessage message model =
         Message.GameJoin gameId playerId helium turns ->
             ( { model | playerCount = model.playerCount - 1 }
             , Cmd.none
-            , Just { gameId = gameId, playerId = playerId, helium = helium, turns = turns }
+            , Just (Page.Game { player = playerId, helium = helium, turns = turns })
             )
 
 

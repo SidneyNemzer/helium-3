@@ -13,6 +13,7 @@ import List
 import Matrix
 import Maybe.Extra
 import Message exposing (ServerMessage)
+import Page exposing (Page)
 import Players exposing (Player, PlayerIndex(..), Players)
 import Point exposing (Point)
 import Process
@@ -98,25 +99,29 @@ type Msg
     | OnError Error
     | Countdown
     | DeleteScoreAnimation Int
+    | ReturnToLobby
     | Noop
 
 
-update : Msg -> Model -> ( Model, Cmd Msg )
+update : Msg -> Model -> ( Model, Cmd Msg, Maybe Page )
 update msg model =
     case msg of
         NextAnimation ->
             animate model
+                |> Page.stay
 
         DeselectRobot ->
             ( { model | selectedRobot = Nothing }, Cmd.none )
+                |> Page.stay
 
         ClickRobot id ->
             case Dict.get id model.robots of
                 Just robot ->
                     onClickRobot robot model
+                        |> Page.stay
 
                 Nothing ->
-                    ( model, Cmd.none )
+                    ( model, Cmd.none, Nothing )
 
         ChooseAction selection ->
             ( { model
@@ -125,56 +130,68 @@ update msg model =
                         |> Maybe.map (Tuple.mapFirst (\_ -> selection))
               }
             , Cmd.none
+            , Nothing
             )
 
         ClickPoint point ->
             case model.selectedRobot of
                 Just ( ChoosingMoveLocation, id ) ->
                     queueAction (Move id point) model
+                        |> Page.stay
 
                 Just ( ChoosingArmMissileLocation, id ) ->
                     queueAction (ArmMissile id point) model
+                        |> Page.stay
 
                 Just ( ChoosingFireMissileLocation, id ) ->
                     queueAction (FireMissile id point) model
+                        |> Page.stay
 
                 Just ( ChoosingShieldLocation, id ) ->
                     queueAction (Shield id point) model
+                        |> Page.stay
 
                 Just ( ChoosingMineLocation, id ) ->
                     queueAction (Mine id point) model
+                        |> Page.stay
 
                 Just ( ChoosingAction, _ ) ->
-                    ( model, Cmd.none )
+                    ( model, Cmd.none, Nothing )
 
                 Nothing ->
-                    ( model, Cmd.none )
+                    ( model, Cmd.none, Nothing )
 
         OnServerMessage message ->
             case message of
                 Message.Actions player actions ->
                     onActionRecieved model actions
+                        |> Page.stay
 
                 Message.Countdown player ->
                     startCountdown player model
+                        |> Page.stay
 
                 Message.GameEnd ->
-                    ( { model | gameOver = True }, Cmd.none )
+                    ( { model | gameOver = True }, Cmd.none, Nothing )
 
         OnError _ ->
             -- TODO log or something
-            ( model, Cmd.none )
+            ( model, Cmd.none, Nothing )
 
         Countdown ->
-            tickCountdown model
+            tickCountdown model |> Page.stay
 
         DeleteScoreAnimation key ->
             ( { model | scoreAnimations = Dict.remove key model.scoreAnimations }
             , Cmd.none
+            , Nothing
             )
 
+        ReturnToLobby ->
+            ( model, Cmd.none, Just Page.Lobby )
+
         Noop ->
-            ( model, Cmd.none )
+            ( model, Cmd.none, Nothing )
 
 
 onClickRobot : Robot -> Model -> ( Model, Cmd Msg )
@@ -587,41 +604,38 @@ view model =
 
 viewGameOver : Html Msg
 viewGameOver =
-    "Game Over"
-        |> String.split ""
-        |> List.indexedMap
-            (\i letter ->
-                let
-                    delay =
-                        String.fromFloat (toFloat i * 0.4) ++ "s"
+    let
+        gameOverText =
+            "Game Over"
+                |> String.split ""
+                |> List.indexedMap
+                    (\i letter ->
+                        let
+                            delay =
+                                String.fromFloat (toFloat i * 0.4) ++ "s"
 
-                    animation =
-                        "appear " ++ delay ++ " step-end"
-                in
-                span
-                    [ style "animation" animation
-                    ]
-                    [ text <|
-                        if letter == " " then
-                            -- non-breaking space
-                            Char.fromCode 160
-                                |> String.fromChar
-
-                        else
-                            letter
-                    ]
-            )
-        |> div
-            [ style "position" "absolute"
-            , style "top" "0"
-            , style "bottom" "0"
-            , style "right" "0"
-            , style "left" "0"
-            , style "display" "flex"
-            , style "align-items" "center"
-            , style "justify-content" "center"
-            , style "font-size" "100px"
-            ]
+                            animation =
+                                "appear " ++ delay ++ " step-end"
+                        in
+                        span [ style "animation" animation ]
+                            [ text letter ]
+                    )
+    in
+    div
+        [ style "position" "absolute"
+        , style "top" "0"
+        , style "bottom" "0"
+        , style "right" "0"
+        , style "left" "0"
+        , style "display" "flex"
+        , style "align-items" "center"
+        , style "justify-content" "center"
+        , style "flex-direction" "column"
+        ]
+        [ div [ style "font-size" "100px" ] gameOverText
+        , div [ style "margin-top" "30px" ]
+            [ button [ onClick ReturnToLobby ] [ text "Return to lobby" ] ]
+        ]
 
 
 keyframesAppear : Html msg

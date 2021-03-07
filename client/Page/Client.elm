@@ -2,6 +2,7 @@ module Page.Client exposing (..)
 
 import Browser
 import Html exposing (Html)
+import Page exposing (Page)
 import Page.GameClient as GameClient
 import Page.LobbyClient as LobbyClient
 
@@ -37,36 +38,54 @@ type Msg
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-    case msg of
-        LobbyMsg lMsg ->
-            case model of
-                Lobby oldLModel ->
-                    let
-                        ( lModel, lCmd, maybeGame ) =
-                            LobbyClient.update lMsg oldLModel
+    case ( msg, model ) of
+        ( LobbyMsg pageMsg, Lobby pageModel ) ->
+            updatePage LobbyMsg Lobby pageMsg pageModel LobbyClient.update
 
-                        ( page, cmd ) =
-                            case maybeGame of
-                                Just game ->
-                                    GameClient.init { player = game.playerId, helium = game.helium, turns = game.turns }
-                                        |> Tuple.mapBoth Game (Cmd.map GameMsg)
+        ( GameMsg pageMsg, Game pageModel ) ->
+            updatePage GameMsg Game pageMsg pageModel GameClient.update
 
-                                Nothing ->
-                                    ( Lobby lModel, Cmd.none )
-                    in
-                    ( page, Cmd.batch [ cmd, Cmd.map LobbyMsg lCmd ] )
+        ( _, _ ) ->
+            -- Invalid message, such as a timer finishing after switching pages
+            ( model, Cmd.none )
 
-                _ ->
-                    ( model, Cmd.none )
 
-        GameMsg gMsg ->
-            case model of
-                Game oldGModel ->
-                    GameClient.update gMsg oldGModel
-                        |> Tuple.mapBoth Game (Cmd.map GameMsg)
+updatePage :
+    (pageMsg -> Msg)
+    -> (pageModel -> Model)
+    -> pageMsg
+    -> pageModel
+    -> (pageMsg -> pageModel -> ( pageModel, Cmd pageMsg, Maybe Page ))
+    -> ( Model, Cmd Msg )
+updatePage toMsg toModel msg oldModel updateFn =
+    let
+        ( pageModel, pageCmd, maybePage ) =
+            updateFn msg oldModel
 
-                _ ->
-                    ( model, Cmd.none )
+        model =
+            toModel pageModel
+
+        cmd =
+            Cmd.map toMsg pageCmd
+    in
+    case maybePage of
+        Just (Page.Game flags) ->
+            GameClient.init flags
+                |> Tuple.mapBoth Game (Cmd.map GameMsg)
+                |> batch cmd
+
+        Just Page.Lobby ->
+            LobbyClient.init ()
+                |> Tuple.mapBoth Lobby (Cmd.map LobbyMsg)
+                |> batch cmd
+
+        Nothing ->
+            ( model, cmd )
+
+
+batch : Cmd msg -> ( model, Cmd msg ) -> ( model, Cmd msg )
+batch cmd1 ( model, cmd2 ) =
+    ( model, Cmd.batch [ cmd1, cmd2 ] )
 
 
 subscriptions : Model -> Sub Msg
