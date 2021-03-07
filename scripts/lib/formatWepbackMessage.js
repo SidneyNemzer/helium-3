@@ -1,6 +1,11 @@
 // Cleans up webpack error messages.
 // Copied from
 // https://github.com/facebook/create-react-app/blob/025f2739ceb459c79a281ddc6e60d7fd7322ca24/packages/react-dev-utils/formatWebpackMessages.js#L18
+
+const chalk = require("chalk");
+
+const friendlySyntaxErrorLabel = "Syntax error:";
+
 function formatMessage(message) {
   let lines = message.split("\n");
 
