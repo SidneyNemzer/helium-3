@@ -1,4 +1,4 @@
-export type WorkerData = {
+export type WorkerOptions = {
   id: string;
 };
 

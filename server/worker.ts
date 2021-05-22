@@ -1,13 +1,13 @@
 import { workerData, parentPort } from "worker_threads";
 
 import {
-  WorkerData,
+  WorkerOptions,
   WorkerMessageIn,
   WorkerMessageOut,
-} from "./WorkerMessages";
+} from "./worker-types";
 import { Elm } from "../dist/Server.js";
 
-const { id } = workerData as WorkerData;
+const { id } = workerData as WorkerOptions;
 
 if (!parentPort) {
   throw new Error("missing parentPort");

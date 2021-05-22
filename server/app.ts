@@ -6,10 +6,10 @@ import { Worker } from "worker_threads";
 import * as path from "path";
 
 import {
-  WorkerData,
+  WorkerOptions,
   WorkerMessageIn,
   WorkerMessageOut,
-} from "./WorkerMessages";
+} from "./worker-types";
 
 const app = express();
 const server = http.createServer(app);
@@ -23,7 +23,7 @@ const io = new Server(server, {
 const startWorker = () => {
   const id = uuidv4();
 
-  const workerData: WorkerData = {
+  const workerData: WorkerOptions = {
     id,
   };
 
