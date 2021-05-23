@@ -16,7 +16,22 @@ const createLogger = (prefix) => (data) => {
   console.log(`[${prefix}]`, data);
 };
 
+const onBeforeUnload = (e) => {
+  // Firefox
+  e.preventDefault();
+  // Chrome
+  e.returnValue = "";
+};
+
 app.ports.log.subscribe(createLogger("app"));
+app.ports.setPromptOnNavigation.subscribe((shouldPrompt) => {
+  console.log("should prompt", shouldPrompt);
+  if (shouldPrompt) {
+    window.addEventListener("beforeunload", onBeforeUnload);
+  } else {
+    window.removeEventListener("beforeunload", onBeforeUnload);
+  }
+});
 
 window.app = app;
 

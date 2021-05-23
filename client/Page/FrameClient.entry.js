@@ -13,6 +13,8 @@ const createLogger = (prefix) => (data) => {
 };
 
 app.ports.log.subscribe(createLogger("app"));
+// This page intentionally does not use onbeforeunload
+// app.ports.setPromptOnNavigation.subscribe()
 
 window.app = app;
 

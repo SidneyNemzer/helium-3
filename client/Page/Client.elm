@@ -5,6 +5,7 @@ import Html exposing (Html)
 import Page exposing (Page)
 import Page.GameClient as GameClient
 import Page.LobbyClient as LobbyClient
+import Ports
 
 
 main : Program () Model Msg
@@ -73,11 +74,13 @@ updatePage toMsg toModel msg oldModel updateFn =
             GameClient.init flags
                 |> Tuple.mapBoth Game (Cmd.map GameMsg)
                 |> batch cmd
+                |> batch (Ports.setPromptOnNavigation True)
 
         Just Page.Lobby ->
             LobbyClient.init ()
                 |> Tuple.mapBoth Lobby (Cmd.map LobbyMsg)
                 |> batch cmd
+                |> batch (Ports.setPromptOnNavigation False)
 
         Nothing ->
             ( model, cmd )

@@ -37,6 +37,8 @@ const subscribeApp = (app) => {
     console.debug("client -> server:", action);
     server.ports.messageIn.send(action);
   });
+  // This page intentionally does not use onbeforeunload
+  // app.ports.setPromptOnNavigation.subscribe()
 };
 
 subscribeApp(app1);
