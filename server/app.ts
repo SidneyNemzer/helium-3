@@ -73,21 +73,31 @@ let pendingLobby: {
 } = startWorker();
 
 io.on("connection", (socket: Socket) => {
-  console.log("player connected");
+  const { id, worker } = pendingLobby;
+  console.log("player", socket.id, "connected to lobby", id);
+
   // Player ID starts at 1
   // TODO use uuid or something more sane
   const playerId = ++pendingLobby.playerCount;
 
-  socket.join(pendingLobby.id);
-  socket.join(`${pendingLobby.id}:${playerId}`);
+  socket.join(id);
+  socket.join(`${id}:${playerId}`);
 
   const message: WorkerMessageIn = { type: "connect" };
-  pendingLobby.worker.postMessage(message);
-
-  const { worker } = pendingLobby;
+  worker.postMessage(message);
 
   socket.on("message", (data) => {
     worker.postMessage(data);
+  });
+
+  socket.on("disconnect", (data) => {
+    console.log("player", socket.id, "disconnected from", id);
+
+    if (pendingLobby.id === id) {
+      pendingLobby.playerCount--;
+    }
+    const message: WorkerMessageIn = { type: "disconnect" };
+    worker.postMessage(message);
   });
 
   if (pendingLobby.playerCount === 4) {
