@@ -176,7 +176,7 @@ update msg model =
                     ( model, Cmd.none, Just Page.Lobby )
 
                 Message.GameEnd ->
-                    ( { model | gameOver = True }, Cmd.none, Nothing )
+                    ( { model | gameOver = True, turns = 0 }, Cmd.none, Nothing )
 
         OnError err ->
             ( model, Ports.log ("Error: " ++ Json.Decode.errorToString err), Nothing )
@@ -300,6 +300,12 @@ onActionRecieved model actions =
     animate
         { model
             | countdownSeconds = 0
+            , turns =
+                if model.turn == model.player then
+                    model.turns - 1
+
+                else
+                    model.turns
             , timeline =
                 List.foldl
                     (\action timeline ->
@@ -321,6 +327,8 @@ startCountdown player model =
         | turn = player
         , countdownSeconds = 5
       }
+      -- Only start a timer if the countdown already finished. Otherwise,
+      -- there's already a timer running
     , if model.countdownSeconds == 0 then
         Process.sleep 1000 |> Task.perform (\() -> Countdown)
 
@@ -335,18 +343,7 @@ tickCountdown model =
         remaining =
             max (model.countdownSeconds - 1) 0
     in
-    ( { model
-        | countdownSeconds = remaining
-        , turns =
-            if remaining == 0 && model.player == model.turn then
-                -- A player's turns updates just before they move. This ensures
-                -- always updates since the server skips the `action` message
-                -- if the player has not queued any moves.
-                model.turns - 1
-
-            else
-                model.turns
-      }
+    ( { model | countdownSeconds = remaining }
     , if remaining > 0 then
         Process.sleep 1000 |> Task.perform (\() -> Countdown)
 

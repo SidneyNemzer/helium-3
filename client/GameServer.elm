@@ -53,21 +53,17 @@ init { seed } =
     ( { robots = Robot.initAll
       , helium = helium
       , players = Players.init
-
-      -- Turn and turns are modified for the TODO below
-      , turn = Player4
-      , turns = playerTurnsPerGame + 1
+      , turn = Player1
+      , turns = playerTurnsPerGame
       , timer = Countdown
       }
     , Cmd.batch
-        -- TODO this `sleep` delays the first turn countdown because clients
-        -- did not seem to process it when it was sent in the same batch as
-        -- the 'game join' messages.
-        [ sleep 1000 Timer
+        -- Note that commands are processed in reverse order
+        [ -- Start the first countdown
+          sleep 6000 Timer
+        , Message.sendServerMessage [] <| Message.Countdown Player1
 
-        -- Commands are processed in reverse order, so this message
-        -- is sent first. Maybe this could be more explicit, like
-        -- providing a "sequence" number
+        -- Notify players that game has started
         , Message.sendServerMessageLobby (Message.GameJoin "" Player1 helium playerTurnsPerGame) [ Player1 ]
         , Message.sendServerMessageLobby (Message.GameJoin "" Player2 helium playerTurnsPerGame) [ Player2 ]
         , Message.sendServerMessageLobby (Message.GameJoin "" Player3 helium playerTurnsPerGame) [ Player3 ]
@@ -108,19 +104,14 @@ update msg model =
                                 |> Message.Actions model.turn
                                 |> Message.sendServerMessage [ player ]
                     in
-                    if List.length actions == 0 then
-                        -- No actions to perform so the turn ends immediately
-                        onTurnEnd model
-
-                    else
-                        ( { newModel | timer = Turn }
-                        , Cmd.batch
-                            [ sleep (toFloat wait) Timer
-                            , Players.order
-                                |> List.map messageForPlayer
-                                |> Cmd.batch
-                            ]
-                        )
+                    ( { newModel | timer = Turn }
+                    , Cmd.batch
+                        [ sleep (toFloat wait) Timer
+                        , Players.order
+                            |> List.map messageForPlayer
+                            |> Cmd.batch
+                        ]
+                    )
 
                 Turn ->
                     onTurnEnd model
