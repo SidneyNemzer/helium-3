@@ -16,6 +16,7 @@ import Message exposing (ServerMessage)
 import Page exposing (Page)
 import Players exposing (Player, PlayerIndex(..), Players)
 import Point exposing (Point)
+import Ports
 import Process
 import Robot exposing (Robot, Tool(..))
 import ServerAction exposing (ServerAction)
@@ -174,9 +175,8 @@ update msg model =
                 Message.GameEnd ->
                     ( { model | gameOver = True }, Cmd.none, Nothing )
 
-        OnError _ ->
-            -- TODO log or something
-            ( model, Cmd.none, Nothing )
+        OnError err ->
+            ( model, Ports.log ("Error: " ++ Json.Decode.errorToString err), Nothing )
 
         Countdown ->
             tickCountdown model |> Page.stay
