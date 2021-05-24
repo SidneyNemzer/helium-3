@@ -59,8 +59,11 @@ When a client connects to the server, it is placed in the lobby. The server wait
 
 After the game ends, the client must specify it's ready to join a new game with `new-lobby`. `new-lobby` is only needed after the game ends, the client is automatically added to a lobby when the client connects. `new-lobby` does nothing if the client is already in a lobby.
 
+`lobby-join` is sent just after joining a lobby. `lobby-join` distinguishes from network interruptions and server restarts. When `lobby-join` is received, the client should assume the game has reset, and should return to the lobby.
+
 | Sender | Message                                                                                       |
 | ------ | --------------------------------------------------------------------------------------------- |
+| Server | `{ type: 'lobby-join', id: string }`                                                          |
 | Server | `{ type: 'player-count', count: 1 \| 2 \| 3, playerId: PlayerIndex }`                         |
 | Server | `{ type: 'game-join', id: string, position: PlayerIndex, helium: HeliumGrid, turns: number }` |
 | Client | `{ type: 'new-lobby' }`                                                                       |

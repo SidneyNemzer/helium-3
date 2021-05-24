@@ -37,12 +37,14 @@ type ClientMessageLobby
 type ServerMessageLobby
     = PlayerCount Int PlayerIndex -- count, player id
     | GameJoin String PlayerIndex HeliumGrid Int -- game ID, player id, h3, turns
+    | LobbyJoin
 
 
 type ServerMessage
     = Countdown PlayerIndex -- Countdown until turn ends and player will move
     | Actions PlayerIndex (List ServerAction)
     | GameEnd
+    | GameLobbyJoin
 
 
 sendServerMessage : List PlayerIndex -> ServerMessage -> Cmd msg
@@ -145,7 +147,7 @@ clientLobbyDecoderWithType messageType =
         "disconnect" ->
             Decode.succeed Disconnect
 
-        "new-lobby" ->
+        "lobby-join" ->
             Decode.succeed NewLobby
 
         _ ->
@@ -173,6 +175,9 @@ lobbyDecoderWithType messageType =
                 |> Decode.andMap (Decode.field "helium" (Codec.decoder HeliumGrid.codec))
                 |> Decode.andMap (Decode.field "turns" Decode.int)
 
+        "lobby-join" ->
+            Decode.succeed LobbyJoin
+
         _ ->
             Decode.fail <| "Unknown type:" ++ messageType
 
@@ -197,6 +202,9 @@ serverDecoderWithType messageType =
 
         "game-end" ->
             Decode.succeed GameEnd
+
+        "lobby-join" ->
+            Decode.succeed GameLobbyJoin
 
         _ ->
             Decode.fail <| "Unknown type:" ++ messageType
@@ -256,6 +264,9 @@ lobbyEncoder message =
                 , ( "turns", Encode.int turns )
                 ]
 
+        LobbyJoin ->
+            Encode.object [ ( "type", Encode.string "lobby-join" ) ]
+
 
 serverEncoder : ServerMessage -> Value
 serverEncoder message =
@@ -275,3 +286,6 @@ serverEncoder message =
 
         GameEnd ->
             Encode.object [ ( "type", Encode.string "game-end" ) ]
+
+        GameLobbyJoin ->
+            Encode.object [ ( "type", Encode.string "lobby-join" ) ]

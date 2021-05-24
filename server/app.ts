@@ -104,7 +104,7 @@ const leaveLobby = (socket: Socket) => {
   // Lobby must be found before leaving rooms
   const lobby = getLobby(socket);
 
-  // Even if the lobby is not found (the game may have ended), try leaving lobbies.
+  // Even if the lobby is not found (the game may have ended), try leaving lobbies
   socket.rooms.forEach((room) => {
     if (room.startsWith("lobby:")) {
       socket.leave(room);
@@ -139,6 +139,8 @@ const joinLobby = (socket: Socket) => {
 
   socket.join(`lobby:${id}`);
   socket.join(`lobby:${id}:${playerId}`);
+
+  socket.emit("message", { type: "lobby-join" });
 
   const message: WorkerMessageIn = { type: "connect" };
   worker.postMessage(message);

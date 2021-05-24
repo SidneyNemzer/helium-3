@@ -172,6 +172,9 @@ update msg model =
                     startCountdown player model
                         |> Page.stay
 
+                Message.GameLobbyJoin ->
+                    ( model, Cmd.none, Just Page.Lobby )
+
                 Message.GameEnd ->
                     ( { model | gameOver = True }, Cmd.none, Nothing )
 

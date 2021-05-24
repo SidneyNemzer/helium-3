@@ -48,6 +48,9 @@ onMessage message model =
             , Just (Page.Game { player = playerId, helium = helium, turns = turns })
             )
 
+        Message.LobbyJoin ->
+            ( model, Cmd.none, Nothing )
+
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
