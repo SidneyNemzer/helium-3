@@ -39,7 +39,7 @@ update msg model =
 onMessage : ServerMessageLobby -> Model -> ( Model, Cmd Msg, Maybe Page )
 onMessage message model =
     case message of
-        Message.PlayerCount count ->
+        Message.PlayerCount count playerId ->
             ( { model | playerCount = count }, Cmd.none, Nothing )
 
         Message.GameJoin gameId playerId helium turns ->

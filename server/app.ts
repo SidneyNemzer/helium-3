@@ -20,7 +20,15 @@ const io = new Server(server, {
   },
 });
 
-const startWorker = () => {
+type Lobby = {
+  id: string;
+  worker: Worker;
+  numPlayers: number;
+};
+
+const lobbies: { [id: string]: Lobby | undefined } = {};
+
+const startWorker = (): Lobby => {
   const id = uuidv4();
 
   const workerData: WorkerOptions = {
@@ -34,17 +42,24 @@ const startWorker = () => {
   worker.on("message", ([message, players]: WorkerMessageOut) => {
     if (players.length === 0) {
       // send to all players
-      io.to(id).emit("message", message);
+      io.to(`lobby:${id}`).emit("message", message);
     } else {
       // send to specific players
       players.forEach((playerId) => {
-        io.to(`${id}:${playerId}`).emit("message", message);
+        io.to(`lobby:${id}:${playerId}`).emit("message", message);
       });
+    }
+
+    if (message.type === "game-join") {
+      // lobby is full and game has started
+      if (pendingLobby.id === id) {
+        pendingLobby = startWorker();
+      }
     }
 
     if (message.type === "game-end") {
       // Game is over, the worker can be removed
-      delete workers[id];
+      delete lobbies[id];
       worker.terminate();
     }
   });
@@ -61,48 +76,109 @@ const startWorker = () => {
     console.error("error in worker", id, err);
   });
 
-  workers[id] = worker;
-  return { id, worker, playerCount: 0 };
+  const lobby = { id, worker, numPlayers: 0 };
+  lobbies[id] = lobby;
+  return lobby;
 };
 
-const workers: { [id: string]: Worker } = {};
-let pendingLobby: {
-  id: string;
-  worker: Worker;
-  playerCount: number;
-} = startWorker();
+let pendingLobby: Lobby = startWorker();
 
-io.on("connection", (socket: Socket) => {
+const getLobby = (socket: Socket): Lobby | undefined => {
+  const lobbyRoom = Array.from(socket.rooms).find((room) =>
+    room.startsWith("lobby:")
+  );
+  if (!lobbyRoom) {
+    return;
+  }
+
+  const [_, lobbyId] = lobbyRoom.split(":");
+  if (!lobbyId) {
+    return;
+  }
+
+  const lobby = lobbies[lobbyId];
+  return lobby;
+};
+
+const leaveLobby = (socket: Socket) => {
+  // Lobby must be found before leaving rooms
+  const lobby = getLobby(socket);
+
+  // Even if the lobby is not found (the game may have ended), try leaving lobbies.
+  socket.rooms.forEach((room) => {
+    if (room.startsWith("lobby:")) {
+      socket.leave(room);
+    }
+  });
+
+  if (!lobby) {
+    return;
+  }
+
+  console.log("player", socket.id, "left lobby", lobby.id);
+
+  lobby.numPlayers--;
+
+  const message: WorkerMessageIn = { type: "disconnect" };
+  lobby.worker.postMessage(message);
+
+  if (lobby.numPlayers === 0 && pendingLobby.id !== lobby.id) {
+    console.log("stopping worker", lobby.id, "beacuse all players left");
+    delete lobbies[lobby.id];
+    lobby.worker.terminate();
+  }
+};
+
+const joinLobby = (socket: Socket) => {
   const { id, worker } = pendingLobby;
   console.log("player", socket.id, "connected to lobby", id);
 
   // Player ID starts at 1
   // TODO use uuid or something more sane
-  const playerId = ++pendingLobby.playerCount;
+  const playerId = ++pendingLobby.numPlayers;
 
-  socket.join(id);
-  socket.join(`${id}:${playerId}`);
+  socket.join(`lobby:${id}`);
+  socket.join(`lobby:${id}:${playerId}`);
 
   const message: WorkerMessageIn = { type: "connect" };
   worker.postMessage(message);
 
-  socket.on("message", (data) => {
-    worker.postMessage(data);
-  });
-
-  socket.on("disconnect", (data) => {
-    console.log("player", socket.id, "disconnected from", id);
-
-    if (pendingLobby.id === id) {
-      pendingLobby.playerCount--;
-    }
-    const message: WorkerMessageIn = { type: "disconnect" };
-    worker.postMessage(message);
-  });
-
-  if (pendingLobby.playerCount === 4) {
+  if (pendingLobby.numPlayers === 4) {
     pendingLobby = startWorker();
   }
+};
+
+io.on("connection", (socket: Socket) => {
+  console.log("socket connect", socket.id);
+
+  joinLobby(socket);
+
+  socket.on("message", (data: WorkerMessageIn) => {
+    if (
+      data.type === "new-lobby" &&
+      !socket.rooms.has(`lobby:${pendingLobby.id}`)
+    ) {
+      // The client has requested a new lobby
+      leaveLobby(socket);
+      joinLobby(socket);
+    } else {
+      const lobby = getLobby(socket);
+      if (!lobby) {
+        console.log(
+          "dropping message because lobby could not be located",
+          socket.id,
+          socket.rooms
+        );
+        return;
+      }
+      lobby.worker.postMessage(data);
+    }
+  });
+
+  socket.on("disconnecting", () => {
+    console.log("socket disconnecting");
+    leaveLobby(socket);
+  });
 });
 
 export default server;

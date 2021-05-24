@@ -188,7 +188,7 @@ update msg model =
             )
 
         ReturnToLobby ->
-            ( model, Cmd.none, Just Page.Lobby )
+            ( model, Message.sendClientMessageLobby Message.NewLobby, Just Page.Lobby )
 
         Noop ->
             ( model, Cmd.none, Nothing )

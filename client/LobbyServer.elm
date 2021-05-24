@@ -40,15 +40,26 @@ onMessage message model =
                     model.playerCount + 1
             in
             ( { model | playerCount = playerCount }
-            , Message.sendServerMessageLobby (Message.PlayerCount playerCount) []
+            , playerCountMessage playerCount
             , playerCount == 4
             )
 
         Message.Disconnect ->
             ( { model | playerCount = model.playerCount - 1 }
-            , Message.sendServerMessageLobby (Message.PlayerCount (model.playerCount - 1)) []
+            , playerCountMessage (model.playerCount - 1)
             , False
             )
+
+        Message.NewLobby ->
+            -- This message is handled by the JavaScript side of the server
+            ( model, Cmd.none, False )
+
+
+playerCountMessage : Int -> Cmd Msg
+playerCountMessage count =
+    Players.order
+        |> List.map (\id -> Message.sendServerMessageLobby (Message.PlayerCount count id) [ id ])
+        |> Cmd.batch
 
 
 subscriptions : Model -> Sub Msg

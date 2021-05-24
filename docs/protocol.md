@@ -1,6 +1,4 @@
-The Helium 3 client and server communicate with JSON over a web socket.
-
-Messages contain as little information as possible -- the server and the client keep their state in sync using a shared state machine.
+The Helium 3 client and server communicate using Socket.IO. The underlying protocol is implemented by Socket.IO. Messages sent over Socket.IO use the following format.
 
 # Types
 
@@ -59,10 +57,13 @@ type ClientAction =
 
 When a client connects to the server, it is placed in the lobby. The server waits for four players to join the lobby, then starts a new game. Games last for a limited number of turns, where each player gets the same number of turns. The server specifies this number in the `game-join` message.
 
+After the game ends, the client must specify it's ready to join a new game with `new-lobby`. `new-lobby` is only needed after the game ends, the client is automatically added to a lobby when the client connects. `new-lobby` does nothing if the client is already in a lobby.
+
 | Sender | Message                                                                                       |
 | ------ | --------------------------------------------------------------------------------------------- |
-| Server | `{ type: 'player-count', count: 1 \| 2 \| 3 }`                                                |
+| Server | `{ type: 'player-count', count: 1 \| 2 \| 3, playerId: PlayerIndex }`                         |
 | Server | `{ type: 'game-join', id: string, position: PlayerIndex, helium: HeliumGrid, turns: number }` |
+| Client | `{ type: 'new-lobby' }`                                                                       |
 
 # Game
 
