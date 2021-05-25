@@ -18,6 +18,9 @@ server.ports.messageOut.subscribe(([data, players]) => {
   } else {
     // send to specific players
     players.forEach((playerId) => {
+      if (!appsByPlayerId[playerId]) {
+        return;
+      }
       appsByPlayerId[playerId].postMessage(
         { ...data, h3: true },
         window.location.origin
