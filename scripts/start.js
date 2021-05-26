@@ -7,7 +7,6 @@ const devServerConfig = require("./lib/webpack-dev-server.config");
 const formatMessage = require("./lib/formatWepbackMessage");
 
 const config = createConfig(null, {});
-config.watch = true;
 const compiler = webpack(config);
 
 const PORT = 8080;
@@ -18,7 +17,11 @@ compiler.hooks.invalid.tap("invalid", () => {
   console.log("Compiling...");
 });
 
-compiler.hooks.done.tap("tap", (stats) => {
+const watching = compiler.watch({}, (err, stats) => {
+  if (err) {
+    console.error(err);
+  }
+
   const statsData = stats.toJson({
     all: false,
     warnings: true,

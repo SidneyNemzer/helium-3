@@ -6,7 +6,7 @@ const chalk = require("chalk");
 
 const friendlySyntaxErrorLabel = "Syntax error:";
 
-function formatMessage(message) {
+function formatMessage({ message }) {
   let lines = message.split("\n");
 
   // Strip webpack-added headers off errors/warnings
