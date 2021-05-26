@@ -26,7 +26,7 @@ module.exports = (env, args) => {
         {
           test: /\.elm$/,
           exclude: [/elm-stuff/, /node_modules/],
-          loader: "elm-webpack-loader",
+          loader: require.resolve("./scripts/lib/elm-webpack-loader"),
           options: {
             cwd: ROOT,
             debug: false,

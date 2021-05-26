@@ -1,12 +1,14 @@
-// Cleans up webpack error messages.
-// Copied from
-// https://github.com/facebook/create-react-app/blob/025f2739ceb459c79a281ddc6e60d7fd7322ca24/packages/react-dev-utils/formatWebpackMessages.js#L18
+const path = require("path");
 
 const chalk = require("chalk");
 
 const friendlySyntaxErrorLabel = "Syntax error:";
 
-function formatMessage({ message }) {
+function formatMessage({ moduleIdentifier, message }) {
+  if (moduleIdentifier.includes("elm-webpack-loader")) {
+    return formatElmMessage(message);
+  }
+
   let lines = message.split("\n");
 
   // Strip webpack-added headers off errors/warnings
@@ -94,5 +96,48 @@ function formatMessage({ message }) {
   message = lines.join("\n");
   return message.trim();
 }
+
+const formatElmMessage = (message) => {
+  const json = message
+    .split("\n")
+    .filter((line) => !/Module [A-z ]+\(from/.test(line));
+
+  const data = JSON.parse(json);
+  if (data.type !== "compile-errors") {
+    return message;
+  }
+
+  return data.errors.map(({ path: path_, problems }) => {
+    return problems
+      .map(({ title, message }) => {
+        return [
+          chalk.inverse(
+            ` ${title} --- ${path.relative(process.cwd(), path_)} `
+          ),
+          message.reduce((message, part) => {
+            let string = "";
+            if (typeof part === "object") {
+              string = part.string;
+              if (part.bold) {
+                string = chalk.bold(string);
+              }
+              if (part.underline) {
+                string = chalk.underline(string);
+              }
+              if (part.color) {
+                string = chalk.keyword(part.color.toLowerCase())(string);
+              }
+            } else {
+              string = part;
+            }
+
+            return message + string;
+          }, ""),
+        ];
+      })
+      .flat()
+      .join("\n");
+  });
+};
 
 module.exports = formatMessage;
