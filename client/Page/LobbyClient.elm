@@ -1,6 +1,7 @@
 module Page.LobbyClient exposing (..)
 
 import Html exposing (Html, div, h1, p, text)
+import Html.Attributes exposing (style)
 import Json.Decode as Decode exposing (Error)
 import Message exposing (ServerMessageLobby)
 import Page exposing (Page)
@@ -9,7 +10,7 @@ import Ports
 
 init : () -> ( Model, Cmd Msg )
 init () =
-    ( { playerCount = 0 }, Cmd.none )
+    ( { playerCount = 1 }, Cmd.none )
 
 
 type alias Model =
@@ -61,24 +62,37 @@ subscriptions model =
 
 view : Model -> Html Msg
 view model =
-    div []
-        [ h1 [] [ text "Lobby" ]
-        , if model.playerCount == 4 then
-            p [] [ text "Four players have joined, starting in a moment.." ]
+    let
+        needed =
+            4 - model.playerCount
 
-          else
-            let
-                needed =
-                    4 - model.playerCount
-            in
-            p []
-                [ text "Waiting for "
-                , text <| String.fromInt needed
-                , text " more player"
-                , if needed /= 1 then
-                    text "s"
+        plural =
+            if needed /= 1 then
+                "s"
 
-                  else
-                    text ""
-                ]
+            else
+                ""
+
+        message =
+            if model.playerCount == 4 then
+                "Four players have joined, starting in a moment.."
+
+            else
+                "Waiting for "
+                    ++ String.fromInt needed
+                    ++ " more player"
+                    ++ plural
+    in
+    div [ style "margin-top" "10%" ]
+        [ h1
+            [ style "text-align" "center"
+            , style "font-size" "35px"
+            ]
+            [ text "HELIUM 3" ]
+        , p
+            [ style "text-align" "center"
+            , style "margin-top" "20px"
+            , style "font-size" "45px"
+            ]
+            [ text message ]
         ]
