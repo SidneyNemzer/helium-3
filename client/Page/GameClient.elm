@@ -607,7 +607,7 @@ view model =
                     text ""
                 ]
             , svg
-                [ style "flex" "6 0"
+                [ style "flex" "4 0"
                 , style "padding" "20px"
                 , viewBox View.Grid.viewBox
                 ]
