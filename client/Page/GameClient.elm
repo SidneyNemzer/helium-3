@@ -544,23 +544,25 @@ subscriptions model =
 
 view : Model -> Html Msg
 view model =
-    div []
+    div [ style "height" "100%" ]
         [ View.Missile.style
         , View.Grid.style
         , View.Shield.style
         , View.ScoreText.style
+        , globalStyles
         , keyframesAppear
         , div
             [ style "display" "flex"
             , style "position" "relative"
+            , style "height" "100%"
             ]
-            [ div [ style "flex-shrink" "0", style "padding" "20px" ]
-                [ div [ style "padding-bottom" "10px" ]
-                    [ text "Remaining Turns: "
+            [ div [ style "flex" "1 0", style "padding" "20px" ]
+                [ viewPlayers model.players model.player
+                , div [ style "margin-bottom" "10px", style "text-align" "center" ]
+                    [ text "Your Remaining Turns: "
                     , text <| String.fromInt model.turns
                     ]
-                , viewPlayers model.players model.player
-                , div []
+                , div [ style "text-align" "center" ]
                     [ text "Current Turn: "
                     , span [ style "color" (Players.color model.turn) ]
                         [ text "Player "
@@ -568,7 +570,7 @@ view model =
                         ]
                     ]
                 , if model.countdownSeconds > 0 then
-                    div []
+                    div [ style "text-align" "center" ]
                         [ text <| String.fromInt model.countdownSeconds
                         ]
 
@@ -576,7 +578,8 @@ view model =
                     text ""
                 ]
             , svg
-                [ style "flex" "1"
+                [ style "flex" "6 0"
+                , style "padding" "20px"
                 , viewBox View.Grid.viewBox
                 ]
                 ([ defs []
@@ -592,6 +595,7 @@ view model =
                     ++ (Dict.values model.robots |> List.map (viewRobot model))
                     ++ [ viewScoreTexts model.scoreAnimations ]
                 )
+            , div [ style "flex" "1" ] []
             , viewActionPicker model.robots model.selectedRobot
             , if model.gameOver then
                 viewGameOver
@@ -599,6 +603,21 @@ view model =
               else
                 text ""
             ]
+        ]
+
+
+globalStyles : Html msg
+globalStyles =
+    Html.node "style"
+        []
+        [ text """
+            html,
+            body,
+            #root {
+                margin: 0;
+                height: 100%;
+            }
+          """
         ]
 
 
@@ -696,19 +715,28 @@ viewPlayers players self =
 
 viewPlayer : Player -> Bool -> Html Msg
 viewPlayer player isSelf =
-    div [ style "padding-bottom" "10px" ]
-        [ div []
-            [ span [ style "color" (Players.color player.id) ]
+    div [ style "margin-bottom" "30px" ]
+        [ div
+            [ style "display" "flex"
+            , style "align-items" "center"
+            , style "font-size" "24px"
+            ]
+            [ span []
                 [ text "Player "
                 , text <| String.fromInt <| Players.toNumber player.id
                 ]
             , if isSelf then
-                text " (you)"
+                span [ style "font-size" "14px" ] [ text " (you)" ]
 
               else
                 text ""
+            , span [ style "flex" "1" ] []
+            , span []
+                [ text "$"
+                , text (String.fromInt player.score)
+                ]
             ]
-        , div [] [ text "$", text (String.fromInt player.score) ]
+        , div [ style "background" (Players.color player.id), style "height" "10px" ] []
         ]
 
 

@@ -35,7 +35,6 @@ view onClick =
               stopPropagationOn "click" onClick.noop
             , style "background" "#3A3A3A"
             , style "border-radius" "5px"
-            , style "width" "150px"
             , style "text-align" "center"
             ]
             [ title
@@ -56,7 +55,7 @@ title =
         [ style "background" "#666666"
         , style "color" "white"
         , style "padding" "4px 0"
-        , style "font-size" "12px"
+        , style "font-size" "20px"
         ]
         [ text "ACTIONS" ]
 
@@ -90,8 +89,8 @@ button label onClick =
             , style "background" "#3A3A3A"
             , style "border" "none"
             , style "color" "white"
-            , style "font-size" "16px"
-            , style "padding" "6px 0"
+            , style "font-size" "25px"
+            , style "padding" "8px 20px"
             , style "cursor" "pointer"
             ]
             [ text label ]
