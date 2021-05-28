@@ -64,7 +64,7 @@ area ((Point x y) as point) radius includeCenter =
                 (List.range (y - radius) (y + radius))
     in
     if includeCenter then
-        points
+        points |> List.filter isInsideGrid
 
     else
         List.Extra.remove point points
