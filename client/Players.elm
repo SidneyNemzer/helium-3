@@ -17,6 +17,9 @@ type alias Players =
 type alias Player =
     { id : PlayerIndex
     , score : Int
+
+    -- A list of robots this player has queued to move, most recent first
+    , queued : List Int
     }
 
 
@@ -38,10 +41,10 @@ order =
 
 init : Players
 init =
-    { player1 = { id = Player1, score = 0 }
-    , player2 = { id = Player2, score = 0 }
-    , player3 = { id = Player3, score = 0 }
-    , player4 = { id = Player4, score = 0 }
+    { player1 = { id = Player1, score = 0, queued = [] }
+    , player2 = { id = Player2, score = 0, queued = [] }
+    , player3 = { id = Player3, score = 0, queued = [] }
+    , player4 = { id = Player4, score = 0, queued = [] }
     }
 
 
@@ -145,6 +148,20 @@ next id =
 others : PlayerIndex -> List PlayerIndex
 others id =
     List.filter ((/=) id) order
+
+
+queueFor : Int -> PlayerIndex -> Players -> Players
+queueFor robotId playerId players =
+    let
+        player =
+            get playerId players
+    in
+    set (queue robotId player) players
+
+
+queue : Int -> Player -> Player
+queue robotId player =
+    { player | queued = robotId :: player.queued }
 
 
 

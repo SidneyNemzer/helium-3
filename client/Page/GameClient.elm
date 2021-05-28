@@ -287,12 +287,41 @@ queueActionAt action id model =
 
 queueAction : ClientAction -> Model -> ( Model, Cmd Msg )
 queueAction action model =
-    ( updateRobot
-        (ClientAction.id action)
-        (Robot.queueAction action)
-        { model | selectedRobot = Nothing }
-    , Message.sendClientMessage <| Message.Queue action
-    )
+    let
+        robotId =
+            ClientAction.id action
+
+        maybeOwner =
+            Dict.get robotId model.robots |> Maybe.map .owner
+    in
+    case maybeOwner of
+        Just owner ->
+            ( { model
+                | selectedRobot = Nothing
+                , players = Players.queueFor robotId owner model.players
+              }
+                |> updateRobot robotId (Robot.queueAction action)
+                |> dropExtraActions owner
+            , Message.sendClientMessage <| Message.Queue action
+            )
+
+        Nothing ->
+            ( model, Cmd.none )
+
+
+dropExtraActions : PlayerIndex -> Model -> Model
+dropExtraActions playerId model =
+    let
+        player =
+            Players.get playerId model.players
+
+        ( queue, robots ) =
+            Robot.queue player.queued model.robots
+    in
+    { model
+        | players = Players.set { player | queued = queue } model.players
+        , robots = robots
+    }
 
 
 onActionRecieved : Model -> List ServerAction -> ( Model, Cmd Msg )
