@@ -18,6 +18,7 @@ type alias GameFlags =
 type Page
     = Lobby
     | Game GameFlags
+    | Error String
 
 
 stay : ( model, msg ) -> ( model, msg, Maybe Page )

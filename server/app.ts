@@ -21,6 +21,21 @@ const io = new Server(server, {
   },
 });
 
+const PROTOCOL_VERSION = "1";
+
+// Reject clients that don't use the same protocol
+io.use((socket, next) => {
+  if (socket.handshake.query["PROTOCOL_VERSION"] === PROTOCOL_VERSION) {
+    next();
+    return;
+  }
+
+  const error = new Error(`PROTOCOL_VERSION_MISMATCH`);
+  // Nonstandard field used by socketio
+  (error as any).data = { expected: PROTOCOL_VERSION };
+  next(error);
+});
+
 type Lobby = {
   id: string;
   worker: Worker;

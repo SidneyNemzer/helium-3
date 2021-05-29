@@ -178,6 +178,9 @@ update msg model =
                 Message.GameEnd ->
                     ( { model | gameOver = True, turns = 0 }, Cmd.none, Nothing )
 
+                Message.GameConnectError error ->
+                    ( model, Cmd.none, Just (Page.Error error) )
+
         OnError err ->
             ( model, Ports.log ("Error: " ++ Json.Decode.errorToString err), Nothing )
 

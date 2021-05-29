@@ -2,7 +2,9 @@ import { io } from "socket.io-client";
 
 import { Elm } from "./Client.elm";
 
-const socket = io("http://localhost:3000");
+const socket = io("http://localhost:3000", {
+  query: { PROTOCOL_VERSION: "1" },
+});
 
 const root = document.getElementById("root");
 const app = Elm.Page.Client.init({ node: root });
@@ -25,7 +27,6 @@ const onBeforeUnload = (e) => {
 
 app.ports.log.subscribe(createLogger("app"));
 app.ports.setPromptOnNavigation.subscribe((shouldPrompt) => {
-  console.log("should prompt", shouldPrompt);
   if (shouldPrompt) {
     window.addEventListener("beforeunload", onBeforeUnload);
   } else {
@@ -38,4 +39,13 @@ window.app = app;
 socket.on("message", (data) => {
   console.debug("server -> client", data);
   app.ports.messageIn.send(data);
+});
+
+socket.on("connect_error", (err) => {
+  console.error("Connect Error:", err);
+  app.ports.messageIn.send({ type: "connect-error", error: err.message });
+
+  if (err.message === "PROTOCOL_VERSION_MISMATCH") {
+    socket.disconnect();
+  }
 });

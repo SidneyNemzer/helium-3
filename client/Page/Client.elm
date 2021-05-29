@@ -3,6 +3,7 @@ module Page.Client exposing (..)
 import Browser
 import Html exposing (Html)
 import Page exposing (Page)
+import Page.ErrorClient as ErrorClient
 import Page.GameClient as GameClient
 import Page.LobbyClient as LobbyClient
 import Ports
@@ -30,6 +31,7 @@ init () =
 type Model
     = Lobby LobbyClient.Model
     | Game GameClient.Model
+    | Error ErrorClient.Model
 
 
 type Msg
@@ -82,6 +84,12 @@ updatePage toMsg toModel msg oldModel updateFn =
                 |> batch cmd
                 |> batch (Ports.setPromptOnNavigation False)
 
+        Just (Page.Error error) ->
+            ErrorClient.init error
+                |> Tuple.mapFirst Error
+                |> batch cmd
+                |> batch (Ports.setPromptOnNavigation False)
+
         Nothing ->
             ( model, cmd )
 
@@ -102,6 +110,9 @@ subscriptions model =
             GameClient.subscriptions m
                 |> Sub.map GameMsg
 
+        Error _ ->
+            Sub.none
+
 
 view : Model -> Html Msg
 view model =
@@ -113,3 +124,6 @@ view model =
         Game m ->
             GameClient.view m
                 |> Html.map GameMsg
+
+        Error m ->
+            ErrorClient.view m

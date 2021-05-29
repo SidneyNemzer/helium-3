@@ -52,6 +52,9 @@ onMessage message model =
         Message.LobbyJoin ->
             ( model, Cmd.none, Nothing )
 
+        Message.ConnectError error ->
+            ( model, Cmd.none, Just (Page.Error error) )
+
 
 subscriptions : Model -> Sub Msg
 subscriptions model =

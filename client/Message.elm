@@ -38,13 +38,17 @@ type ServerMessageLobby
     = PlayerCount Int PlayerIndex -- count, player id
     | GameJoin String PlayerIndex HeliumGrid Int -- game ID, player id, h3, turns
     | LobbyJoin
+    | ConnectError String
 
 
 type ServerMessage
     = Countdown PlayerIndex -- Countdown until turn ends and player will move
     | Actions PlayerIndex (List ServerAction)
     | GameEnd
+      -- These messages may be sent at any time. They are the same as the ones
+      -- in the lobby type, but types can't have the same name.
     | GameLobbyJoin
+    | GameConnectError String
 
 
 sendServerMessage : List PlayerIndex -> ServerMessage -> Cmd msg
@@ -178,6 +182,10 @@ lobbyDecoderWithType messageType =
         "lobby-join" ->
             Decode.succeed LobbyJoin
 
+        "connect-error" ->
+            Decode.succeed ConnectError
+                |> Decode.andMap (Decode.field "error" Decode.string)
+
         _ ->
             Decode.fail <| "Unknown type:" ++ messageType
 
@@ -205,6 +213,10 @@ serverDecoderWithType messageType =
 
         "lobby-join" ->
             Decode.succeed GameLobbyJoin
+
+        "connect-error" ->
+            Decode.succeed GameConnectError
+                |> Decode.andMap (Decode.field "error" Decode.string)
 
         _ ->
             Decode.fail <| "Unknown type:" ++ messageType
@@ -267,6 +279,12 @@ lobbyEncoder message =
         LobbyJoin ->
             Encode.object [ ( "type", Encode.string "lobby-join" ) ]
 
+        ConnectError error ->
+            Encode.object
+                [ ( "type", Encode.string "connect-error" )
+                , ( "error", Encode.string error )
+                ]
+
 
 serverEncoder : ServerMessage -> Value
 serverEncoder message =
@@ -289,3 +307,9 @@ serverEncoder message =
 
         GameLobbyJoin ->
             Encode.object [ ( "type", Encode.string "lobby-join" ) ]
+
+        GameConnectError error ->
+            Encode.object
+                [ ( "type", Encode.string "connect-error" )
+                , ( "error", Encode.string error )
+                ]
