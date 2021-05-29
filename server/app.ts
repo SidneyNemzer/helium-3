@@ -1,6 +1,7 @@
 import express from "express";
 import http from "http";
-import { Server, Socket } from "socket.io";
+import { RemoteSocket, Server, Socket } from "socket.io";
+import { DefaultEventsMap } from "socket.io/dist/typed-events";
 import { v4 as uuidv4 } from "uuid";
 import { Worker } from "worker_threads";
 import * as path from "path";
@@ -61,6 +62,8 @@ const startWorker = (): Lobby => {
       // Game is over, the worker can be removed
       delete lobbies[id];
       worker.terminate();
+
+      removeSocketsFromLobby(id);
     }
   });
 
@@ -82,6 +85,28 @@ const startWorker = (): Lobby => {
 };
 
 let pendingLobby: Lobby = startWorker();
+
+/**
+ * Removes the given socket from lobbies with the given ID. If no ID is
+ * provided, the socket is removed from all lobbies.
+ */
+const leaveLobbyRooms = (
+  socket: RemoteSocket<DefaultEventsMap> | Socket,
+  id?: string
+) => {
+  socket.rooms.forEach((room) => {
+    if (room.startsWith("lobby:")) {
+      socket.leave(room);
+    }
+  });
+};
+
+const removeSocketsFromLobby = async (id: string) => {
+  const sockets = await io.in(`lobby:${id}`).fetchSockets();
+  for (const socket of sockets) {
+    leaveLobbyRooms(socket, id);
+  }
+};
 
 const getLobby = (socket: Socket): Lobby | undefined => {
   const lobbyRoom = Array.from(socket.rooms).find((room) =>
@@ -105,11 +130,7 @@ const leaveLobby = (socket: Socket) => {
   const lobby = getLobby(socket);
 
   // Even if the lobby is not found (the game may have ended), try leaving lobbies
-  socket.rooms.forEach((room) => {
-    if (room.startsWith("lobby:")) {
-      socket.leave(room);
-    }
-  });
+  leaveLobbyRooms(socket);
 
   if (!lobby) {
     return;
