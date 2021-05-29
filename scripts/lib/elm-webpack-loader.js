@@ -1,6 +1,8 @@
 // This file is copied from elm-webpack-loader with some modifications to
 // support nicer errors. Instead of piping to stdout, it emits JSON errors
-// through Webpack. formatWebpackMessages.js processes these errors.
+// through Webpack. formatWebpackMessages.js converts the JSON back to
+// colored terminal output. This prevents the complier errors from being
+// clobbered by webpack or other compiler instances.
 
 "use strict";
 
