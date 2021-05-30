@@ -3,6 +3,7 @@ import { io } from "socket.io-client";
 import { Elm } from "./Client.elm";
 
 const socket = io("http://localhost:3000", {
+  reconnectionAttempts: 5,
   query: { PROTOCOL_VERSION: "1" },
 });
 
