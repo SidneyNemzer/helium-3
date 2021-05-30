@@ -6,16 +6,29 @@ const ROOT = __dirname;
 const SOURCE = "client";
 
 module.exports = (env, args) => {
+  const mode = args.mode || "development";
+  const isDev = mode === "development";
+
   const entries = fs
     .readdirSync(path.resolve(ROOT, SOURCE, "Page"))
-    .filter((name) => name.endsWith(".entry.js"))
-    .map((name) => name.replace(".entry.js", ""));
+    .filter(
+      (name) =>
+        name.endsWith(".entry.js") || (isDev && name.endsWith(".entry.dev.js"))
+    )
+    .map((name) => ({
+      name: name.replace(/\.entry(\.dev)?\.js/, ""),
+      filename: name,
+    }));
 
   return {
-    mode: args.mode || "development",
+    mode,
 
-    entry: entries.reduce((map, name) => {
-      map[name] = path.resolve(ROOT, SOURCE, "Page", name + ".entry.js");
+    output: {
+      path: path.resolve(ROOT, "build", "assets"),
+    },
+
+    entry: entries.reduce((map, { name, filename }) => {
+      map[name] = path.resolve(ROOT, SOURCE, "Page", filename);
       return map;
     }, {}),
 
@@ -32,6 +45,10 @@ module.exports = (env, args) => {
           options: {
             cwd: ROOT,
             debug: false,
+            jsonErrors: isDev,
+            // TODO should be used for production builds, enable when
+            // Debug.todo has been removed
+            optimize: false,
             files: [
               path.resolve(ROOT, SOURCE, "Page/Client.elm"),
               path.resolve(ROOT, SOURCE, "Server.elm"),
@@ -42,7 +59,7 @@ module.exports = (env, args) => {
     },
 
     plugins: entries.map(
-      (name) =>
+      ({ name }) =>
         new HtmlWebpackPlugin({
           filename: name + ".html",
           chunks: [name],

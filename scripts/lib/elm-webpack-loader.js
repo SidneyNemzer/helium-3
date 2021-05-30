@@ -174,8 +174,13 @@ function compile(sources, options) {
         return reject(err);
       }
       options.output = info.path;
-      options.processOpts = { stdio: "pipe" };
-      options.report = "json";
+
+      if (options.jsonErrors) {
+        options.processOpts = { stdio: "pipe" };
+        options.report = "json";
+      } else {
+        options.processOpts = { stdio: "inherit" };
+      }
 
       var compiler;
 
@@ -185,23 +190,26 @@ function compile(sources, options) {
         return reject(compileError);
       }
 
-      compiler.stdout.setEncoding("utf8");
-      compiler.stderr.setEncoding("utf8");
-
       let output = "";
 
-      compiler.stdout.on("data", (data) => {
-        output += data;
-      });
+      if (options.jsonErrors) {
+        compiler.stdout.setEncoding("utf8");
+        compiler.stderr.setEncoding("utf8");
 
-      compiler.stderr.on("data", (data) => {
-        output += data;
-      });
+        compiler.stdout.on("data", (data) => {
+          output += data;
+        });
+
+        compiler.stderr.on("data", (data) => {
+          output += data;
+        });
+      }
 
       compiler.on("close", function (exitCode) {
-        output = output.replace("Compiling ...\r", "");
-        if (exitCode !== 0) {
-          return reject(output);
+        if (exitCode !== 0 && output.jsonErrors) {
+          return reject(output.replace("Compiling ...\r", ""));
+        } else if (exitCode !== 0) {
+          return reject("Compiler exited with an error");
         }
 
         fs.readFile(info.path, { encoding: "utf8" }, function (err, data) {

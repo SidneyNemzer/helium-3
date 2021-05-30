@@ -5,7 +5,7 @@ import {
   WorkerMessageIn,
   WorkerMessageOut,
 } from "./worker-types";
-import { Elm } from "../dist/Server.js";
+import { Elm } from "./Server.js";
 
 const { id } = workerData as WorkerOptions;
 

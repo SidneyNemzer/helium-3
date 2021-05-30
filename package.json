@@ -3,9 +3,10 @@
   "scripts": {
     "start": "node scripts/start.js",
     "start:server": "nodemon server/index.ts",
-    "build:client": "webpack",
-    "build:server-elm": "webpack --config webpack.server.config.js",
-    "build:server": "",
+    "build": "npm run build:server-elm && npm run build:client && npm run build:server",
+    "build:client": "webpack --mode production",
+    "build:server-elm": "webpack --config webpack.server.config.js --mode production",
+    "build:server": "tsc",
     "format": "prettier -w --ignore-unknown .",
     "test": "elm-test"
   },

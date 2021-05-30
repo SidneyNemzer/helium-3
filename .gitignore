@@ -1,5 +1,5 @@
 node_modules
 elm-stuff
-dist
-
+server/Server.js
+build
 old

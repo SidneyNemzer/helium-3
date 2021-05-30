@@ -9,6 +9,7 @@ module.exports = (env, args) => ({
   entry: path.resolve(ROOT, SOURCE, "Server.entry.js"),
 
   output: {
+    path: path.resolve(ROOT, "server"),
     libraryTarget: "module",
     filename: "Server.js",
   },
@@ -26,6 +27,9 @@ module.exports = (env, args) => ({
         exclude: [/elm-stuff/, /node_modules/],
         loader: require.resolve("./scripts/lib/elm-webpack-loader"),
         options: {
+          // TODO should be used for production builds, enable when
+          // Debug.todo has been removed
+          optimize: false,
           cwd: ROOT,
           debug: false,
         },
