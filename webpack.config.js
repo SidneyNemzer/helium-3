@@ -24,6 +24,8 @@ module.exports = (env, args) => {
       noParse: /\.elm$/,
       rules: [
         {
+          // TODO the elm compiler runs twice because two different files
+          // import elm modules
           test: /\.elm$/,
           exclude: [/elm-stuff/, /node_modules/],
           loader: require.resolve("./scripts/lib/elm-webpack-loader"),
