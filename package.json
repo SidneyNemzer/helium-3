@@ -7,7 +7,7 @@
     "build:server-elm": "webpack --config webpack.server.config.js",
     "build:server": "",
     "format": "prettier -w --ignore-unknown .",
-    "test": "elm-test",
+    "test": "elm-test"
   },
   "devDependencies": {
     "@types/express": "^4.17.12",
