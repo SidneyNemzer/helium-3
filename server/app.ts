@@ -12,16 +12,25 @@ import {
   WorkerMessageOut,
 } from "./worker-types";
 
+const PROTOCOL_VERSION = "1";
+
 const app = express();
+
+if (process.env.NODE_ENV === "production") {
+  // In development, webpack-dev-server serves the static assets
+  app.use(express.static(path.resolve(__dirname, "assets")));
+}
+
 const server = http.createServer(app);
 const io = new Server(server, {
-  cors: {
-    origin: "http://localhost:8080",
-    methods: ["GET", "POST"],
-  },
+  cors:
+    process.env.NODE_ENV === "production"
+      ? {}
+      : {
+          origin: "http://localhost:8080",
+          methods: ["GET", "POST"],
+        },
 });
-
-const PROTOCOL_VERSION = "1";
 
 // Reject clients that don't use the same protocol
 io.use((socket, next) => {
