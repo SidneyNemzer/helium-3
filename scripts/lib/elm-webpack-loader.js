@@ -166,7 +166,7 @@ module.exports = function () {
 
 // this was called compileToString
 // - altered to log output to console instead to retain formatting
-function compile(sources, options) {
+function compile(sources, { jsonErrors, ...options }) {
   var suffix = getSuffix(options.output, ".js");
   return new Promise(function (resolve, reject) {
     temp.open({ suffix: suffix }, function (err, info) {
@@ -175,7 +175,7 @@ function compile(sources, options) {
       }
       options.output = info.path;
 
-      if (options.jsonErrors) {
+      if (jsonErrors) {
         options.processOpts = { stdio: "pipe" };
         options.report = "json";
       } else {
@@ -192,7 +192,7 @@ function compile(sources, options) {
 
       let output = "";
 
-      if (options.jsonErrors) {
+      if (jsonErrors) {
         compiler.stdout.setEncoding("utf8");
         compiler.stderr.setEncoding("utf8");
 
