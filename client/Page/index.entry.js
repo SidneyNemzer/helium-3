@@ -2,9 +2,9 @@ import { io } from "socket.io-client";
 
 import { Elm } from "./Client.elm";
 
-const socket = io("http://localhost:3000", {
+const socket = io(process.env.SOCKET_IO_URL, {
   reconnectionAttempts: 5,
-  query: { PROTOCOL_VERSION: "1" },
+  query: { PROTOCOL_VERSION: process.env.PROTOCOL_VERSION },
 });
 
 const root = document.getElementById("root");

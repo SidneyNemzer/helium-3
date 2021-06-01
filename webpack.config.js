@@ -1,13 +1,44 @@
 const fs = require("fs");
 const path = require("path");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
+const webpack = require("webpack");
 
 const ROOT = __dirname;
 const SOURCE = "client";
 
-module.exports = (env, args) => {
+const environments = {
+  development: {
+    SOCKET_IO_URL: "http://localhost:3000",
+    PROTOCOL_VERSION: "1",
+  },
+  production: {
+    SOCKET_IO_URL: "/",
+    PROTOCOL_VERSION: "1",
+  },
+};
+
+module.exports = (_, args) => {
   const mode = args.mode || "development";
+
+  if (!environments[mode]) {
+    console.error("Invalid mode:", mode);
+    console.error("Expected one of:", Object.keys(environments).join(", "));
+    process.exit(1);
+  }
+
   const isDev = mode === "development";
+  const env = environments[mode];
+  const processedEnv = Object.entries(env)
+    .map(([key, value]) => ({
+      key: `process.env.${key}`,
+      value: JSON.stringify(value),
+    }))
+    .reduce((obj, { key, value }) => {
+      obj[key] = value;
+      return obj;
+    }, {});
+
+  console.log(processedEnv);
 
   const entries = fs
     .readdirSync(path.resolve(ROOT, SOURCE, "Page"))
@@ -58,13 +89,16 @@ module.exports = (env, args) => {
       ],
     },
 
-    plugins: entries.map(
-      ({ name }) =>
-        new HtmlWebpackPlugin({
-          filename: name + ".html",
-          chunks: [name],
-          template: path.resolve(ROOT, SOURCE, "Page", name + ".html"),
-        })
-    ),
+    plugins: [
+      new webpack.DefinePlugin(processedEnv),
+      ...entries.map(
+        ({ name }) =>
+          new HtmlWebpackPlugin({
+            filename: name + ".html",
+            chunks: [name],
+            template: path.resolve(ROOT, SOURCE, "Page", name + ".html"),
+          })
+      ),
+    ],
   };
 };
