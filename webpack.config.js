@@ -38,8 +38,6 @@ module.exports = (_, args) => {
       return obj;
     }, {});
 
-  console.log(processedEnv);
-
   const entries = fs
     .readdirSync(path.resolve(ROOT, SOURCE, "Page"))
     .filter(
