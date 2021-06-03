@@ -3,7 +3,7 @@ module RobotTests exposing (suite)
 import Dict exposing (Dict)
 import Expect
 import Players exposing (PlayerIndex(..))
-import Point
+import Point exposing (Point)
 import Robot exposing (Robot)
 import Test exposing (..)
 
@@ -24,68 +24,58 @@ setAction index fn =
     Dict.update index (Maybe.map fn)
 
 
+origin : Point
+origin =
+    Point.fromXY 0 0
+
+
 suite : Test
 suite =
     describe "Robot"
-        [ describe "queue"
-            [ test "does nothing for empty queues" <|
+        [ describe "unqueueAction"
+            [ test "does nothing for destroyed robots" <|
                 \_ ->
                     let
-                        robots =
-                            initRobots
-                                |> setAction 1 (Robot.queueMine (Point.fromXY 2 0))
-                                |> setAction 2 (Robot.queueMine (Point.fromXY 2 0))
+                        robot =
+                            { id = 1
+                            , location = origin
+                            , rotation = 0
+                            , mined = 0
+                            , state = Robot.Destroyed
+                            , owner = Player1
+                            }
                     in
-                    Robot.queue [] robots
-                        |> Expect.equal ( [], robots )
-            , test "does nothing when one robot is queued" <|
+                    Robot.unqueueAction robot
+                        |> Expect.equal robot
+            , test "keeps the same tool" <|
                 \_ ->
                     let
-                        robots =
-                            initRobots
-                                |> setAction 1 (Robot.queueMine (Point.fromXY 2 0))
-                                |> setAction 2 (Robot.queueMine (Point.fromXY 2 0))
+                        robot =
+                            { id = 1
+                            , location = origin
+                            , rotation = 0
+                            , mined = 0
+                            , state = Robot.FireMissile origin False
+                            , owner = Player1
+                            }
                     in
-                    Robot.queue [ 1 ] robots
-                        |> Expect.equal ( [ 1 ], robots )
-            , test "does nothing when two robots are queued" <|
+                    Robot.unqueueAction robot
+                        |> .state
+                        |> Expect.equal (Robot.Idle (Just Robot.ToolMissile))
+            , test "sets the robot to idle" <|
                 \_ ->
                     let
-                        robots =
-                            initRobots
-                                |> setAction 1 (Robot.queueMine (Point.fromXY 2 0))
-                                |> setAction 2 (Robot.queueMine (Point.fromXY 2 0))
+                        robot =
+                            { id = 1
+                            , location = origin
+                            , rotation = 0
+                            , mined = 0
+                            , state = Robot.MoveWithTool { pending = Nothing, current = Nothing, target = origin }
+                            , owner = Player1
+                            }
                     in
-                    Robot.queue [ 1, 2 ] robots
-                        |> Expect.equal ( [ 1, 2 ], robots )
-            , test "resets last robot when three are queued" <|
-                \_ ->
-                    let
-                        expected =
-                            initRobots
-                                |> setAction 1 (Robot.queueMine (Point.fromXY 2 0))
-                                |> setAction 2 (Robot.queueMine (Point.fromXY 2 0))
-
-                        robots =
-                            expected
-                                |> setAction 3 (Robot.queueMine (Point.fromXY 2 0))
-                    in
-                    Robot.queue [ 1, 2, 3 ] robots
-                        |> Expect.equal ( [ 1, 2 ], expected )
-            , test "resets all but first two robots when more than three are queued" <|
-                \_ ->
-                    let
-                        expected =
-                            initRobots
-                                |> setAction 1 (Robot.queueMine (Point.fromXY 2 0))
-                                |> setAction 2 (Robot.queueMine (Point.fromXY 2 0))
-
-                        robots =
-                            expected
-                                |> setAction 3 (Robot.queueMine (Point.fromXY 2 0))
-                                |> setAction 4 (Robot.queueMine (Point.fromXY 2 0))
-                    in
-                    Robot.queue [ 1, 2, 3, 4 ] robots
-                        |> Expect.equal ( [ 1, 2 ], expected )
+                    Robot.unqueueAction robot
+                        |> .state
+                        |> Expect.equal (Robot.Idle Nothing)
             ]
         ]

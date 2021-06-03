@@ -4,6 +4,7 @@ import Array
 import ClientAction exposing (ClientAction(..))
 import Dict exposing (Dict)
 import Effect exposing (Effect(..), Timeline)
+import Game
 import HeliumGrid exposing (HeliumGrid)
 import Html exposing (Html, button, div, span, text)
 import Html.Attributes exposing (style)
@@ -165,7 +166,7 @@ update msg model =
         OnServerMessage message ->
             case message of
                 Message.Actions player actions ->
-                    onActionRecieved model actions
+                    onActionRecieved player model actions
                         |> Page.stay
 
                 Message.Countdown player ->
@@ -290,67 +291,36 @@ queueActionAt action id model =
 
 queueAction : ClientAction -> Model -> ( Model, Cmd Msg )
 queueAction action model =
-    let
-        robotId =
-            ClientAction.id action
-
-        maybeOwner =
-            Dict.get robotId model.robots |> Maybe.map .owner
-    in
-    case maybeOwner of
-        Just owner ->
-            ( { model
-                | selectedRobot = Nothing
-                , players = Players.queueFor robotId owner model.players
-              }
-                |> updateRobot robotId (Robot.queueAction action)
-                |> dropExtraActions owner
-            , Message.sendClientMessage <| Message.Queue action
-            )
-
-        Nothing ->
-            ( model, Cmd.none )
+    ( Game.queue action { model | selectedRobot = Nothing }
+    , Message.sendClientMessage <| Message.Queue action
+    )
 
 
-dropExtraActions : PlayerIndex -> Model -> Model
-dropExtraActions playerId model =
-    let
-        player =
-            Players.get playerId model.players
+onActionRecieved : PlayerIndex -> Model -> List ServerAction -> ( Model, Cmd Msg )
+onActionRecieved playerId model actions =
+    animate <|
+        Game.clearQueue playerId <|
+            { model
+                | countdownSeconds = 0
+                , turns =
+                    if model.turn == model.player then
+                        model.turns - 1
 
-        ( queue, robots ) =
-            Robot.queue player.queued model.robots
-    in
-    { model
-        | players = Players.set { player | queued = queue } model.players
-        , robots = robots
-    }
+                    else
+                        model.turns
+                , timeline =
+                    List.foldl
+                        (\action timeline ->
+                            case Dict.get (ServerAction.id action) model.robots of
+                                Just robot ->
+                                    Effect.fromServer action robot ++ timeline
 
-
-onActionRecieved : Model -> List ServerAction -> ( Model, Cmd Msg )
-onActionRecieved model actions =
-    animate
-        { model
-            | countdownSeconds = 0
-            , turns =
-                if model.turn == model.player then
-                    model.turns - 1
-
-                else
-                    model.turns
-            , timeline =
-                List.foldl
-                    (\action timeline ->
-                        case Dict.get (ServerAction.id action) model.robots of
-                            Just robot ->
-                                Effect.fromServer action robot ++ timeline
-
-                            Nothing ->
-                                timeline
-                    )
-                    []
-                    actions
-        }
+                                Nothing ->
+                                    timeline
+                        )
+                        []
+                        actions
+            }
 
 
 startCountdown : PlayerIndex -> Model -> ( Model, Cmd Msg )

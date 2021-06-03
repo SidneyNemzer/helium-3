@@ -1,8 +1,8 @@
 module GameServer exposing (..)
 
-import ClientAction exposing (ClientAction)
 import Dict exposing (Dict)
 import Effect exposing (Effect(..), Timeline)
+import Game
 import HeliumGrid exposing (HeliumGrid)
 import Json.Decode as Decode exposing (Error)
 import Maybe.Extra
@@ -84,7 +84,7 @@ update msg model =
         OnClientMessage message ->
             case message of
                 Message.Queue action ->
-                    onActionReceived action model
+                    ( Game.queue action model, Cmd.none )
 
         DecodeError error ->
             ( model, Ports.log (Decode.errorToString error) )
@@ -104,7 +104,7 @@ update msg model =
                                 |> Message.Actions model.turn
                                 |> Message.sendServerMessage [ player ]
                     in
-                    ( { newModel | timer = Turn }
+                    ( { newModel | timer = Turn } |> Game.clearQueue model.turn
                     , Cmd.batch
                         [ sleep (toFloat wait) Timer
                         , Players.order
@@ -115,44 +115,6 @@ update msg model =
 
                 Turn ->
                     onTurnEnd model
-
-
-onActionReceived : ClientAction -> Model -> ( Model, Cmd Msg )
-onActionReceived action model =
-    let
-        robotId =
-            ClientAction.id action
-
-        maybeOwner =
-            Dict.get robotId model.robots |> Maybe.map .owner
-    in
-    case maybeOwner of
-        Just owner ->
-            ( { model
-                | players = Players.queueFor robotId owner model.players
-              }
-                |> updateRobot robotId (Robot.queueAction action)
-                |> dropExtraActions owner
-            , Cmd.none
-            )
-
-        Nothing ->
-            ( model, Cmd.none )
-
-
-dropExtraActions : PlayerIndex -> Model -> Model
-dropExtraActions playerId model =
-    let
-        player =
-            Players.get playerId model.players
-
-        ( queue, robots ) =
-            Robot.queue player.queued model.robots
-    in
-    { model
-        | players = Players.set { player | queued = queue } model.players
-        , robots = robots
-    }
 
 
 performTurn : Robot -> ( Model, Int, List ServerAction ) -> ( Model, Int, List ServerAction )

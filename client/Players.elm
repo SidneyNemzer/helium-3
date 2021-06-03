@@ -161,7 +161,21 @@ queueFor robotId playerId players =
 
 queue : Int -> Player -> Player
 queue robotId player =
-    { player | queued = robotId :: player.queued }
+    { player | queued = robotId :: List.filter ((/=) robotId) player.queued }
+
+
+clearQueueFor : PlayerIndex -> Players -> Players
+clearQueueFor playerId players =
+    let
+        player =
+            get playerId players
+    in
+    set (clearQueue player) players
+
+
+clearQueue : Player -> Player
+clearQueue player =
+    { player | queued = [] }
 
 
 

@@ -83,25 +83,13 @@ init id point owner rotation =
     }
 
 
-queue : List Int -> Dict Int Robot -> ( List Int, Dict Int Robot )
-queue queued robots =
-    case queued of
-        first :: second :: third :: rest ->
-            queue
-                (first :: second :: rest)
-                (Dict.update
-                    third
-                    (Maybe.map unqueueAction)
-                    robots
-                )
-
-        _ ->
-            ( queued, robots )
-
-
 unqueueAction : Robot -> Robot
 unqueueAction robot =
-    { robot | state = Idle (getTool robot) }
+    if robot.state == Destroyed then
+        robot
+
+    else
+        { robot | state = Idle (getTool robot) }
 
 
 move : Maybe Tool -> Point -> Robot -> Robot
