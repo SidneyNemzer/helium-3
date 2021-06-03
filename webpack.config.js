@@ -9,11 +9,11 @@ const SOURCE = "client";
 const environments = {
   development: {
     SOCKET_IO_URL: "http://localhost:3000",
-    PROTOCOL_VERSION: "1",
+    PROTOCOL_VERSION: "2",
   },
   production: {
     SOCKET_IO_URL: "/",
-    PROTOCOL_VERSION: "1",
+    PROTOCOL_VERSION: "2",
   },
 };
 

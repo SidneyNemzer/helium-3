@@ -12,7 +12,7 @@ import {
   WorkerMessageOut,
 } from "./worker-types";
 
-const PROTOCOL_VERSION = "1";
+const PROTOCOL_VERSION = "2";
 
 const app = express();
 
