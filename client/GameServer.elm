@@ -124,7 +124,7 @@ performTurn robot ( model, wait1, actions ) =
             animate (Effect.fromRobot robot) 0 model
     in
     ( newModel
-    , max wait1 wait2
+    , wait1 + wait2
     , List.append actions <|
         Maybe.Extra.toList <|
             Robot.toServerAction model.robots robot
