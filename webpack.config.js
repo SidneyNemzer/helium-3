@@ -80,8 +80,8 @@ module.exports = (_, args) => {
             optimize: false,
             files: [
               path.resolve(ROOT, SOURCE, "Page/Client.elm"),
-              path.resolve(ROOT, SOURCE, "Server.elm"),
-            ],
+              isDev && path.resolve(ROOT, SOURCE, "Server.elm"),
+            ].filter(Boolean),
           },
         },
       ],
