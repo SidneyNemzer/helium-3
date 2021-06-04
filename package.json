@@ -7,6 +7,7 @@
     "build:client": "webpack --mode production",
     "build:server-elm": "webpack --config webpack.server.config.js --mode production",
     "build:server": "tsc",
+    "deploy": "npm run build && ts-node ./scripts/deploy.ts",
     "format": "prettier -w --ignore-unknown .",
     "test": "elm-test"
   },
@@ -16,6 +17,7 @@
     "@types/uuid": "^8.3.0",
     "ava": "^3.15.0",
     "chalk": "^4.1.1",
+    "dotenv": "^10.0.0",
     "elm": "^0.19.1-5",
     "elm-format": "^0.8.5",
     "elm-test": "^0.19.1-revision4",

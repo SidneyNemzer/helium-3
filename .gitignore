@@ -3,3 +3,4 @@ elm-stuff
 server/Server.js
 build
 old
+.env*
