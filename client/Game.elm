@@ -34,7 +34,7 @@ queue action game =
     in
     { game
         | robots =
-            Dict.update robotId (Maybe.map (Robot.queueAction action)) game.robots
+            Dict.update robotId (Maybe.map (Robot.queue action)) game.robots
         , players = players
     }
         |> unqueueExtra
@@ -76,4 +76,4 @@ splitQueued robots =
 
 unqueue : Int -> Game model -> Game model
 unqueue robotId game =
-    { game | robots = Dict.update robotId (Maybe.map Robot.unqueueAction) game.robots }
+    { game | robots = Dict.update robotId (Maybe.map Robot.unqueue) game.robots }

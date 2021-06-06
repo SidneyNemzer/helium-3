@@ -83,8 +83,8 @@ init id point owner rotation =
     }
 
 
-unqueueAction : Robot -> Robot
-unqueueAction robot =
+unqueue : Robot -> Robot
+unqueue robot =
     if robot.state == Destroyed then
         robot
 
@@ -302,13 +302,11 @@ removeShield robot =
     }
 
 
-{-| Robot will preform the given action on the next turn.
-
-Note that ID is ignored. Maybe ID should not be part of the `ClientAction` type?
-
+{-| Robot will preform the given action on the next turn. Note that the ID
+of the action is ignored.
 -}
-queueAction : ClientAction -> Robot -> Robot
-queueAction action =
+queue : ClientAction -> Robot -> Robot
+queue action =
     case action of
         ClientAction.FireMissile _ target ->
             setState (FireMissile target False)
@@ -395,9 +393,15 @@ setRotation rotation robot =
     { robot | rotation = rotation }
 
 
+{-| Changes the state of the robot, if it has not been destroyed
+-}
 setState : State -> Robot -> Robot
 setState state robot =
-    { robot | state = state }
+    if robot.state == Destroyed then
+        robot
+
+    else
+        { robot | state = state }
 
 
 setMinerActive : Robot -> Robot
