@@ -21,8 +21,8 @@ import Ports
 import Process
 import Robot exposing (Robot, Tool(..))
 import ServerAction exposing (ServerAction)
-import Svg exposing (Svg, defs, g, rect, svg)
-import Svg.Attributes exposing (color, fill, height, stroke, viewBox, width, x, y)
+import Svg exposing (Svg, defs, g, svg)
+import Svg.Attributes exposing (viewBox)
 import Task
 import View.Grid
 import View.Miner
@@ -75,7 +75,7 @@ type Selection
 
 init : Flags -> ( Model, Cmd Msg )
 init { player, helium, turns } =
-    ( { robots = Robot.initAll
+    ( { robots = Game.initRobots
       , timeline = []
       , selectedRobot = Nothing
       , helium = helium
@@ -534,7 +534,7 @@ createScoreAnimation point amount model =
 
 
 subscriptions : Model -> Sub Msg
-subscriptions model =
+subscriptions _ =
     Sub.batch
         [ Message.receiveServerMessage OnServerMessage OnError
         ]

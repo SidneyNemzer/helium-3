@@ -119,7 +119,7 @@ highlightClickable onClickMsg point =
             ]
     in
     { highlight =
-        rect ([ stroke "#487CFF" ] ++ baseAttrs) []
+        rect (stroke "#487CFF" :: baseAttrs) []
     , hover =
         rect
             ([ stroke "black"

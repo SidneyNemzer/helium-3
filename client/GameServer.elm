@@ -50,7 +50,7 @@ init { seed } =
                 |> Random.step HeliumGrid.generator
                 |> Tuple.first
     in
-    ( { robots = Robot.initAll
+    ( { robots = Game.initRobots
       , helium = helium
       , players = Players.init
       , turn = Player1
