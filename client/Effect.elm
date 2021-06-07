@@ -109,7 +109,8 @@ moveWithTool robot target tool =
 mine : Robot -> Point -> Timeline
 mine robot target =
     batch
-        [ move robot target
+        [ setIdle robot Nothing
+        , move robot target
         , [ SetMinerActive robot.id
           , MineAt robot.id target
           , Wait 1000
