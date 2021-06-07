@@ -49,9 +49,8 @@ const main = async () => {
   copyFile("package-lock.json");
   copyFile("pm2.yaml");
   copyDirectory(BUILD_DIRECTORY);
-  // TODO npm i --production
-  // TODO restart server
-  //  NODE_ENV=production PORT=80 node ./build
+  execRemoteSync("npm", ["i", "--production"]);
+  execRemoteSync("npx", ["pm2", "restart", "./pm2.yaml"]);
 };
 
 const copyFile = (...parts: string[]) => {
@@ -86,10 +85,18 @@ const execSync = (command: string, args: string[]) => {
     console.log(command, args.join(" "));
     return;
   }
+
   childProcess.execFileSync(command, args, {
     encoding: "utf8",
     stdio: "inherit",
   });
+};
+
+const execRemoteSync = (command: string, args: string[]) => {
+  execSync("ssh", [
+    `${process.env.SERVER_USERNAME}@${process.env.SERVER_IP}`,
+    `cd ${process.env.SERVER_DIRECTORY} && ${command} ${args.join(" ")}`,
+  ]);
 };
 
 main().catch((e) => {

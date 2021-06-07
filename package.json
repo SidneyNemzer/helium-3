@@ -36,6 +36,7 @@
   "dependencies": {
     "express": "^4.17.1",
     "io-ts": "^2.2.16",
+    "pm2": "^4.5.6",
     "socket.io": "^4.1.2",
     "socket.io-client": "^4.1.2",
     "uuid": "^8.3.2"
