@@ -92,6 +92,9 @@ const execSync = (command: string, args: string[]) => {
   });
 };
 
+/**
+ * Executes a command on the server in the SERVER_DIRECTORY
+ */
 const execRemoteSync = (command: string, args: string[]) => {
   execSync("ssh", [
     `${process.env.SERVER_USERNAME}@${process.env.SERVER_IP}`,
