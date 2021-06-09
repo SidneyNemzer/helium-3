@@ -206,7 +206,7 @@ function compile(sources, { jsonErrors, ...options }) {
       }
 
       compiler.on("close", function (exitCode) {
-        if (exitCode !== 0 && output.jsonErrors) {
+        if (exitCode !== 0 && jsonErrors) {
           return reject(output.replace("Compiling ...\r", ""));
         } else if (exitCode !== 0) {
           return reject("Compiler exited with an error");

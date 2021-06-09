@@ -102,7 +102,12 @@ const formatElmMessage = (message) => {
     .split("\n")
     .filter((line) => !/Module [A-z ]+\(from/.test(line));
 
-  const data = JSON.parse(json);
+  let data;
+  try {
+    data = JSON.parse(json);
+  } catch (error) {
+    return ["Error parsing JSON", "", message, "", error.stack].join("\n");
+  }
   if (data.type !== "compile-errors") {
     return message;
   }

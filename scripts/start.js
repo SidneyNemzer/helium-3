@@ -17,30 +17,34 @@ compiler.hooks.invalid.tap("invalid", () => {
 });
 
 compiler.hooks.done.tap("done", (stats) => {
-  printSeparator();
+  try {
+    printSeparator();
 
-  const statsData = stats.toJson({
-    all: false,
-    warnings: true,
-    errors: true,
-  });
+    const statsData = stats.toJson({
+      all: false,
+      warnings: true,
+      errors: true,
+    });
 
-  if (statsData.errors.length) {
-    console.log(
-      Array.from(new Set(statsData.errors.map(formatMessage))).join("\n\n") +
-        "\n\n" +
-        chalk.red("Failed to compile.") +
-        "\n"
-    );
-  } else if (statsData.warnings.length) {
-    console.log(chalk.yellow("Compiled with warnings.\n"));
-    console.log();
-    console.log(statsData.warnings.map(formatMessage).join("\n\n"));
-  } else {
-    console.log(chalk.green("Success!\n"));
+    if (statsData.errors.length) {
+      console.log(
+        Array.from(new Set(statsData.errors.map(formatMessage))).join("\n\n") +
+          "\n\n" +
+          chalk.red("Failed to compile.") +
+          "\n"
+      );
+    } else if (statsData.warnings.length) {
+      console.log(chalk.yellow("Compiled with warnings.\n"));
+      console.log();
+      console.log(statsData.warnings.map(formatMessage).join("\n\n"));
+    } else {
+      console.log(chalk.green("Success!\n"));
+    }
+
+    printPages();
+  } catch (error) {
+    console.error(error);
   }
-
-  printPages();
 });
 
 const devServer = new WebpackDevServer(compiler, devServerConfig);
