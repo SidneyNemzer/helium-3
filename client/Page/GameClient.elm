@@ -584,19 +584,18 @@ view model =
                 , style "padding" "20px"
                 , viewBox View.Grid.viewBox
                 ]
-                ([ defs []
+                [ defs []
                     [ View.Robot.def
                     , View.Missile.def
                     , View.Shield.def
                     , View.Miner.def
                     ]
-                 , View.Grid.grid
-                 , viewHeliumGrid model.helium
-                 , viewSelection model
-                 ]
-                    ++ (Dict.values model.robots |> List.map (viewRobot model))
-                    ++ [ viewScoreTexts model.scoreAnimations ]
-                )
+                , View.Grid.grid
+                , viewHeliumGrid model.helium
+                , viewSelection model
+                , viewRobots model
+                , viewScoreTexts model.scoreAnimations
+                ]
             , div [ style "flex" "1" ] []
             , viewActionPicker model.robots model.selectedRobot
             , if model.gameOver then
@@ -775,8 +774,25 @@ viewSelectionHelp ( selection, robot ) =
             text ""
 
 
-viewRobot : Model -> Robot -> Svg Msg
-viewRobot model robot =
+viewRobots : Model -> Svg Msg
+viewRobots model =
+    Dict.values model.robots
+        |> List.foldl (viewRobot model) ( [], [] )
+        |> concatTuple
+        |> g []
+
+
+concatTuple : ( List a, List a ) -> List a
+concatTuple ( a, b ) =
+    List.append a b
+
+
+type alias TargetsAndRobots =
+    ( List (Svg Msg), List (Svg Msg) )
+
+
+viewRobot : Model -> Robot -> TargetsAndRobots -> TargetsAndRobots
+viewRobot model robot ( targets, robots ) =
     let
         robotSvg =
             View.Robot.use
@@ -808,18 +824,19 @@ viewRobot model robot =
                 []
     in
     if robot.state == Robot.Destroyed then
-        text ""
+        ( targets, robots )
 
     else
-        g []
-            [ g [] targetSvg
-            , g (onMouseUp (ClickRobot robot.id) :: cursor) <|
-                List.concat
-                    [ [ robotSvg ]
-                    , toolSvg
-                    , [ viewMiner robot ]
-                    ]
-            ]
+        ( g [] targetSvg :: targets
+        , (g (onMouseUp (ClickRobot robot.id) :: cursor) <|
+            List.concat
+                [ [ robotSvg ]
+                , toolSvg
+                , [ viewMiner robot ]
+                ]
+          )
+            :: robots
+        )
 
 
 viewTool : Robot -> Robot.Tool -> Svg msg
