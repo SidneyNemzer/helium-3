@@ -8,7 +8,7 @@ import Game
 import HeliumGrid exposing (HeliumGrid)
 import Html exposing (Html, button, div, span, text)
 import Html.Attributes exposing (style)
-import Html.Events exposing (onClick)
+import Html.Events exposing (onClick, onMouseUp)
 import Json.Decode exposing (Error)
 import List
 import Matrix
@@ -813,7 +813,7 @@ viewRobot model robot =
     else
         g []
             [ g [] targetSvg
-            , g (onClick (ClickRobot robot.id) :: cursor) <|
+            , g (onMouseUp (ClickRobot robot.id) :: cursor) <|
                 List.concat
                     [ [ robotSvg ]
                     , toolSvg
