@@ -4,3 +4,9 @@ server/Server.js
 build
 old
 .env*
+
+.terraform
+*.tfstate*
+*.tfvars
+
+hosts.yaml

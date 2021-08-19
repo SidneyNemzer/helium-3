@@ -1,0 +1,104 @@
+---
+- hosts: all
+  become: yes
+
+  vars:
+    app_location: /opt/helium3/
+    node_version: 16
+
+  handlers:
+    - name: restart ssh
+      service: name=sshd state=restarted
+
+    - name: restart fail2ban
+      service: name=fail2ban state=restarted
+
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+
+    - name: Install UFW
+      apt:
+        name: ufw
+        state: present
+
+    - name: Set UFW defaults
+      community.general.ufw:
+        default: "{{ item.action }}"
+        direction: "{{ item.direction }}"
+      with_items:
+        - { action: "deny", direction: "incoming" }
+        - { action: "allow", direction: "outgoing" }
+
+    - name: Allow SSH and HTTP traffic
+      community.general.ufw:
+        rule: "{{ item.rule }}"
+        port: "{{ item.port }}"
+      with_items:
+        - { rule: "allow", port: "ssh" }
+        - { rule: "allow", port: "http" }
+
+    - name: Enable UFW
+      community.general.ufw:
+        state: enabled
+
+    - name: Secure SSH
+      lineinfile:
+        dest: /etc/ssh/sshd_config
+        regexp: "^PasswordAuthentication"
+        line: "PasswordAuthentication no"
+      notify: restart ssh
+
+    - name: Install Fail2ban
+      apt:
+        name: fail2ban
+        state: present
+
+    - name: Configure Fail2ban
+      copy:
+        dest: /etc/fail2ban/jail.local
+        content: |
+          [DEAFULT]
+
+          bantime=24h
+          maxretry=3
+      notify: restart fail2ban
+
+    - name: Ensure Fail2ban is running and enabled on boot
+      service:
+        name: fail2ban
+        state: started
+        enabled: yes
+
+    - name: Check for Nodejs
+      command: which node
+      register: nodejs_installed
+      ignore_errors: yes
+
+    - name: Download Nodejs installer
+      get_url:
+        url: "https://deb.nodesource.com/setup_{{ node_version }}.x"
+        dest: /tmp/nodejs_installer.sh
+        mode: "u+rwx"
+      when: nodejs_installed.rc != 0
+      register: nodejs_download
+
+    - name: Run Nodejs install script
+      shell: /tmp/nodejs_installer.sh
+      when: nodejs_download.changed
+
+    - name: Remove Nodejs installer
+      file:
+        path: /tmp/nodejs_installer.sh
+        state: absent
+
+    - name: Install Nodejs
+      apt:
+        name: nodejs
+        state: present
+
+    - name: Ensure app folder exists
+      file:
+        path: "{{ app_location }}"
+        state: directory
