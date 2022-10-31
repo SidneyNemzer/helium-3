@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState, useRef } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { DomEvent } from "@react-three/fiber/dist/declarations/src/core/events";
 import { OrbitControls, useGLTF } from "@react-three/drei";
 import {
   Camera,
@@ -23,8 +22,8 @@ import {
   useChain,
   useSpringRef,
 } from "@react-spring/three";
-
-import roverGlbUrl from "./rover.glb";
+import Rover from "./Rover";
+import { ThreeEventHandler } from "./types/three";
 
 const BACKGROUND_COLOR = new Color("#1f1f1f");
 const GROUND_COLOR = new Color("#8d8d8d");
@@ -143,7 +142,6 @@ export const App = () => {
         // leading to inconsistent colors.
         legacy
       >
-        {/* <Animator /> */}
         {/* TODO orbitcontrols change initial camera rotation */}
         <OrbitControls enableDamping enablePan enableZoom />
         <Effects outline={outline} />
@@ -154,14 +152,14 @@ export const App = () => {
             <meshBasicMaterial color={GROUND_COLOR} />
           </mesh>
           <gridHelper args={[20, 20, GRID_COLOR, GRID_COLOR]} />
-
-          <animated.group position={position} rotation-y={rotation}>
-            <Rover
-              onClick={handleClick}
-              onPointerOver={handlePointerOver}
-              onPointerOut={handlePointerOut}
-            />
-          </animated.group>
+          {/* @ts-expect-error Type instantiation is excessively deep and possibly infinite.ts(2589) */}
+          <Rover
+            position={position}
+            rotationY={rotation}
+            onClick={handleClick}
+            onPointerOver={handlePointerOver}
+            onPointerOut={handlePointerOut}
+          />
         </animated.group>
         <ambientLight color="white" intensity={0.5} />
         <directionalLight color="white" intensity={0.8} />
@@ -222,29 +220,6 @@ const Effects: React.FC<{ outline: Object3D[] }> = ({ outline }) => {
   }, 1);
 
   return null;
-};
-
-type ThreeEvent = DomEvent & {
-  object: Object3D;
-};
-
-type ThreeEventHandler = (event: ThreeEvent) => void;
-
-const Rover: React.FC<{
-  onClick: ThreeEventHandler;
-  onPointerOver: ThreeEventHandler;
-  onPointerOut: ThreeEventHandler;
-}> = ({ onClick, onPointerOver, onPointerOut }) => {
-  const roverGlb = useGLTF(roverGlbUrl);
-
-  return (
-    <primitive
-      onClick={onClick}
-      onPointerOver={onPointerOver}
-      onPointerOut={onPointerOut}
-      object={roverGlb.scene}
-    />
-  );
 };
 
 const globalStyles = css`
