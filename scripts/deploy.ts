@@ -29,7 +29,7 @@ const BUILD_DIRECTORY = "build";
 
 const EXPECTED_ENV = ["SERVER_IP", "SERVER_USERNAME", "SERVER_DIRECTORY"];
 
-const missingEnv = [];
+const missingEnv: string[] = [];
 for (const name of EXPECTED_ENV) {
   if (!process.env[name]) {
     missingEnv.push(name);

@@ -18,13 +18,17 @@ $ npm start
 
 ## Creating Server
 
-```
-$ terraform init
-$ terraform apply
-```
+Requires Terraform and Ansible installed locally
+
+1. Create `terraform/terraform.tfvars` with `linode_token` (from, you know,
+   Linode). Include `private_key_path` and `public_key_path` if the defaults
+   aren't correct.
+2. ```
+   $ terraform init
+   $ terraform apply
+   ```
 
 ## Deploying
 
-```
-$ npm run deploy
-```
+1. Create `.env.deploy` with SERVER_IP, SERVER_USERNAME, and SERVER_DIRECTORY
+2. `npm run deploy`

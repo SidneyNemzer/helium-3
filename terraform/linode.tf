@@ -28,10 +28,12 @@ variable "linode_token" {
 
 variable "private_key_path" {
   type = string
+  default = "~/.ssh/id_rsa"
 }
 
 variable "public_key_path" {
   type = string
+  default = "~/.ssh/id_rsa.pub"
 }
 
 resource "linode_instance" "server" {
@@ -44,7 +46,7 @@ resource "linode_instance" "server" {
   root_pass        = random_password.server_password.result
 
   provisioner "remote-exec" {
-    inline = ["sudo apt update", "sudo apt install python3 -y"]
+    inline = ["apt update", "apt install python3 -y"]
 
     connection {
       host        = self.ip_address
