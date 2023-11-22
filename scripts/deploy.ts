@@ -50,7 +50,13 @@ const main = async () => {
   copyFile("pm2.yaml");
   copyDirectory(BUILD_DIRECTORY);
   execRemoteSync("npm", ["i", "--production"]);
-  execRemoteSync("npx", ["pm2", "restart", "./pm2.yaml"]);
+  execRemoteSync("npx", [
+    "pm2",
+    "restart",
+    "./pm2.yaml",
+    "--env",
+    "production",
+  ]);
 };
 
 const copyFile = (...parts: string[]) => {
