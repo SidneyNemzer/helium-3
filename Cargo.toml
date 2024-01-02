@@ -19,8 +19,6 @@ opt-level = 3
 
 [[example]]
 name = "3d"
-path = "example/3d/main.rs"
 
 [[example]]
 name = "terrain"
-path = "example/terrain/main.rs"

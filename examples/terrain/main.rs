@@ -23,7 +23,7 @@ fn main() {
 
 const LENGTH: usize = 100;
 
-fn setup(
+pub fn setup(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
@@ -44,7 +44,7 @@ fn setup(
     for x in 0..LENGTH {
         for z in 0..LENGTH {
             let index = x * LENGTH + z;
-            let height: f32 = rng.gen_range(0.0..2.0);
+            let height: f32 = rng.gen_range(0.0..1.0);
             vertices[index] = [x as f32, height, z as f32];
         }
     }
