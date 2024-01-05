@@ -15,7 +15,7 @@ fn main() {
         .add_systems(Startup, setup)
         .add_systems(Update, (camera_controls, wireframe_controls))
         .insert_resource(WireframeConfig {
-            global: true,
+            global: false,
             default_color: Color::WHITE,
         })
         .run();
@@ -76,7 +76,7 @@ pub fn setup(
         mesh: meshes.add(mesh),
         material: materials.add(Color::RED.into()),
         transform: Transform::from_xyz(0.0, 0.0, 0.0),
-        ..Default::default()
+        ..default()
     },));
 
     // Transform for the camera and lighting, looking at (0,0,0) (the position of the mesh).
