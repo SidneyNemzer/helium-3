@@ -1,3 +1,5 @@
+use std::ops::Range;
+
 use bevy::{
     pbr::wireframe::{WireframeConfig, WireframePlugin},
     prelude::*,
@@ -7,6 +9,31 @@ use bevy::{
     },
 };
 use rand::{self, Rng};
+
+struct GeneratorSettings {
+    side_length: usize,
+    num_small_craters: usize,
+    num_large_craters: usize,
+
+    small_crater_radius: Range<f32>,
+    small_crater_depth: f32,
+    large_crater_radius: Range<f32>,
+    large_crater_depth: f32,
+}
+
+impl Default for GeneratorSettings {
+    fn default() -> Self {
+        Self {
+            side_length: 100,
+            num_small_craters: 5,
+            num_large_craters: 2,
+            small_crater_radius: 2.0..5.0,
+            small_crater_depth: 10.0,
+            large_crater_radius: 10.0..20.0,
+            large_crater_depth: 10.0,
+        }
+    }
+}
 
 fn main() {
     App::new()
@@ -39,13 +66,63 @@ pub fn setup(
     vertices.resize(vertex_count, [0.0f32, 0.0f32, 0.0f32]);
     normals.resize(vertex_count, [0.0f32, 1.0f32, 0.0f32]);
 
-    let mut rng = rand::thread_rng();
+    let sea_level = 0;
+
+    struct Crater {
+        x: f32,
+        z: f32,
+        radius: f32,
+        depth: f32,
+    }
+
+    impl Crater {
+        fn new<'a, 'b>(
+            x: Range<usize>,
+            z: Range<usize>,
+            radius: Range<f32>,
+            depth: f32,
+            // mut rng: ThreadRng<'a>,
+        ) -> Self {
+            let mut rng = rand::thread_rng();
+            Self {
+                x: rng.gen_range(x) as f32,
+                z: rng.gen_range(z) as f32,
+                radius: rng.gen_range(radius),
+                depth,
+            }
+        }
+    }
+
+    let craters = vec![
+        // Large
+        Crater::new(0..LENGTH, 0..LENGTH, 10.0..20.0, 10.0),
+        Crater::new(0..LENGTH, 0..LENGTH, 10.0..20.0, 10.0),
+        // Small
+        Crater::new(0..LENGTH, 0..LENGTH, 2.0..5.0, 10.0),
+        Crater::new(0..LENGTH, 0..LENGTH, 2.0..5.0, 10.0),
+        Crater::new(0..LENGTH, 0..LENGTH, 2.0..5.0, 10.0),
+        Crater::new(0..LENGTH, 0..LENGTH, 2.0..5.0, 10.0),
+        Crater::new(0..LENGTH, 0..LENGTH, 2.0..5.0, 10.0),
+    ];
 
     for x in 0..LENGTH {
         for z in 0..LENGTH {
-            let index = x * LENGTH + z;
-            let height: f32 = rng.gen_range(0.0..1.0);
-            vertices[index] = [x as f32, height, z as f32];
+            vertices[x * LENGTH + z] = [x as f32, sea_level as f32, z as f32];
+
+            for Crater {
+                x: cx,
+                z: cz,
+                radius,
+                depth,
+            } in &craters
+            {
+                let distance = ((x as f32 - *cx).powf(2.0) + (z as f32 - *cz).powf(2.0)).sqrt();
+                if distance < *radius as f32 {
+                    let height = (((distance + radius) * (distance - radius)) as f32) / depth;
+                    vertices[x * LENGTH + z] =
+                        [x as f32, height.min(vertices[x * LENGTH + z][1]), z as f32];
+                }
+            }
         }
     }
 
