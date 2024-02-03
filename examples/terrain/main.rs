@@ -8,8 +8,18 @@ use bevy::{
         render_resource::PrimitiveTopology,
     },
 };
+use bevy_inspector_egui::{
+    inspector_options::ReflectInspectorOptions,
+    quick::{ResourceInspectorPlugin, WorldInspectorPlugin},
+    InspectorOptions,
+};
 use rand::{self, Rng};
 
+#[derive(Component)]
+struct Ground;
+
+#[derive(Reflect, Resource, InspectorOptions)]
+#[reflect(Resource, InspectorOptions)]
 struct GeneratorSettings {
     side_length: usize,
     num_small_craters: usize,
@@ -39,12 +49,18 @@ fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
         .add_plugins(WireframePlugin)
+        .add_plugins(WorldInspectorPlugin::new())
+        .add_plugins(ResourceInspectorPlugin::<GeneratorSettings>::default())
         .add_systems(Startup, setup)
-        .add_systems(Update, (camera_controls, wireframe_controls))
+        .add_systems(
+            Update,
+            (camera_controls, wireframe_controls, regenerate_ground),
+        )
         .insert_resource(WireframeConfig {
             global: false,
             default_color: Color::WHITE,
         })
+        .insert_resource(GeneratorSettings::default())
         .run();
 }
 
@@ -55,6 +71,41 @@ pub fn setup(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
+    let mesh = create_ground_mesh();
+
+    commands.spawn((
+        Ground,
+        PbrBundle {
+            mesh: meshes.add(mesh),
+            material: materials.add(Color::RED.into()),
+            transform: Transform::from_xyz(0.0, 0.0, 0.0),
+            ..Default::default()
+        },
+    ));
+
+    // Transform for the camera and lighting, looking at (0,0,0) (the position of the mesh).
+    let camera_and_light_transform =
+        Transform::from_xyz(-1.8, 1.8, -1.8).looking_at(Vec3::ZERO, Vec3::Y);
+
+    // Camera in 3D space.
+    commands.spawn(Camera3dBundle {
+        transform: camera_and_light_transform,
+        ..default()
+    });
+
+    // Light up the scene.
+    commands.spawn(PointLightBundle {
+        point_light: PointLight {
+            intensity: 1000.0,
+            range: 1000.0,
+            ..default()
+        },
+        transform: Transform::from_xyz(50.0, 10.0, 50.0),
+        ..default()
+    });
+}
+
+pub fn create_ground_mesh() -> bevy::prelude::Mesh {
     let mut mesh = Mesh::new(PrimitiveTopology::TriangleList);
 
     let mut vertices: Vec<[f32; 3]> = Vec::new();
@@ -149,33 +200,33 @@ pub fn setup(
     );
     mesh.set_indices(Some(Indices::U32(indices)));
 
-    commands.spawn((PbrBundle {
-        mesh: meshes.add(mesh),
-        material: materials.add(Color::RED.into()),
-        transform: Transform::from_xyz(0.0, 0.0, 0.0),
-        ..default()
-    },));
+    mesh
+}
 
-    // Transform for the camera and lighting, looking at (0,0,0) (the position of the mesh).
-    let camera_and_light_transform =
-        Transform::from_xyz(-1.8, 1.8, -1.8).looking_at(Vec3::ZERO, Vec3::Y);
+fn regenerate_ground(
+    settings: Res<GeneratorSettings>,
+    mut ground: Query<Entity, With<Ground>>,
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
+) {
+    if !settings.is_changed() {
+        return;
+    }
 
-    // Camera in 3D space.
-    commands.spawn(Camera3dBundle {
-        transform: camera_and_light_transform,
-        ..default()
-    });
+    commands.entity(ground.get_single().unwrap()).despawn();
 
-    // Light up the scene.
-    commands.spawn(PointLightBundle {
-        point_light: PointLight {
-            intensity: 1000.0,
-            range: 1000.0,
-            ..default()
+    let mesh = create_ground_mesh();
+
+    commands.spawn((
+        Ground,
+        PbrBundle {
+            mesh: meshes.add(mesh),
+            material: materials.add(Color::RED.into()),
+            transform: Transform::from_xyz(0.0, 0.0, 0.0),
+            ..Default::default()
         },
-        transform: Transform::from_xyz(50.0, 10.0, 50.0),
-        ..default()
-    });
+    ));
 }
 
 pub fn camera_controls(
